@@ -1,12 +1,15 @@
-# README #
+# CHITRAC SERVER README #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+Readme for the chitrac-server repository for Chicago Dryer.
+
+Author: Robert T Ivaniszyn II
+
+©2024
 
 ### What is this repository for? ###
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+* This repository contains everything needed to run a Chitrac Server which encapsulates both the ChiTracAPI back end (fed by data from the ChiNet Datafeed) and ChiTracNG front end.
+* Current Version - 1.0.a
 
 ### How do I get set up? ###
 
@@ -25,5 +28,5 @@ This README would normally document whatever steps are necessary to get your app
 
 ### Who do I talk to? ###
 
-* Repo owner or admin
+* Owner: Robert T Ivaniszyn II
 * Other community or team contact
