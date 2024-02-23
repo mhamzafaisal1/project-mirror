@@ -52,7 +52,6 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 9090;
 const routes = require('./routes');
-logger.info('here');
 
 /** Catch uncaught exceptions/errors and log them */
 process.on('uncaughtException', error => {
