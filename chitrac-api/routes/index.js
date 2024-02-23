@@ -601,6 +601,11 @@ function init(app, appRoot, db) {
             }
         });
     });
+
+    // Catch all other routes and return the index file
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(appRoot, 'ng/browser/index.html'));
+    });
 }
 
 module.exports = {
