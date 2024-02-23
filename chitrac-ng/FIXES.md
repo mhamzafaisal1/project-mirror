@@ -1,0 +1,1 @@
+FIX for '.form-floating>~label -> Did not expect successive traversals.': https://mdbootstrap.com/support/angular/angular-12-production-build-warning-mdb4-12/
