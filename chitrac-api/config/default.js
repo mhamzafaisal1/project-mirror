@@ -13,5 +13,9 @@ module.exports = {
     'mongo': {
     	'url': 'mongodb://212.212.212.215:27017',
     	'db': 'chitrac'
+    },
+    'mongoLog': {
+        url: 'mongodb://212.212.212.215:27017',
+        db: 'chitrac-logging'
     }
 }

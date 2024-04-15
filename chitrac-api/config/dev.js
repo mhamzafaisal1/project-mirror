@@ -1,8 +1,7 @@
 module.exports = {
     'api': {
-        'port': 8080
+        'port': 90
     },
-    'date': '2019-01-17',
     'sql': {
         'server': 'DevSrv',
         'port': 50799,
@@ -12,7 +11,11 @@ module.exports = {
         'requestTimeout': 30000
     },
     'mongo': {
-    	'url': 'mongodb://212.212.212.215:27017',
+        'url': 'mongodb://212.212.212.215:27017',
     	'db': 'chitrac'
+    },
+    'mongoLog': {
+        url: 'mongodb://212.212.212.215:27017',
+        db: 'chitrac-logging'
     }
 }
