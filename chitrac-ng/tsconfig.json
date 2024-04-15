@@ -22,7 +22,8 @@
     "lib": [
       "ES2022",
       "dom"
-    ]
+    ],
+    "strictPropertyInitialization": false //RTI II 02-23-24 Added to fix compiler error
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
