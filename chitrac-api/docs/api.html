@@ -1081,13 +1081,217 @@ body .markdown-body
 <p>If a route specification ends with &ldquo;?xml&rdquo;, that route has data also available via XML/DataFusion format.</p>
 <hr />
 <h2 id="available-routes">Available Routes<a class="headerlink" href="#available-routes" title="Permanent link"></a></h2>
+<p><a href="#apisoftrolleveloneall">/api/softrol/levelone/all</a></p>
+<p><a href="#apisoftrolleveloneallxml">/api/softrol/levelone/all/xml</a></p>
 <p><a href="#apimachinestatusserialnumberxml">/api/machine/status/:serialNumber/?xml</a></p>
 <p><a href="#apimachinesconfigxml">/api/machines/config/?xml</a></p>
 <p><a href="#apioperatorsconfigxml">/api/operators/config/?xml</a></p>
 <p><a href="#itemsconfigxml">/api/items/config/?xml</a></p>
-<p><a href="#apimachineleveloneserialnumberxml">/api/machine/levelone/:serialNumber/xml</a></p>
 <p><a href="#apimachineleveltwoserialnumberxml">/api/machine/leveltwo/:serialNumber/xml</a></p>
 <h2 id="machine-routes">Machine Routes<a class="headerlink" href="#machine-routes" title="Permanent link"></a></h2>
+<h3 id="apisoftrolleveloneall">/api/softrol/levelone/all/<a class="headerlink" href="#apisoftrolleveloneall" title="Permanent link"></a></h3>
+<p>Data Format:
+<div class="highlight"><pre>&quot;machineInfo&quot;:
+{
+    &quot;serial&quot;:63520,                 Machine serial number
+    &quot;name&quot;:&quot;Flipper 1&quot;              Machine name
+},
+&quot;fault&quot;:                            Fault will only display if the current status is a fault, otherwise will be empty
+{
+    &quot;code&quot;:3,                       Unique ID code for fault type
+    &quot;name&quot;:&quot;Stop&quot;                   Name for the current fault type
+},
+&quot;status&quot;:
+{
+    &quot;code&quot;:3,                       Unique ID code for status type
+    &quot;name&quot;:&quot;Stop&quot;                   Name for the current status type
+},
+&quot;timeOnTask&quot;:360,                   Time on task in seconds for machine
+&quot;totalCount&quot;:216,                   Total piece count for machine
+&quot;efficiency&quot;:86.52,                 Efficiency across all operators
+&quot;operators&quot;:[
+{
+    &quot;id&quot;:117811,                    Operator ID
+    &quot;name&quot;:&quot;Shaun White&quot;,           Operator full name
+    &quot;pace&quot;:600,                     Operator pace in pieces per hour
+    &quot;timeOnTask&quot;:360,               Time on task in seconds for operator
+    &quot;count&quot;:60,                     Total piece count
+    &quot;efficiency&quot;:96,                Operator efficiency in percent | efficiency = pace / standard
+    &quot;station&quot;:1,                    Current station for operator
+    &quot;tasks&quot;: [{                     Current item(s) operator is running
+        &quot;name&quot;:&quot;Pool Towel&quot;,        
+        &quot;standard&quot;:625
+    }]
+}, {
+    &quot;id&quot;:118347,
+    &quot;name&quot;:&quot;Hannah Teter&quot;,
+    &quot;pace&quot;:613,
+    &quot;timeOnTask&quot;:360,
+    &quot;count&quot;:61,
+    &quot;efficiency&quot;:98.08,
+    &quot;station&quot;:2,
+    &quot;tasks&quot;: [{                     
+        &quot;name&quot;:&quot;Bath Towel&quot;,        
+        &quot;standard&quot;:625
+    }]
+}, {
+    &quot;id&quot;:119277,
+    &quot;name&quot;:&quot;Torah Bright&quot;,
+    &quot;pace&quot;:407,
+    &quot;timeOnTask&quot;:360,
+    &quot;count&quot;:41,
+    &quot;efficiency&quot;:65.12,
+    &quot;station&quot;:3,
+    &quot;tasks&quot;: [{                     
+        &quot;name&quot;:&quot;Pool Towel&quot;,        
+        &quot;standard&quot;:625
+    }]
+}, {
+    &quot;id&quot;:159375,
+    &quot;name&quot;:&quot;Jeremy Jones&quot;,
+    &quot;pace&quot;:543,
+    &quot;timeOnTask&quot;:360,
+    &quot;count&quot;:54,
+    &quot;efficiency&quot;:86.88,
+    &quot;station&quot;:4,
+    &quot;tasks&quot;: [{                     
+        &quot;name&quot;:&quot;Bath Towel&quot;,        
+        &quot;standard&quot;:625
+    }]
+}],
+&quot;tasks&quot;:[
+{
+    &quot;id&quot;:4,                         Item/task unique ID
+    &quot;name&quot;:&quot;Pool Towel&quot;,            Item/task name
+    &quot;standard&quot;:625,                 Item/task pace standard in pieces per hour
+    &quot;count&quot;:600                     Item count
+}, {
+    &quot;id&quot;:5,
+    &quot;name&quot;:&quot;Bath Towel&quot;,
+    &quot;standard&quot;:625,
+    &quot;count&quot;:61
+}, {
+    &quot;id&quot;:4,
+    &quot;name&quot;:&quot;Pool Towel&quot;,
+    &quot;standard&quot;:625,
+    &quot;count&quot;:41
+}, {
+    &quot;id&quot;:5,
+    &quot;name&quot;:&quot;Bath Towel&quot;,
+    &quot;standard&quot;:625,
+    &quot;count&quot;:54
+}]
+</pre></div></p>
+<h3 id="apisoftrolleveloneallxml">/api/softrol/levelone/all/xml<a class="headerlink" href="#apisoftrolleveloneallxml" title="Permanent link"></a></h3>
+<p>Data Format:
+<div class="highlight"><pre>&lt;levelone&gt;
+    &lt;machine&gt;
+        &lt;machineInfo&gt;
+            &lt;serial&gt;63520&lt;/serial&gt;                      Machine serial number
+            &lt;name&gt;Flipper 1&lt;/name&gt;                      Machine name
+        &lt;/machineInfo&gt;
+        &lt;fault&gt;
+            &lt;code&gt;3&lt;/code&gt;                              Unique ID code for fault type
+            &lt;name&gt;Stop&lt;/name&gt;                           Name for the current fault type
+        &lt;/fault&gt;                                        Fault will only display if the current status is a fault, otherwise will be empty
+        &lt;status&gt;
+            &lt;code&gt;3&lt;/code&gt;                              Unique ID code for status type
+            &lt;name&gt;Stop&lt;/name&gt;                           Name for the current status type
+        &lt;/status&gt;
+        &lt;timeOnTask&gt;360&lt;/timeOnTask&gt;                    Time on task in seconds for machine
+        &lt;totalCount&gt;216&lt;/totalCount&gt;                    Total piece count for machine
+        &lt;efficiency&gt;86.52&lt;/efficiency&gt;                  Efficiency across all operators
+        &lt;operators&gt;
+            &lt;operator&gt;
+                &lt;id&gt;117811&lt;/id&gt;                         Operator ID
+                &lt;name&gt;Shaun White&lt;/name&gt;                Operator full name
+                &lt;pace&gt;600&lt;/pace&gt;                        Operator pace in pieces per hour
+                &lt;timeOnTask&gt;360&lt;/timeOnTask&gt;            Time on task in seconds
+                &lt;count&gt;60&lt;/count&gt;                       Total piece count
+                &lt;efficiency&gt;96&lt;/efficiency&gt;             Operator efficiency in percent | efficiency = pace / standard
+                &lt;station&gt;1&lt;/station&gt;                    Current Station for operator
+                &lt;tasks&gt;
+                    &lt;task&gt;                              Current item(s) operator is running
+                        &lt;name&gt;Pool Towel&lt;/name&gt;
+                        &lt;standard&gt;625&lt;/standard&gt;
+                    &lt;/task&gt;
+                &lt;/tasks&gt;
+            &lt;/operator&gt;
+            &lt;operator&gt;
+                &lt;id&gt;118347&lt;/id&gt;
+                &lt;name&gt;Hannah Teter&lt;/name&gt;
+                &lt;pace&gt;613&lt;/pace&gt;
+                &lt;timeOnTask&gt;360&lt;/timeOnTask&gt;
+                &lt;count&gt;61&lt;/count&gt;
+                &lt;efficiency&gt;98.08&lt;/efficiency&gt;
+                &lt;station&gt;2&lt;/station&gt;
+                &lt;tasks&gt;
+                    &lt;task&gt;
+                        &lt;name&gt;Pool Towel&lt;/name&gt;
+                        &lt;standard&gt;625&lt;/standard&gt;
+                    &lt;/task&gt;
+                &lt;/tasks&gt;
+            &lt;/operator&gt;
+            &lt;operator&gt;
+                &lt;id&gt;119277&lt;/id&gt;
+                &lt;name&gt;Torah Bright&lt;/name&gt;
+                &lt;pace&gt;407&lt;/pace&gt;
+                &lt;timeOnTask&gt;360&lt;/timeOnTask&gt;
+                &lt;count&gt;41&lt;/count&gt;
+                &lt;efficiency&gt;65.12&lt;/efficiency&gt;
+                &lt;station&gt;3&lt;/station&gt;
+                &lt;tasks&gt;
+                    &lt;task&gt;
+                        &lt;name&gt;Pool Towel&lt;/name&gt;
+                        &lt;standard&gt;625&lt;/standard&gt;
+                    &lt;/task&gt;
+                &lt;/tasks&gt;
+            &lt;/operator&gt;
+            &lt;operator&gt;
+                &lt;id&gt;159375&lt;/id&gt;
+                &lt;name&gt;Jeremy Jones&lt;/name&gt;
+                &lt;pace&gt;543&lt;/pace&gt;
+                &lt;timeOnTask&gt;360&lt;/timeOnTask&gt;
+                &lt;count&gt;54&lt;/count&gt;
+                &lt;efficiency&gt;86.88&lt;/efficiency&gt;
+                &lt;station&gt;4&lt;/station&gt;
+                &lt;tasks&gt;
+                    &lt;task&gt;
+                        &lt;name&gt;Pool Towel&lt;/name&gt;
+                        &lt;standard&gt;625&lt;/standard&gt;
+                    &lt;/task&gt;
+                &lt;/tasks&gt;
+            &lt;/operator&gt;
+        &lt;/operators&gt;
+        &lt;tasks&gt;
+            &lt;task&gt;
+                &lt;id&gt;4&lt;/id&gt;                              Item/task unique ID
+                &lt;name&gt;Pool Towel&lt;/name&gt;                 Item/task name
+                &lt;standard&gt;625&lt;/standard&gt;                Item/task pace standard in pieces per hour
+                &lt;count&gt;60&lt;/count&gt;                       Item count
+            &lt;/task&gt;
+            &lt;task&gt;
+                &lt;id&gt;5&lt;/id&gt;
+                &lt;name&gt;Bath Towel&lt;/name&gt;
+                &lt;standard&gt;625&lt;/standard&gt;
+                &lt;count&gt;61&lt;/count&gt;
+            &lt;/task&gt;
+            &lt;task&gt;
+                &lt;id&gt;4&lt;/id&gt;
+                &lt;name&gt;Pool Towel&lt;/name&gt;
+                &lt;standard&gt;625&lt;/standard&gt;
+                &lt;count&gt;41&lt;/count&gt;
+            &lt;/task&gt;
+            &lt;task&gt;
+                &lt;id&gt;5&lt;/id&gt;
+                &lt;name&gt;Bath Towel&lt;/name&gt;
+                &lt;standard&gt;625&lt;/standard&gt;
+                &lt;count&gt;54&lt;/count&gt;
+            &lt;/task&gt;
+        &lt;/tasks&gt;
+    &lt;/machine&gt;
+&lt;/levelone&gt;
+</pre></div></p>
 <h3 id="apimachinestatusserialnumberxml">/api/machine/status/:serialNumber/?xml<a class="headerlink" href="#apimachinestatusserialnumberxml" title="Permanent link"></a></h3>
 <p>This route provides live status information for a machine.</p>
 <table>

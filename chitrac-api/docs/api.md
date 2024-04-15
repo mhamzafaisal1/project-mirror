@@ -8,6 +8,10 @@ If a route specification ends with "?xml", that route has data also available vi
 
 ##Available Routes
 
+[/api/softrol/levelone/all](#apisoftrolleveloneall)
+
+[/api/softrol/levelone/all/xml](#apisoftrolleveloneallxml)
+
 [/api/machine/status/:serialNumber/?xml](#apimachinestatusserialnumberxml)
 
 [/api/machines/config/?xml](#apimachinesconfigxml)
@@ -16,11 +20,218 @@ If a route specification ends with "?xml", that route has data also available vi
 
 [/api/items/config/?xml](#itemsconfigxml)
 
-[/api/machine/levelone/:serialNumber/xml](#apimachineleveloneserialnumberxml)
-
 [/api/machine/leveltwo/:serialNumber/xml](#apimachineleveltwoserialnumberxml)
 
 ##Machine Routes
+
+###/api/softrol/levelone/all/
+
+Data Format:
+```
+"machineInfo":
+{
+	"serial":63520,					Machine serial number
+	"name":"Flipper 1"				Machine name
+},
+"fault":							Fault will only display if the current status is a fault, otherwise will be empty
+{
+	"code":3,						Unique ID code for fault type
+	"name":"Stop"					Name for the current fault type
+},
+"status":
+{
+	"code":3,						Unique ID code for status type
+	"name":"Stop"					Name for the current status type
+},
+"timeOnTask":360,					Time on task in seconds for machine
+"totalCount":216,					Total piece count for machine
+"efficiency":86.52,					Efficiency across all operators
+"operators":[
+{
+	"id":117811,					Operator ID
+	"name":"Shaun White",			Operator full name
+	"pace":600,						Operator pace in pieces per hour
+	"timeOnTask":360,				Time on task in seconds for operator
+	"count":60,						Total piece count
+	"efficiency":96,				Operator efficiency in percent | efficiency = pace / standard
+	"station":1,					Current station for operator
+	"tasks": [{						Current item(s) operator is running
+		"name":"Pool Towel",		
+		"standard":625
+	}]
+}, {
+	"id":118347,
+	"name":"Hannah Teter",
+	"pace":613,
+	"timeOnTask":360,
+	"count":61,
+	"efficiency":98.08,
+	"station":2,
+	"tasks": [{						
+		"name":"Bath Towel",		
+		"standard":625
+	}]
+}, {
+	"id":119277,
+	"name":"Torah Bright",
+	"pace":407,
+	"timeOnTask":360,
+	"count":41,
+	"efficiency":65.12,
+	"station":3,
+	"tasks": [{						
+		"name":"Pool Towel",		
+		"standard":625
+	}]
+}, {
+	"id":159375,
+	"name":"Jeremy Jones",
+	"pace":543,
+	"timeOnTask":360,
+	"count":54,
+	"efficiency":86.88,
+	"station":4,
+	"tasks": [{						
+		"name":"Bath Towel",		
+		"standard":625
+	}]
+}],
+"tasks":[
+{
+	"id":4,							Item/task unique ID
+	"name":"Pool Towel",			Item/task name
+	"standard":625,					Item/task pace standard in pieces per hour
+	"count":600						Item count
+}, {
+	"id":5,
+	"name":"Bath Towel",
+	"standard":625,
+	"count":61
+}, {
+	"id":4,
+	"name":"Pool Towel",
+	"standard":625,
+	"count":41
+}, {
+	"id":5,
+	"name":"Bath Towel",
+	"standard":625,
+	"count":54
+}]
+```
+
+###/api/softrol/levelone/all/xml
+
+Data Format:
+```
+<levelone>
+	<machine>
+		<machineInfo>
+			<serial>63520</serial> 						Machine serial number
+			<name>Flipper 1</name> 						Machine name
+		</machineInfo>
+		<fault>
+			<code>3</code>								Unique ID code for fault type
+			<name>Stop</name>							Name for the current fault type
+		</fault>										Fault will only display if the current status is a fault, otherwise will be empty
+		<status>
+			<code>3</code>								Unique ID code for status type
+			<name>Stop</name>							Name for the current status type
+		</status>
+		<timeOnTask>360</timeOnTask>					Time on task in seconds for machine
+		<totalCount>216</totalCount>					Total piece count for machine
+		<efficiency>86.52</efficiency>					Efficiency across all operators
+		<operators>
+			<operator>
+				<id>117811</id>							Operator ID
+				<name>Shaun White</name>				Operator full name
+				<pace>600</pace>						Operator pace in pieces per hour
+				<timeOnTask>360</timeOnTask>			Time on task in seconds
+				<count>60</count>						Total piece count
+				<efficiency>96</efficiency>				Operator efficiency in percent | efficiency = pace / standard
+				<station>1</station>					Current Station for operator
+				<tasks>
+					<task>								Current item(s) operator is running
+						<name>Pool Towel</name>
+						<standard>625</standard>
+					</task>
+				</tasks>
+			</operator>
+			<operator>
+				<id>118347</id>
+				<name>Hannah Teter</name>
+				<pace>613</pace>
+				<timeOnTask>360</timeOnTask>
+				<count>61</count>
+				<efficiency>98.08</efficiency>
+				<station>2</station>
+				<tasks>
+					<task>
+						<name>Pool Towel</name>
+						<standard>625</standard>
+					</task>
+				</tasks>
+			</operator>
+			<operator>
+				<id>119277</id>
+				<name>Torah Bright</name>
+				<pace>407</pace>
+				<timeOnTask>360</timeOnTask>
+				<count>41</count>
+				<efficiency>65.12</efficiency>
+				<station>3</station>
+				<tasks>
+					<task>
+						<name>Pool Towel</name>
+						<standard>625</standard>
+					</task>
+				</tasks>
+			</operator>
+			<operator>
+				<id>159375</id>
+				<name>Jeremy Jones</name>
+				<pace>543</pace>
+				<timeOnTask>360</timeOnTask>
+				<count>54</count>
+				<efficiency>86.88</efficiency>
+				<station>4</station>
+				<tasks>
+					<task>
+						<name>Pool Towel</name>
+						<standard>625</standard>
+					</task>
+				</tasks>
+			</operator>
+		</operators>
+		<tasks>
+			<task>
+				<id>4</id>								Item/task unique ID
+				<name>Pool Towel</name>					Item/task name
+				<standard>625</standard>				Item/task pace standard in pieces per hour
+				<count>60</count>						Item count
+			</task>
+			<task>
+				<id>5</id>
+				<name>Bath Towel</name>
+				<standard>625</standard>
+				<count>61</count>
+			</task>
+			<task>
+				<id>4</id>
+				<name>Pool Towel</name>
+				<standard>625</standard>
+				<count>41</count>
+			</task>
+			<task>
+				<id>5</id>
+				<name>Bath Towel</name>
+				<standard>625</standard>
+				<count>54</count>
+			</task>
+		</tasks>
+	</machine>
+</levelone>
+```
 
 ###/api/machine/status/:serialNumber/?xml
 
