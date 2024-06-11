@@ -4,7 +4,7 @@
 /** MODULE REQUIRES */
 const express = require('express');
 const router = express.Router();
-const moment = require('moment');
+const { DateTime, Duration } = require('luxon'); //For handling dates and times
 
 module.exports = function(server) {
     return constructor(server);
@@ -39,7 +39,8 @@ function constructor(server) {
             '$project': {
                 'items': 1,
                 'onTime': '$timers.onTime',
-                'runTime': '$timers.runTime'
+                'runTime': '$timers.runTime',
+
             }
         }, {
             '$unwind': {
@@ -114,24 +115,24 @@ function constructor(server) {
         switch (timeframe) {
             case 'fiveMinute':
                 timeframeMins = 5;
-                promise = cursorOperatorEfficiency(moment().subtract(5, 'm').toISOString(), serialNumber).toArray();
+				promise = cursorOperatorEfficiency(DateTime.now().minus({ minutes: 5 }).toISO(), serialNumber).toArray();
                 break;
             case 'current':
                 timeframeMins = 6;
-                promise = cursorOperatorEfficiency(moment().subtract(6, 'm').toISOString(), serialNumber).toArray();
+				promise = cursorOperatorEfficiency(DateTime.now().minus({ minutes: 6 }).toISO(), serialNumber).toArray();
                 break;
             case 'fifteenMinute':
                 timeframeMins = 15;
-                promise = cursorOperatorEfficiency(moment().subtract(15, 'm').toISOString(), serialNumber).toArray();
+				promise = cursorOperatorEfficiency(DateTime.now().minus({ minutes: 15 }).toISO(), serialNumber).toArray();
                 break;
             case 'hourly':
                 timeframeMins = 60;
-                promise = cursorOperatorEfficiency(moment().subtract(1, 'h').toISOString(), serialNumber).toArray();
+				promise = cursorOperatorEfficiency(DateTime.now().minus({ hours: 1 }).toISO(), serialNumber).toArray();
                 break;
             case 'daily':
             default:
-                timeframeMins = 24 * 60;
-                promise = cursorOperatorEfficiency(moment().startOf('day').toISOString(), serialNumber).toArray();
+				timeframeMins = DateTime.now().diff(DateTime.now().startOf('day'), 'minutes');
+				promise = cursorOperatorEfficiency(DateTime.now().startOf('day').toISO(), serialNumber).toArray();
                 break;
         }
 
@@ -243,24 +244,24 @@ function constructor(server) {
         switch (timeframe) {
             case 'fiveMinute':
                 timeframeMins = 5;
-                promise = cursorLaneEfficiency(moment().subtract(5, 'm').toISOString(), serialNumber, lane).toArray();
+                promise = cursorLaneEfficiency(DateTime.now().minus({ minutes: 5 }).toISO(), serialNumber, lane).toArray();
                 break;
             case 'current':
                 timeframeMins = 6;
-                promise = cursorLaneEfficiency(moment().subtract(6, 'm').toISOString(), serialNumber, lane).toArray();
+				promise = cursorLaneEfficiency(DateTime.now().minus({ minutes: 6 }).toISO(), serialNumber, lane).toArray();
                 break;
             case 'fifteenMinute':
                 timeframeMins = 15;
-                promise = cursorLaneEfficiency(moment().subtract(15, 'm').toISOString(), serialNumber, lane).toArray();
+                promise = cursorLaneEfficiency(DateTime.now().minus({ minutes: 15 }).toISO(), serialNumber, lane).toArray();
                 break;
             case 'hourly':
                 timeframeMins = 60;
-                promise = cursorLaneEfficiency(moment().subtract(1, 'h').toISOString(), serialNumber, lane).toArray();
+				promise = cursorLaneEfficiency(DateTime.now().minus({ hours: 1 }).toISO(), serialNumber, lane).toArray();
                 break;
             case 'daily':
             default:
-                timeframeMins = 24 * 60;
-                promise = cursorLaneEfficiency(moment().startOf('day').toISOString(), serialNumber, lane).toArray();
+				timeframeMins = DateTime.now().diff(DateTime.now().startOf('day'), 'minutes');
+				promise = cursorLaneEfficiency(DateTime.now().startOf('day').toISO(), serialNumber, lane).toArray();
                 break;
         }
 
@@ -276,8 +277,6 @@ function constructor(server) {
                     returnValue['efficiency'] = 0;
                 }
             }
-
-            //console.log(returnValue);
             callback(null, returnValue);
         })
     }
@@ -304,7 +303,6 @@ function constructor(server) {
         }
         const collection = db.collection('ticker');
         let promise = collection.find({ 'machine.serial': serialNumber }).project(projectObject).toArray();
-        //let promise = cursorTickerAgg(parseInt(serialNumber)).project(projectObject).toArray();
 
         promise.then((results) => {
             callback(null, results);
@@ -333,7 +331,6 @@ function constructor(server) {
 			getOperatorEfficiencyByLane('current', machine.machineInfo.serial, 1, (err, operator) => {
                 if (lpOperators[0].id >= 0) {
                     returnOperatorArray.push(Object.assign(lpOperators[0], operator));
-                    //console.log(returnOperatorArray);
                 }
 				getOperatorEfficiencyByLane('current', machine.machineInfo.serial, 2, (err, operator) => {
                     if (lpOperators[1].id >= 0) {
@@ -358,44 +355,6 @@ function constructor(server) {
     }
 
     router.get('/levelone/all', async (req, res, next) => {
-        /*let machineJSON = [{
-            machineInfo: {
-                serial: 63520,
-                name: 'Flipper 1'
-            },
-            fault: {
-                code: 3,
-                name: 'Stop'
-            },
-            status: {
-                code: 3,
-                name: 'Stop'
-            },
-            timeOnTask: 360,
-            totalCount: 216,
-            efficiency: 86.52,
-            operators: [
-				{
-				id: 117811,
-				"name": "Shaun White",
-				pace: 600,
-				timeOnTask: 360,
-				count: 60,
-				efficiency: 96,
-				station: 1,
-				tasks: [{ "name": "Pool Towel", "standard": 625 }] },
-				{ id: 118347, "name": "Hannah Teter", pace: 613, timeOnTask: 360, count: 61, efficiency: 98.08, station: 2, tasks: [{ "name": "Bath Towel", "standard": 625 }] },
-				{ id: 119277, "name": "Torah Bright", pace: 407, timeOnTask: 360, count: 41, efficiency: 65.12, station: 3, tasks: [{ "name": "Pool Towel", "standard": 625 }] },
-				{ id: 159375, "name": "Jeremy Jones", pace: 543, timeOnTask: 360, count: 54, efficiency: 86.88, station: 4, tasks: [{ "name": "Bath Towel", "standard": 625 }] }
-            ],
-            tasks: [
-                { id: 4, "name": "Pool Towel", "standard": 625, count: 60 },
-                { id: 5, "name": "Bath Towel", "standard": 625, count: 61 },
-                { id: 4, "name": "Pool Towel", "standard": 625, count: 41 },
-                { id: 5, "name": "Bath Towel", "standard": 625, count: 54 },
-            ]
-        }];
-        res.json(machineJSON);*/
         let returnArray = [];
         getMachineLevelOneBase(63520, (err, results) => {
             let machineBase = results[0];

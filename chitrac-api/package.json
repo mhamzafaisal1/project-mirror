@@ -2,26 +2,37 @@
   "name": "chitrac-api",
   "version": "0.0.1",
   "description": "A NodeJS based API server for communicating data to ChiTracWAP and others",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon --exec node --env-file=.env index.js"
   },
   "author": "Robert T Ivaniszyn II",
   "license": "UNLICENSED",
   "dependencies": {
+    "app-root-path": "^3.1.0",
     "express": "^4.18.2",
     "express-xml-bodyparser": "^0.3.0",
-    "moment": "^2.22.2",
-    "moment-timezone": "^0.5.23",
+    "luxon": "^3.4.4",
     "mongodb": "^6.3.0",
-    "morgan": "^1.9.1",
+    "morgan": "^1.10.0",
     "mssql": "^10.0.2",
     "winston": "^3.1.0",
+    "winston-daily-rotate-file": "^5.0.0",
     "winston-mongodb": "^5.1.1",
     "xml2js": "^0.6.2"
   },
   "repository": {
     "type": "git",
     "url": "http://devsrv:7990/scm/cd/chitracapi.git"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "**/docs/**",
+      "**/logs/**"
+    ],
+    "verbose": true,
+    "ext": "*",
+    "delay": 2500
   }
 }
