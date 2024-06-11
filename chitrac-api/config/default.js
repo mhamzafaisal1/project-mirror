@@ -3,9 +3,9 @@ module.exports = {
         'port': 9090
     },
     'sql': {
-        'server': 'DevSrv',
+        'server': 'ChiTracSrv',
         'port': 50799,
-        'user': 'ChiTrac',
+        'user': 'ChiTracSrv',
         'password': 'ChiTracSrv@2022',
         'database': 'ChiTrac',
         'requestTimeout': 30000

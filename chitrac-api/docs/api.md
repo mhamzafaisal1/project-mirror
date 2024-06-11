@@ -42,6 +42,7 @@ Data Format:
 {
 	"code":3,						Unique ID code for status type
 	"name":"Stop"					Name for the current status type
+	"color":"Red"					Color for Softrol to use for displaying this status
 },
 "timeOnTask":360,					Time on task in seconds for machine
 "totalCount":216,					Total piece count for machine

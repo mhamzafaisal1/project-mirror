@@ -8,12 +8,12 @@ function constructor(db) {
     require('winston-daily-rotate-file');
     const path = require('path');
 
-    let exceptionFileTransport = new winston.transports.DailyRotateFile({
+    /*let exceptionFileTransport = new winston.transports.DailyRotateFile({
         filename: path.join('logs', '/%DATE%_exception.log'),
         level: 'error',
         zippedArchive: true,
         maxFiles: '365d'
-    });
+    });*/
     let errorFileTransport = new winston.transports.DailyRotateFile({
         filename: path.join('logs', '/%DATE%_error.log'),
         level: 'error',
@@ -52,13 +52,13 @@ function constructor(db) {
         }));
     } else {
         if (db) {
-            logger.exceptions.handle(new winston.transports.MongoDB({
+            /*logger.exceptions.handle(new winston.transports.MongoDB({
                 level: 'error',
                 db: db,
                 collection: 'api-error',
                 options: { useUnifiedTopology: true },
                 storeHost: true
-            }));
+            }));*/
             logger.add(new winston.transports.MongoDB({
                 level: 'error',
                 db: db,

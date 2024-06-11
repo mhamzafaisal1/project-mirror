@@ -12,12 +12,12 @@ function constructor() {
 		'items': reqlib('/defaults/items').items
 	};
 
-	var config;
+	let config;
 
 	/** Handle run parameters */
 	params.forEach((param, i) => {
 		switch (param) {
-			case 'devevlopment':
+			case 'development':
 				config = reqlib('/config/dev');
 				config.inDev = true;
 				break;

@@ -1,5 +1,5 @@
 module.exports = {
-	items: [
+	item: [
 		{"number":1,"name":"Incontinent Pad","pace":720,"area":"1","department":"Towels","weight":null},
 		{"number":2,"name":"Bath Mat","pace":720,"area":"1","department":"Towels","weight":null},
 		{"number":3,"name":"Patient Gown","pace":400,"area":"1","department":"Towels","weight":null},
