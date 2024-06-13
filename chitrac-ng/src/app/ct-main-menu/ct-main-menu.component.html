@@ -1,0 +1,20 @@
+<mat-toolbar>
+  <span><a href="/">ChiTracAPI Admin</a></span>
+  <span class="example-spacer"></span>
+  <button mat-icon-button [matMenuTriggerFor]="menu">
+    <mat-icon>menu</mat-icon>
+  </button>
+  <mat-menu #menu="matMenu">
+    <button mat-menu-item>
+      <span><a href="/ng/configGridTest">Config Grid Test</a></span>
+    </button>
+    <button mat-menu-item disabled>
+      <mat-icon>voicemail</mat-icon>
+      <span>Check voice mail</span>
+    </button>
+    <button mat-menu-item>
+      <mat-icon>notifications_off</mat-icon>
+      <span>Disable alerts</span>
+    </button>
+  </mat-menu>
+</mat-toolbar>

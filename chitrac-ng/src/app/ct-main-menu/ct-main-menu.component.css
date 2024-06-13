@@ -1,0 +1,10 @@
+.example-spacer {
+  flex: 1 1 auto;
+}
+.mat-toolbar {
+  background-color: #3C587E;
+  color:white;
+}
+a.mat-mdc-menu-item {
+  color:white !important;
+}

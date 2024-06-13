@@ -1,0 +1,25 @@
+<mat-sidenav-container class="sidenav-container">
+  <mat-sidenav #drawer class="sidenav" fixedInViewport [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'" [mode]="(isHandset$ | async) ? 'over' : 'side'" [opened]="((isHandset$ | async) === false) || showMenu">
+    <mat-toolbar>
+      <button mat-icon-button>
+        <mat-icon>home</mat-icon>
+      </button>
+      <span><a href="/">ChiTracAPI Admin</a></span>
+    </mat-toolbar>
+    <mat-nav-list>
+      <a mat-list-item href="#">Link 1</a>
+      <a mat-list-item href="#">Link 2</a>
+      <a mat-list-item href="#">Link 3</a>
+    </mat-nav-list>
+  </mat-sidenav>
+  <mat-sidenav-content>
+    <mat-toolbar>
+      <span><a href="/">ChiTracAPI Admin</a></span>
+      <span class="example-spacer"></span>
+      <button (click)="showMenu = !showMenu" mat-icon-button>
+        <mat-icon>menu</mat-icon>
+      </button>
+    </mat-toolbar>
+    <router-outlet />
+  </mat-sidenav-content>
+</mat-sidenav-container>

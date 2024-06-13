@@ -1,0 +1,42 @@
+@use '@angular/material' as mat;
+@import '../../src/styles.scss';
+
+.mat-mdc-card {
+  width:80%;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+.mat-mdc-header-row {
+    background-color: mat.get-theme-color($dark-theme, primary, 900);
+}
+
+
+.mat-mdc-row:nth-child(even) {
+  background-color: mat.get-theme-color($dark-theme, primary, darker);
+}
+
+.mat-mdc-row:hover {
+  background-color: purple !important;
+  color: white;
+  font-weight: bold;
+}
+
+.mat-column-code {
+  width: 10%;
+  border-right: 1px solid currentColor;
+  padding-right: 0.25em;
+  text-align: center;
+}
+
+.mat-column-name {
+  width: 80%;
+  border-right: 1px solid currentColor;
+  padding-right: 0.25em;
+  text-align: center;
+}
+.mat-column-jam {
+  width: 10%;
+  padding-right: 0.25em;
+  text-align: center;
+}
