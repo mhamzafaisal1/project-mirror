@@ -1,0 +1,24 @@
+<form [formGroup]="operatorFormGroup">
+  <h2 *ngIf="operatorName && operator._id" mat-dialog-title>Editing {{operatorName}}</h2>
+  <h2 *ngIf="operator.name && !operator._id" mat-dialog-title>Creating {{operator.name}}</h2>
+  <h2 *ngIf="!operator.name" mat-dialog-title>Create New Operator</h2>
+  <mat-dialog-content id="OperatorConfigDialog">
+    <mat-form-field>
+      <mat-label>Code</mat-label>
+      <input matInput type="number" formControlName="code" />
+    </mat-form-field>
+    <br />
+    <mat-form-field>
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name" />
+    </mat-form-field>
+    <br />
+    <mat-slide-toggle labelPosition="before" formControlName="active">Active</mat-slide-toggle>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button mat-button cdkFocusInitial [mat-dialog-close]="'cancel'">Cancel</button>
+    <button type="submit" mat-button [mat-dialog-close]="operator" [disabled]="!operatorFormGroup.valid">Ok</button>
+  </mat-dialog-actions>
+  <br />
+  <div *ngIf="error" style="text-align: center; width: 100%">Operator already exists</div>
+</form>

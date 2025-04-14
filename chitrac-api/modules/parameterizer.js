@@ -18,11 +18,21 @@ function constructor() {
 	params.forEach((param, i) => {
 		switch (param) {
 			case 'development':
-				config = reqlib('/config/dev');
+				process.env.NODE_ENV = 'development';
+				config = reqlib('/configuration/dev');
 				config.inDev = true;
 				break;
+			case 'production':
+				process.env.NODE_ENV = 'production';
+				config = reqlib('/configuration/default');
+				break;
+			case 'testing':
+				process.env.NODE_ENV = 'testing';
+				config = reqlib('/configuration/default');
+				break;
 			default:
-				config = reqlib('/config/default');
+				process.env.NODE_ENV = 'default';
+				config = reqlib('/configuration/default');
 				break;
 		}
 	});

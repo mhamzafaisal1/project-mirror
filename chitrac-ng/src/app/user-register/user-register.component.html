@@ -1,0 +1,16 @@
+<form [formGroup]="userRegistrationFormGroup" (submit)="onSubmit(user)">
+  <h2 mat-dialog-title>User Registration</h2>
+  <mat-form-field>
+    <mat-label>Username</mat-label>
+    <input matInput type="text" formControlName="username" />
+  </mat-form-field>
+  <br />
+  <mat-form-field>
+    <mat-label>Password</mat-label>
+    <input matInput type="password" formControlName="password" />
+  </mat-form-field>
+  <br />
+  <button type="submit" mat-flat-button [disabled]="!userRegistrationFormGroup.valid">Register</button>
+  <br />
+  <div *ngIf="error" style="text-align: center; width: 100%">Operator already exists</div>
+</form>

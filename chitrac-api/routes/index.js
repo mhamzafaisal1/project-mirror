@@ -10,6 +10,7 @@ function init(app, server) {
     const statusRoutes = reqlib('/controllers/status')(server);
     const softrolRoutes = reqlib('/controllers/softrol')(server);
     const alphaRoutes = reqlib('/controllers/alpha')(server);
+    const passportRoutes = reqlib('/controllers/passport')(server);
 
 
     app.get('/docs/api', (req, res, next) => {
@@ -231,16 +232,48 @@ function init(app, server) {
         res.send(xmlString);
     });
 
+    app.use('/api/alpha', alphaRoutes);
+    app.use('/api/passport', passportRoutes);
+
+    app.use('/api/softrol', softrolRoutes);
+
+    app.use(['/ng/*', '/'], express.static(path.join(server.appRoot.path, 'ng/browser/')));
+
     app.use('/api', machineRoutes);
     app.use('/api', itemRoutes);
     app.use('/api', operatorRoutes);
     app.use('/api', statusRoutes);
 
-    app.use('/api', alphaRoutes);
 
-    app.use('/api/softrol', softrolRoutes);
+    function sendFlashJSON(req, res) {
+        var json = {
+            messages: req.flash('messages')
+        };
+        res.json(json);
+    };
 
-    app.use(express.static(path.join(server.appRoot.path, 'ng/browser/')));
+    // route middleware to make sure a user is logged in
+    function isLoggedIn(req, res, next) {
+
+        // if user is authenticated in the session, carry on
+        if (req.isAuthenticated())
+            return next()
+
+        req.flash('messages', 'You are not authorized to access ' + req.path + '. Please log in first')
+        return sendFlashJSON(req, res);
+        //res.sendFile(path.join(server.appRoot.path, '/docs/api.html'));
+
+    }
+
+
+    const errorHandler = (error, request, response, next) => {
+        server.logger.error(error);
+        const status = error.status || 400
+        // send back an easily understandable error message to the caller
+        response.status(status).send(error.message)
+    }
+
+    app.use(errorHandler);
 }
 
 module.exports = {

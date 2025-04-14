@@ -8,16 +8,17 @@
 }
 
 .mat-mdc-header-row {
-    background-color: mat.get-theme-color($dark-theme, primary, 900);
+  background-color: mat.get-theme-color($dark-theme, primary, 50);
 }
 
 
 .mat-mdc-row:nth-child(even) {
-  background-color: mat.get-theme-color($dark-theme, primary, darker);
+  background-color: mat.get-theme-color($dark-theme, surface-bright);
+  color: mat.get-theme-color($dark-theme, on-surface-variant);
 }
 
 .mat-mdc-row:hover {
-  background-color: purple !important;
+  background-color: mat.get-theme-color($dark-theme, secondary, 50);
   color: white;
   font-weight: bold;
 }

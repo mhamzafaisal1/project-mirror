@@ -8,9 +8,8 @@ If a route specification ends with "?xml", that route has data also available vi
 
 ##Available Routes
 
-[/api/softrol/levelone/all](#apisoftrolleveloneall)
+[/api/alpha/sample/machineOverview](#apialphasamplemachineoverview)
 
-[/api/softrol/levelone/all/xml](#apisoftrolleveloneallxml)
 
 [/api/machine/status/:serialNumber/?xml](#apimachinestatusserialnumberxml)
 
@@ -24,7 +23,7 @@ If a route specification ends with "?xml", that route has data also available vi
 
 ##Machine Routes
 
-###/api/softrol/levelone/all/
+###/api/alpha/sample/machineOverview
 
 Data Format:
 ```

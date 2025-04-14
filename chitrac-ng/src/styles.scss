@@ -1,37 +1,102 @@
 @use '@angular/material' as mat;
+@use './themes/chitrac';
+
 @include mat.core();
+mat.$theme-ignore-duplication-warnings: true;
 
-$primary: mat.m2-define-palette(mat.$m2-purple-palette);
-$accent: mat.m2-define-palette(mat.$m2-purple-palette);
-$warn: mat.m2-define-palette(mat.$m2-purple-palette);
 
-$light-theme: mat.m2-define-light-theme((
-  color: (
-    primary: $primary,
-    accent: $accent,
-    warn: $warn
-  )
-));
+//$theme: chitrac.$light-theme;
+//$darkest: 60;
+$darkest-dark-theme: 20;
+$dark-theme:  chitrac.$dark-theme;
+$light-theme: chitrac.$light-theme;
 
-$dark-theme: mat.m2-define-dark-theme((
-  color: (
-    primary: $primary,
-    accent: $accent,
-    warn: $warn
-  ),
-  // typography: mat.define-typography-config(),
-  // density: 0
-));
+$testcolor2: mat.get-theme-color($light-theme, primary, 60);
 
-@include mat.core-color($light-theme);
-@include mat.button-color($light-theme);
+@mixin create-dark-theme() {
+  @include mat.all-component-themes($dark-theme);
 
-html {
-  @include mat.core-theme($dark-theme);
-  @include mat.button-theme($dark-theme);
-  @include mat.all-component-colors($dark-theme);
 }
+
+@mixin create-light-theme() {
+  @include mat.all-component-themes(chitrac.$light-theme);
+}
+
+:root {
+  
+}
+
+.dark-theme {
+  @include create-dark-theme();
+  --mat-sidenav-container-shape: 0px; //unround the sidenav corners
+  --mat-list-active-indicator-shape: 0px; //unround sidenav hover corners
+  --theme-color-primary: #{mat.get-theme-color($dark-theme, primary)};
+  --theme-color-primary-lightest: #{mat.get-theme-color($dark-theme, primary, 60)};
+  --theme-color-primary-middle: #{mat.get-theme-color($dark-theme, primary, 40)};
+  --theme-color-primary-darkest: #{mat.get-theme-color($dark-theme, primary, 20)};
+  --theme-color-on-primary: #{mat.get-theme-color($dark-theme, on-primary)};
+  --theme-color-secondary-middle: #{mat.get-theme-color($dark-theme, secondary, 40)};
+  --theme-color-secondary-container: #{mat.get-theme-color($dark-theme, secondary-container)};
+  --theme-color-on-secondary: #{mat.get-theme-color($dark-theme, on-secondary)};
+  --theme-color-surface: #{mat.get-theme-color($dark-theme, surface)};
+  --theme-color-surface-container: #{mat.get-theme-color($dark-theme, surface-container)};
+  --theme-color-surface-bright: #{mat.get-theme-color($dark-theme, surface-bright)};
+  --theme-color-on-surface-variant: #{mat.get-theme-color($dark-theme, on-surface-variant)};
+
+  /* Direct theme color overrides*/
+  --mat-sort-arrow-color: #{mat.get-theme-color($dark-theme, on-primary)};
+
+  /*--mat-dialog-container-min-width: 350px;*/
+}
+
+.dark-theme .error-dialog {
+  --mdc-dialog-container-color: #{mat.get-theme-color($dark-theme, error-container)};
+  //--mdc-dialog-color: #{mat.get-theme-color($dark-theme, error-on-container)}; //unsure why this started causing issues, need to resolve and uncomment
+}
+
+.light-theme {
+  @include create-light-theme();
+  --mat-sidenav-container-shape: 0px; //unround the sidenav corners
+  --mat-list-active-indicator-shape: 0px; //unround sidenav hover corners
+  --theme-color-primary: #{mat.get-theme-color($light-theme, primary)};
+  --theme-color-primary-lightest: #{mat.get-theme-color($light-theme, primary, 80)};
+  --theme-color-primary-middle: #{mat.get-theme-color($light-theme, primary, 60)};
+  --theme-color-primary-darkest: #{mat.get-theme-color($light-theme, primary, 40)};
+  --theme-color-on-primary: #{mat.get-theme-color($light-theme, on-primary)};
+  --theme-color-secondary-middle: #{mat.get-theme-color($light-theme, secondary, 70)};
+  --theme-color-secondary-container: #{mat.get-theme-color($light-theme, secondary-container)};
+  --theme-color-on-secondary: #{mat.get-theme-color($light-theme, on-secondary)};
+  --theme-color-surface: #{mat.get-theme-color($light-theme, surface)};
+  --theme-color-surface-container: #{mat.get-theme-color($light-theme, surface-container)};
+  --theme-color-surface-bright: #{mat.get-theme-color($light-theme, surface-dim)};
+  --theme-color-on-surface-variant: #{mat.get-theme-color($light-theme, on-surface-variant)};
+
+  /* Direct theme color overrides*/
+  --mat-sort-arrow-color: #{mat.get-theme-color($light-theme, on-primary)};
+
+}
+
+.light-theme .error-dialog {
+  --mdc-dialog-container-color: #{mat.get-theme-color($light-theme, error-container)};
+}
+
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif;}
 a {text-decoration: none; color:inherit;}
+
+#OperatorConfigDialog {
+  overflow: hidden;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}

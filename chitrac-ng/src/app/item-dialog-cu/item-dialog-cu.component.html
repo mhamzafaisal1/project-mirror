@@ -1,0 +1,24 @@
+<form [formGroup]="itemFormGroup">
+  <h2 *ngIf="itemName && item._id" mat-dialog-title>Editing {{itemName}}</h2>
+  <h2 *ngIf="item.name && !item._id" mat-dialog-title>Creating {{item.name}}</h2>
+  <h2 *ngIf="!item.name" mat-dialog-title>Create New Item</h2>
+  <mat-dialog-content id="ItemConfigDialog">
+    <mat-form-field>
+      <mat-label>Number</mat-label>
+      <input matInput type="number" formControlName="number" />
+    </mat-form-field>
+    <br />
+    <mat-form-field>
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name" />
+    </mat-form-field>
+    <br />
+    <mat-slide-toggle labelPosition="before" formControlName="active">Active</mat-slide-toggle>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button mat-button cdkFocusInitial [mat-dialog-close]="'cancel'">Cancel</button>
+    <button mat-button [mat-dialog-close]="item" [disabled]="!itemFormGroup.valid">Ok</button>
+  </mat-dialog-actions>
+  <br />
+  <div *ngIf="error" style="text-align: center; width: 100%">Item already exists</div>
+</form>

@@ -1,3 +1,5 @@
+const { ObjectId } = require('mongodb');
+
 /*** Config Functions */
 async function getConfiguration(collection, query, projection) {
 	try {
@@ -9,18 +11,36 @@ async function getConfiguration(collection, query, projection) {
 	}
 }
 
-async function upsertConfiguration(collection, id, updateObject, upsert) {
+async function upsertConfiguration(collection, updateObject, upsert) {
 	try {
-		let results = await collection.updateOne({ '_id': id }, { '$set': updateObject }, { 'upsert': upsert });
+		let results, id;
+		if (updateObject._id) {
+			id = new ObjectId(updateObject._id);
+			delete updateObject._id;
+		}
+		if (id) {
+			results = await collection.updateOne({ '_id': id }, { '$set': updateObject });
+		} else {
+			const findConfig = await collection.find({ 'code': updateObject.code }).toArray();
+			if (findConfig.length) {
+				throw { message: 'Operator Already exists' };
+			} else {
+				results = await collection.insertOne(updateObject);
+			}
+		}
 		return results;
 	} catch (error) {
+		error.message = JSON.stringify(error);
+		error.status = 409;
+		error.expressResponse = {
+		}
 		throw error;
 	}
 }
 
 async function deleteConfiguration(collection, id) {
 	try {
-		let results = await collection.deleteOne({ '_id': id });
+		let results = await collection.deleteOne({ '_id': new ObjectId(id) });
 		return results;
 	} catch (error) {
 		throw error;

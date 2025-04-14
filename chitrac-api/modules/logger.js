@@ -28,17 +28,21 @@ function constructor(db) {
     });
 
     const logger = winston.createLogger({
+        levels: winston.config.npm.levels,
         format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
         transports: [errorFileTransport, httpFileTransport],
         exceptionHandlers: [errorFileTransport]
     });
 
+
+
     if (process.env.NODE_ENV !== 'production') {
         if (process.env.NODE_ENV === 'development') {
             logger.add(new winston.transports.Console({
                 format: winston.format.combine(
-                    winston.format.cli(),
-                    winston.format.timestamp(),
+                    winston.format.colorize({ all: true }),
+                    winston.format.align(),
+                    winston.format.json(),
                     winston.format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
                 ),
                 level: 'silly'
@@ -50,30 +54,23 @@ function constructor(db) {
             zippedArchive: true,
             maxFiles: '3d'
         }));
-    } else {
-        if (db) {
-            /*logger.exceptions.handle(new winston.transports.MongoDB({
-                level: 'error',
-                db: db,
-                collection: 'api-error',
-                options: { useUnifiedTopology: true },
-                storeHost: true
-            }));*/
-            logger.add(new winston.transports.MongoDB({
-                level: 'error',
-                db: db,
-                collection: 'api-error',
-                options: { useUnifiedTopology: true },
-                storeHost: true
-            }));
-            logger.add(new winston.transports.MongoDB({
-                level: 'http',
-                db: db,
-                collection: 'api-http',
-                options: { useUnifiedTopology: true },
-                storeHost: true
-            }));
-        }
+    }
+    
+    if (db) {
+        logger.add(new winston.transports.MongoDB({
+            level: 'error',
+            db: db,
+            collection: 'api-error',
+            options: { useUnifiedTopology: true },
+            storeHost: true
+        }));
+        logger.add(new winston.transports.MongoDB({
+            level: 'http',
+            db: db,
+            collection: 'api-http',
+            options: { useUnifiedTopology: true },
+            storeHost: true
+        }));
     }
     return logger;
 }

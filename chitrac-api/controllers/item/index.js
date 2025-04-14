@@ -66,12 +66,16 @@ function constructor(server) {
 	/** GET routes */
 	router.get('/items/config/xml', getItemXML);
 	router.get('/items/config', getItem);
+	router.get('/item/config/xml', getItemXML);
+	router.get('/item/config', getItem);
 
 	/** PUT routes */
 	router.put('/items/config/:id', upsertItem);
+	router.put('/item/config/:id', upsertItem);
 
 	/** DELETE routes */
 	router.delete('/items/config/:id', deleteItem);
+	router.delete('/item/config/:id', deleteItem);
 
 	return router;
 }

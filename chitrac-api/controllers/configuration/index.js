@@ -25,7 +25,11 @@ async function upsertItemConfiguration(id, updateObject, callback) {
 	let collection, items;
 	collection = db.collection('items');
 	try {
-		items = await collection.updateOne({ '_id': id }, { '$set': updateObject }, { 'upsert': true });
+		let idObject = {}
+		if (id) {
+			idObject = { '_id': id }
+		}
+		items = await collection.updateOne(idObject, { '$set': updateObject }, { 'upsert': true });
 		callback(null, items);
 	} catch (error) {
 		callback(error);

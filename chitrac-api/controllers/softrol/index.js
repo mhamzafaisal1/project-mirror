@@ -115,42 +115,42 @@ function constructor(server) {
         switch (timeframe) {
             case 'fiveMinute':
                 timeframeMins = 5;
-				promise = cursorOperatorEfficiency(DateTime.now().minus({ minutes: 5 }).toISO(), serialNumber).toArray();
+                promise = cursorOperatorEfficiency(DateTime.now().minus({ minutes: 5 }).toISO(), serialNumber).toArray();
                 break;
             case 'current':
                 timeframeMins = 6;
-				promise = cursorOperatorEfficiency(DateTime.now().minus({ minutes: 6 }).toISO(), serialNumber).toArray();
+                promise = cursorOperatorEfficiency(DateTime.now().minus({ minutes: 6 }).toISO(), serialNumber).toArray();
                 break;
             case 'fifteenMinute':
                 timeframeMins = 15;
-				promise = cursorOperatorEfficiency(DateTime.now().minus({ minutes: 15 }).toISO(), serialNumber).toArray();
+                promise = cursorOperatorEfficiency(DateTime.now().minus({ minutes: 15 }).toISO(), serialNumber).toArray();
                 break;
             case 'hourly':
                 timeframeMins = 60;
-				promise = cursorOperatorEfficiency(DateTime.now().minus({ hours: 1 }).toISO(), serialNumber).toArray();
+                promise = cursorOperatorEfficiency(DateTime.now().minus({ hours: 1 }).toISO(), serialNumber).toArray();
                 break;
             case 'daily':
             default:
-				timeframeMins = DateTime.now().diff(DateTime.now().startOf('day'), 'minutes');
-				promise = cursorOperatorEfficiency(DateTime.now().startOf('day').toISO(), serialNumber).toArray();
+                timeframeMins = DateTime.now().diff(DateTime.now().startOf('day'), 'minutes');
+                promise = cursorOperatorEfficiency(DateTime.now().startOf('day').toISO(), serialNumber).toArray();
                 break;
         }
 
         promise.then((results) => {
-			console.log(results);
-				let returnValue = results[0];
-				if (returnValue != undefined) {
-					returnValue['timeframe'] = timeframeMins;
-					returnValue['operatorTotal'] = results.reduce((total, currentItem) => total + currentItem.count, 0);
-					if (returnValue.count === 0) {
-						returnValue['efficiency'] = 0;
-					} else if (returnValue['timeOnTask'] != undefined) {
-						returnValue['efficiency'] = parseInt(((returnValue.count / (returnValue.timeOnTask / 60)) / (returnValue.standard / 60)) * 60);
-					} else {
-						returnValue['efficiency'] = 0;
-					}
-				}
-            
+            console.log(results);
+            let returnValue = results[0];
+            if (returnValue != undefined) {
+                returnValue['timeframe'] = timeframeMins;
+                returnValue['operatorTotal'] = results.reduce((total, currentItem) => total + currentItem.count, 0);
+                if (returnValue.count === 0) {
+                    returnValue['efficiency'] = 0;
+                } else if (returnValue['timeOnTask'] != undefined) {
+                    returnValue['efficiency'] = parseInt(((returnValue.count / (returnValue.timeOnTask / 60)) / (returnValue.standard / 60)) * 60);
+                } else {
+                    returnValue['efficiency'] = 0;
+                }
+            }
+
 
             //console.log(returnValue);
             callback(null, returnValue);
@@ -248,7 +248,7 @@ function constructor(server) {
                 break;
             case 'current':
                 timeframeMins = 6;
-				promise = cursorLaneEfficiency(DateTime.now().minus({ minutes: 6 }).toISO(), serialNumber, lane).toArray();
+                promise = cursorLaneEfficiency(DateTime.now().minus({ minutes: 6 }).toISO(), serialNumber, lane).toArray();
                 break;
             case 'fifteenMinute':
                 timeframeMins = 15;
@@ -256,12 +256,12 @@ function constructor(server) {
                 break;
             case 'hourly':
                 timeframeMins = 60;
-				promise = cursorLaneEfficiency(DateTime.now().minus({ hours: 1 }).toISO(), serialNumber, lane).toArray();
+                promise = cursorLaneEfficiency(DateTime.now().minus({ hours: 1 }).toISO(), serialNumber, lane).toArray();
                 break;
             case 'daily':
             default:
-				timeframeMins = DateTime.now().diff(DateTime.now().startOf('day'), 'minutes');
-				promise = cursorLaneEfficiency(DateTime.now().startOf('day').toISO(), serialNumber, lane).toArray();
+                timeframeMins = DateTime.now().diff(DateTime.now().startOf('day'), 'minutes');
+                promise = cursorLaneEfficiency(DateTime.now().startOf('day').toISO(), serialNumber, lane).toArray();
                 break;
         }
 
@@ -328,19 +328,19 @@ function constructor(server) {
         if (machine) {
             let returnOperatorArray = [];
             let lpOperators = [...machine.lpOperators];
-			getOperatorEfficiencyByLane('current', machine.machineInfo.serial, 1, (err, operator) => {
+            getOperatorEfficiencyByLane('current', machine.machineInfo.serial, 1, (err, operator) => {
                 if (lpOperators[0].id >= 0) {
                     returnOperatorArray.push(Object.assign(lpOperators[0], operator));
                 }
-				getOperatorEfficiencyByLane('current', machine.machineInfo.serial, 2, (err, operator) => {
+                getOperatorEfficiencyByLane('current', machine.machineInfo.serial, 2, (err, operator) => {
                     if (lpOperators[1].id >= 0) {
                         returnOperatorArray.push(Object.assign(lpOperators[1], operator));
                     }
-					getOperatorEfficiencyByLane('current', machine.machineInfo.serial, 3, (err, operator) => {
+                    getOperatorEfficiencyByLane('current', machine.machineInfo.serial, 3, (err, operator) => {
                         if (lpOperators[2].id >= 0) {
                             returnOperatorArray.push(Object.assign(lpOperators[2], operator));
                         }
-						getOperatorEfficiencyByLane('current', machine.machineInfo.serial, 4, (err, operator) => {
+                        getOperatorEfficiencyByLane('current', machine.machineInfo.serial, 4, (err, operator) => {
                             if (lpOperators[3].id >= 0) {
                                 returnOperatorArray.push(Object.assign(lpOperators[3], operator));
                             }
@@ -354,12 +354,218 @@ function constructor(server) {
         }
     }
 
-    router.get('/levelone/all', async (req, res, next) => {
+    const queryTicker = async function() {
+		let tickerPromise = [];
+    	try {
+			tickerPromise = await db.collection('ticker').find().toArray();
+    	} catch (error) {
+			logger.error(error);
+    	} finally {
+    		return tickerPromise
+    	}
+    }
+
+    const getMachinesLevelOneBase = async function() {
+        const projectObject = {
+            _id: 0,
+            machineInfo: {
+                serial: '$machine.serial',
+                name: '$machine.name'
+            },
+            status: {
+                code: '$status.code',
+                name: '$status.name',
+                color: '$status.softrolColor'
+            },
+            fault: '$fault',
+            timeOnTask: '$timers.runTime',
+            onTime: '$timers.onTime',
+            totalCount: '$totals.oneLane',
+            items: '$items'
+        }
+
+        let tickerPromise = [];
+        try {
+
+            tickerPromise = await db.collection('ticker').find().sort({ "machine.name": 1 }).project(projectObject).toArray();
+            tickerPromise = tickerPromise.map((machine) => {
+                machine.operators = [];
+                return machine;
+            });
+        } catch (error) {
+            logger.error(error);
+        } finally {
+            return tickerPromise
+        }
+    }
+
+    const getMachineListFromTicker = async function() {
+        let tickerPromise = [];
+        try {
+            tickerPromise = await db.collection('ticker').find().project({
+                _id: 0,
+                lpOperators: 1,
+                spOperators: 1,
+                machine: 1,
+                mode: 1,
+                status: {
+                    code: '$status.code',
+                    name: '$status.name',
+                    color: '$status.softrolColor'
+                },
+                fault: '$fault',
+                timeOnTask: '$timers.runTime',
+                onTime: '$timers.onTime',
+                totalCount: '$totals.oneLane',
+                items: '$items'
+            }).sort({ "machine.name": 1 }).toArray();
+        } catch (error) {
+            logger.error(error);
+        } finally {
+            return tickerPromise;
+        }
+    }
+
+    const getMachineOperatorLists = async function() {
+        let machineList = await getMachineListFromTicker();
+        const operatorLists = machineList.map((machine) => {
+            if (machine.mode === 'largePiece') {
+                const operators = machine.lpOperators.map((operator) => {
+                    return { serial: machine.machine.serial, id: operator.id, station: operator.station }
+                });
+                return operators;
+            } else {
+                const operators = machine.spOperators.map((operator) => {
+                    return { serial: machine.machine.serial, id: operator.id, station: operator.station }
+                });
+                return operators;
+            }
+        });
+        return operatorLists;
+    }
+
+    const getOperatorCounts = async function(operatorInfo) {
+        const pipeline = [{
+            '$match': {
+                'timestamp': { $gte: new Date(DateTime.now().minus({ minutes: 6 }).toISO()) },
+                'machineSerial': operatorInfo.serial,
+                'operatorID': operatorInfo.id,
+                'station': operatorInfo.station
+            }
+        }, {
+            '$group': {
+                '_id': '$itemNumber',
+                'item': {
+                    '$last': '$itemName'
+                },
+                'station': {
+                    '$last': '$station'
+                },
+                'onTime': {
+                    '$sum': '$onTime'
+                },
+                'runTime': {
+                    '$sum': '$runTime'
+                },
+                'itemCount': {
+                    '$sum': {
+                        '$sum': '$itemCount'
+                    }
+                },
+                'standard': {
+                    '$last': '$itemStandard'
+                },
+                'machineSerial': {
+                    '$last': '$machineSerial'
+                },
+                'machineName': {
+                    '$last': '$machineName'
+                },
+                'operatorID': {
+                    '$last': '$operatorID'
+                },
+                'operatorName': {
+                    '$last': '$operatorName'
+                }
+            }
+        }];
+
+        return db.collection('newOperatorCount').aggregate(pipeline);
+    }
+
+    const getMachineOperatorStats = async function(machine) {
+        let operatorsCounts = machine.map((operator) => {
+            return getOperatorCounts(operator);
+        });
+
         let returnArray = [];
-        getMachineLevelOneBase(63520, (err, results) => {
+        for await (const operatorsCount of operatorsCounts) {
+            let machineArray = [];
+            //TODO: station needs to become item, these are actually records of stats by item for each operator
+            //for await (const station of operatorsCount) {
+            const arr = await operatorsCount.toArray();
+            logger.error(arr);
+            if (arr[0]) {
+                const station = arr[0];
+                let stationStats = {
+                    station: station.station,
+                    machine: station.machineName,
+                    item: station.item,
+                    count: station.itemCount,
+                    operatorID: station.operatorID,
+                    operatorName: station.operatorName,
+                    standard: station.standard,
+                    runTime: station.runTime
+                }
+                let efficiency = 0;
+                if (station['runTime'] != undefined) {
+                    efficiency = parseInt(((station.itemCount / (station.runTime / 60)) / (station.standard / 60)) * 60);
+                }
+                //returnArray.push(stationStats);
+
+                let opObject = {
+                    id: station.operatorID || 420,
+                    name: station.operatorName || 'Operator',
+                    pace: parseInt(station.standard * (efficiency / 100)) || 0,
+                    timeOnTask: station.runTime || 0,
+                    onTime: station.onTime || 0,
+                    count: station.itemCount || 0,
+                    efficiency: efficiency || 0,
+                    station: station.station || 0,
+                    tasks: [{
+                        name: station.item || 'None Entered',
+                        standard: station.standard || 0,
+                    }],
+                    //machineSerial: station.machineSerial
+                }
+                //machineArray.push(opObject);
+                returnArray.push(opObject);
+
+            }
+        }
+
+        return returnArray;
+    }
+
+    router.get('/levelone/all', async (req, res, next) => {
+        let machinesLevelOneBase = await getMachinesLevelOneBase();
+        const machineOperatorList = await getMachineOperatorLists();
+
+        let resultArray = [];
+        let i = 0;
+        for await (let machineOperator of machineOperatorList) {
+            const machineOperatorCounts = await getMachineOperatorStats(machineOperator);
+            machinesLevelOneBase[i].operators = machineOperatorCounts;
+            i++;
+        }
+        res.json(machinesLevelOneBase);
+    })
+
+    /*router.get('/levelone/all', async (req, res, next) => {
+        let returnArray = [];
+        getMachineLevelOneBase(67800, (err, results) => {
             let machineBase = results[0];
-			getOperatorEfficiencyOneLane('current', machineBase.machineInfo.serial, (err, operators) => {
-				console.log(operators);
+            lpOperators(machineBase, (operators) => {
                 if (machineBase && operators) {
                     let formattedOperators = operators.map((operator) => {
                         let opObject = {
@@ -367,7 +573,7 @@ function constructor(server) {
                             name: 'Operator',
                             pace: parseInt(operator.standard * (operator.efficiency / 100)) || 0,
                             timeOnTask: operator.timeOnTask || 0,
-							onTime: operator.onTime || 0,                            
+                            onTime: operator.onTime || 0,
                             count: operator.count || 0,
                             efficiency: operator.efficiency || 0,
                             station: operator.station || 0,
@@ -384,7 +590,126 @@ function constructor(server) {
                     delete machineBase.spOperators;
                     returnArray.push(machineBase);
                 }
-                getMachineLevelOneBase(63302, (err, results) => {
+                getMachineLevelOneBase(67802, (err, results) => {
+                    let machineBase = results[0];
+                    lpOperators(machineBase, (operators) => {
+                        if (machineBase && operators) {
+                            let formattedOperators = operators.map((operator) => {
+                                let opObject = {
+                                    id: operator.id || 0,
+                                    name: 'Operator',
+                                    pace: parseInt(operator.standard * (operator.efficiency / 100)) || 0,
+                                    timeOnTask: operator.timeOnTask || 0,
+                                    onTime: operator.onTime || 0,
+                                    count: operator.count || 0,
+                                    efficiency: operator.efficiency || 0,
+                                    station: operator.station || 0,
+                                    tasks: [{
+                                        name: operator.itemName || 'None Entered',
+                                        standard: operator.standard || 0,
+                                    }]
+                                }
+                                return opObject;
+                            })
+
+                            machineBase['operators'] = formattedOperators;
+                            delete machineBase.lpOperators;
+                            delete machineBase.spOperators;
+                            returnArray.push(machineBase);
+                        }
+						getMachineLevelOneBase(67801, (err, results) => {
+							let machineBase = results[0];
+							lpOperators(machineBase, (operators) => {
+								if (machineBase && operators) {
+									let formattedOperators = operators.map((operator) => {
+										let opObject = {
+											id: operator.id || 0,
+											name: 'Operator',
+											pace: parseInt(operator.standard * (operator.efficiency / 100)) || 0,
+											timeOnTask: operator.timeOnTask || 0,
+											onTime: operator.onTime || 0,
+											count: operator.count || 0,
+											efficiency: operator.efficiency || 0,
+											station: operator.station || 0,
+											tasks: [{
+												name: operator.itemName || 'None Entered',
+												standard: operator.standard || 0,
+											}]
+										}
+										return opObject;
+									})
+
+									machineBase['operators'] = formattedOperators;
+									delete machineBase.lpOperators;
+									delete machineBase.spOperators;
+									returnArray.push(machineBase);
+								}
+								getMachineLevelOneBase(67799, (err, results) => {
+									let machineBase = results[0];
+									lpOperators(machineBase, (operators) => {
+										if (machineBase && operators) {
+											let formattedOperators = operators.map((operator) => {
+												let opObject = {
+													id: operator.id || 0,
+													name: 'Operator',
+													pace: parseInt(operator.standard * (operator.efficiency / 100)) || 0,
+													timeOnTask: operator.timeOnTask || 0,
+													onTime: operator.onTime || 0,
+													count: operator.count || 0,
+													efficiency: operator.efficiency || 0,
+													station: operator.station || 0,
+													tasks: [{
+														name: operator.itemName || 'None Entered',
+														standard: operator.standard || 0,
+													}]
+												}
+												return opObject;
+											})
+
+											machineBase['operators'] = formattedOperators;
+											delete machineBase.lpOperators;
+											delete machineBase.spOperators;
+											returnArray.push(machineBase);
+										}
+
+										getMachineLevelOneBase(67798, (err, results) => {
+											let machineBase = results[0];
+											lpOperators(machineBase, (operators) => {
+												if (machineBase && operators) {
+													let formattedOperators = operators.map((operator) => {
+														let opObject = {
+															id: operator.id || 0,
+															name: 'Operator',
+															pace: parseInt(operator.standard * (operator.efficiency / 100)) || 0,
+															timeOnTask: operator.timeOnTask || 0,
+															onTime: operator.onTime || 0,
+															count: operator.count || 0,
+															efficiency: operator.efficiency || 0,
+															station: operator.station || 0,
+															tasks: [{
+																name: operator.itemName || 'None Entered',
+																standard: operator.standard || 0,
+															}]
+														}
+														return opObject;
+													})
+
+													machineBase['operators'] = formattedOperators;
+													delete machineBase.lpOperators;
+													delete machineBase.spOperators;
+													returnArray.push(machineBase);
+												}
+												res.json(returnArray);
+											});
+										});
+									});
+								});
+							});
+						});
+                    });
+                });*/
+
+                /*getMachineLevelOneBase(63302, (err, results) => {
                     let machineBase = results[0];
                     lpOperators(machineBase, (operators) => {
                         if (machineBase && operators) {
@@ -472,13 +797,10 @@ function constructor(server) {
                             });
                         });
                     });
-                });
-            });
-
-
-
+                });*/
+            /*});
         });
-    });
+    });*/
 
     router.get('/levelone/all/xml', async (req, res, next) => {
         res.set('Content-Type', 'text/xml');

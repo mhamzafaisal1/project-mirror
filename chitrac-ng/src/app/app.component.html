@@ -1,2 +1,1 @@
-<app-nav-main-menu *ngIf='true'></app-nav-main-menu>
-<app-config-grid-test *ngIf='true'></app-config-grid-test>
+<nav-main-menu *ngIf='true' (darkModeToggleEvent)="onThemeChanged()" [isDarkMode]="isDarkMode"></nav-main-menu>

@@ -1,0 +1,8 @@
+@use './themes/chitrac';
+
+$theme: chitrac.$dark-theme;
+$darkest: 20;
+//$theme: chitrac.$light-theme;
+//$darkest: 60;
+$dark-theme:  chitrac.$dark-theme;
+$light-theme: chitrac.$light-theme;

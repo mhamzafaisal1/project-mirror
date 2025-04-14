@@ -39,12 +39,8 @@ function constructor(server) {
 
 	async function upsertOperator(req, res, next) {
 		try {
-			const id = req.params.id;
 			let updates = req.body;
-			if (updates._id) {
-				delete updates._id;
-			};
-			let results = await configService.upsertConfiguration(collection, id, updates, true);
+			let results = await configService.upsertConfiguration(collection, updates, true);
 			res.json(results);
 		} catch (error) {
 			next(error);
@@ -54,7 +50,7 @@ function constructor(server) {
 	async function deleteOperator(req, res, next) {
 		try {
 			const id = req.params.id;
-			let results = configService.deleteConfiguration(collection, id);
+			let results = await configService.deleteConfiguration(collection, id);
 			res.json(results);
 		} catch (error) {
 			next(error);
@@ -63,14 +59,17 @@ function constructor(server) {
 
 	/*** Machine Config Routes */
 	/** GET routes */
-	router.get('/operators/config/xml', getOperatorXML);
-	router.get('/operators/config', getOperator);
+	router.get('/operator/config/xml', getOperatorXML);
+	router.get('/operator/config', getOperator);
+
+	/** POST routes */
+	router.post('/operator/config', upsertOperator);
 
 	/** PUT routes */
-	router.put('/operators/config/:id', upsertOperator);
+	router.put('/operator/config', upsertOperator);
 
 	/** DELETE routes */
-	router.delete('/operators/config/:id', deleteOperator);
+	router.delete('/operator/config/:id', deleteOperator);
 
 	return router;
 }
