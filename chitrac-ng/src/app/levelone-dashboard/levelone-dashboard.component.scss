@@ -3,15 +3,15 @@
     flex-wrap: wrap;
     gap: 20px;
     padding: 24px;
-    background-color: #f0f2f5;
+    // background-color: #f0f2f5;
   }
   
   .machine-card {
     background-color: #ffffff;
-    border-left: 6px solid #cccccc; // fallback
+    border-left: 6px solid #ccc;
     border-radius: 10px;
     padding: 20px;
-    width: 320px;
+    width: 360px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     transition: transform 0.2s ease-in-out;
   
@@ -34,22 +34,42 @@
     .status {
       font-weight: bold;
       font-size: 0.95rem;
-      text-transform: capitalize;
-      color: inherit; // will inherit color from [ngStyle]
+      color: inherit;
     }
   }
   
   .machine-details {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: #4f5b75;
+    margin-bottom: 12px;
   
     div {
-      margin: 6px 0;
+      margin: 4px 0;
+    }
+  }
+  
+  .sub-section {
+    margin-top: 12px;
+  
+    .section-title {
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #2e3a59;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 2px;
     }
   
-    strong {
-      color: #3d485f;
-      font-weight: 600;
+    .row {
+      margin-bottom: 8px;
+      padding: 8px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      font-size: 0.88rem;
+      color: #3a3a3a;
+  
+      div {
+        margin-bottom: 2px;
+      }
     }
   }
   
