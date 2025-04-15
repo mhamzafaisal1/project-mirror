@@ -8,8 +8,8 @@ function constructor() {
 
 	/** Import defaults */
 	const defaults = {
-		'machines': reqlib('/defaults/machines').machines,
-		'items': reqlib('/defaults/items').items
+		'machines': require('../defaults/machine').machines,
+		'items': require('../defaults/item').items
 	};
 
 	let config;
@@ -19,20 +19,20 @@ function constructor() {
 		switch (param) {
 			case 'development':
 				process.env.NODE_ENV = 'development';
-				config = reqlib('/configuration/dev');
+				config = require('../configuration/dev');
 				config.inDev = true;
 				break;
 			case 'production':
 				process.env.NODE_ENV = 'production';
-				config = reqlib('/configuration/default');
+				config = require('../configuration/default');
 				break;
 			case 'testing':
 				process.env.NODE_ENV = 'testing';
-				config = reqlib('/configuration/default');
+				config = require('../configuration/default');
 				break;
 			default:
 				process.env.NODE_ENV = 'default';
-				config = reqlib('/configuration/default');
+				config = require('../configuration/default');
 				break;
 		}
 	});

@@ -650,6 +650,7 @@ function constructor(server) {
 
             const operator = Object.assign({}, storeJSON.operatorInfo);
             const item = Object.assign({}, storeJSON.item);
+            
 
             const formattedCount = {
                 timestamp: storeJSON.timestamp,
@@ -672,7 +673,7 @@ function constructor(server) {
                 station: 1,
                 lane: item.sortNumber
             }
-
+            logger.debug('here');
             const insertFormattedCount = await db.collection('count').insertOne(formattedCount);
 
             const state = {

@@ -15,7 +15,7 @@ function constructor(server) {
 	const collection = db.collection('item');
 	const logger = server.logger;
 	const xmlParser = server.xmlParser;
-	const configService = reqlib('/services/mongo/');
+	const configService = require('../../services/mongo/');
 
 	/*** Service consumption functions */
 	async function getItemXML(req, res, next) {

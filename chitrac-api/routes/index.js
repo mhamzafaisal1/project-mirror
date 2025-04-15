@@ -4,13 +4,13 @@ const express = require('express');
 
 
 function init(app, server) {
-    const machineRoutes = reqlib('/controllers/machine')(server);
-    const itemRoutes = reqlib('/controllers/item')(server);
-    const operatorRoutes = reqlib('/controllers/operator')(server);
-    const statusRoutes = reqlib('/controllers/status')(server);
-    const softrolRoutes = reqlib('/controllers/softrol')(server);
-    const alphaRoutes = reqlib('/controllers/alpha')(server);
-    const passportRoutes = reqlib('/controllers/passport')(server);
+    const machineRoutes = require('../controllers/machine')(server);
+    const itemRoutes = require('../controllers/item')(server);
+    const operatorRoutes = require('../controllers/operator')(server);
+    const statusRoutes = require('../controllers/status')(server);
+    const softrolRoutes = require('../controllers/softrol')(server);
+    const alphaRoutes = require('../controllers/alpha')(server);
+    const passportRoutes = require('../controllers/passport')(server);
 
 
     app.get('/docs/api', (req, res, next) => {

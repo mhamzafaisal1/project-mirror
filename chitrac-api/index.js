@@ -3,17 +3,16 @@ var state, server = {};
 
 /** Declare reqlib */
 server.appRoot = require('app-root-path');
-global.reqlib = require('app-root-path').require;
 
 /** Load config */
-const config = reqlib('/modules/parameterizer')(__dirname);
-const db = reqlib('/modules/mongoConnector')(config);
+const config = require('./modules/parameterizer')(__dirname);
+const db = require('./modules/mongoConnector')(config);
 
 /** Load Morgan for http logging */
 const morgan = require('morgan');
 
 /** Declare the custom winston logger and create a blank instance */
-const winston = reqlib('/modules/logger');
+const winston = require('./modules/logger');
 const logger = new winston(config.mongoLog.url + '/' + config.mongoLog.db);
 
 server.config = config;
@@ -21,21 +20,21 @@ server.db = db;
 server.logger = logger;
 
 server.defaults = {
-    machine: reqlib('/defaults/machine').machine,
-    item: reqlib('/defaults/item').item,
-    operator: reqlib('/defaults/operator').operator,
-    status: reqlib('/defaults/status').status,
-    fault: reqlib('/defaults/fault').fault
+    machine: require('./defaults/machine').machine,
+    item: require('./defaults/item').item,
+    operator: require('./defaults/operator').operator,
+    status: require('./defaults/status').status,
+    fault: require('./defaults/fault').fault
 }
 
-const xmlParser = reqlib('/modules/xmlParser');
+const xmlParser = require('./modules/xmlParser');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 
 server.xmlParser = xmlParser;
 
 /** Load ChiTrac modules */
-const collectionManager = reqlib('/modules/collection-manager');
+const collectionManager = require('./modules/collection-manager');
 const cm = new collectionManager(db, logger);
 
 /** Load Express and prep it for use */
@@ -97,7 +96,7 @@ const morganMiddleware = morgan(':method :url :status :res[content-length] - :re
 app.use(morganMiddleware);
 //app.use(express.json());
 
-const routes = reqlib('/routes');
+const routes = require('./routes');
 routes.init(app, server);
 
 app.listen(port, () => logger.info(`ChiTracAPI Started and listening on port ${port}`));

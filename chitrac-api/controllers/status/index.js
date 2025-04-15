@@ -14,7 +14,7 @@ function constructor(server) {
 	const collection = db.collection('status');
 	const logger = server.logger;
 	const xmlParser = server.xmlParser;
-	const configService = reqlib('/services/mongo/');
+	const configService = require('../../services/mongo/');
 
 	/*** Service consumption functions */
 	async function getStatusXML(req, res, next) {

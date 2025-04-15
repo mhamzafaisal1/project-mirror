@@ -14,7 +14,7 @@ function constructor(server) {
 	const collection = db.collection('operator');
 	const logger = server.logger;
 	const xmlParser = server.xmlParser;
-	const configService = reqlib('/services/mongo/');
+	const configService = require('../../services/mongo/');
 
 	/*** Service consumption functions */
 	async function getOperatorXML(req, res, next) {
