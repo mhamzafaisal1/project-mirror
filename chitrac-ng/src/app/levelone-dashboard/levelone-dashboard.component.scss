@@ -1,0 +1,55 @@
+.dashboard-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 24px;
+    background-color: #f0f2f5;
+  }
+  
+  .machine-card {
+    background-color: #ffffff;
+    border-left: 6px solid #cccccc; // fallback
+    border-radius: 10px;
+    padding: 20px;
+    width: 320px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease-in-out;
+  
+    &:hover {
+      transform: scale(1.02);
+    }
+  }
+  
+  .machine-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  
+    strong {
+      font-size: 1.1rem;
+      color: #2e3a59;
+    }
+  
+    .status {
+      font-weight: bold;
+      font-size: 0.95rem;
+      text-transform: capitalize;
+      color: inherit; // will inherit color from [ngStyle]
+    }
+  }
+  
+  .machine-details {
+    font-size: 0.9rem;
+    color: #4f5b75;
+  
+    div {
+      margin: 6px 0;
+    }
+  
+    strong {
+      color: #3d485f;
+      font-weight: 600;
+    }
+  }
+  
