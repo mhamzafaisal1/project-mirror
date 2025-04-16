@@ -1,0 +1,10 @@
+{
+    "title": "Machine Time Distribution Chart",
+    "data": [
+        {"name": "paused", "value": 14.6},
+        {"name": "offline", "value": 2.2},
+        {"name": "fault", "value": 17.3},
+        {"name": "run", "value": 65.9}
+        ]
+    }
+  
