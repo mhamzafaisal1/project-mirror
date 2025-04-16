@@ -10,7 +10,7 @@ const startupDT = DateTime.now();
 const bcrypt = require('bcryptjs');
 
 
-module.exports = function(server) {
+module.exports = function (server) {
     return constructor(server);
 }
 
@@ -19,7 +19,7 @@ function constructor(server) {
     const logger = server.logger;
     const passport = server.passport;
 
-    const getTicker = async function() {
+    const getTicker = async function () {
         let tickerPromise = [];
         try {
             tickerPromise = await db.collection('ticker').find().project({
@@ -46,7 +46,7 @@ function constructor(server) {
         }
     }
 
-    const getMachineListFromTicker = async function() {
+    const getMachineListFromTicker = async function () {
         let tickerPromise = [];
         try {
             tickerPromise = await db.collection('ticker').find().project({
@@ -73,7 +73,7 @@ function constructor(server) {
         }
     }
 
-    const getOperatorCounts = async function(operatorInfo) {
+    const getOperatorCounts = async function (operatorInfo) {
         const pipeline = [{
             '$match': {
                 'timestamp': { $gte: new Date(DateTime.now().minus({ hours: 6 }).toISO()) },
@@ -119,7 +119,7 @@ function constructor(server) {
         return db.collection('newOperatorCount').aggregate(pipeline);
     }
 
-    const getMachineOperatorLists = async function() {
+    const getMachineOperatorLists = async function () {
         let machineList = await getMachineListFromTicker();
         const operatorLists = machineList.map((machine) => {
             if (machine.mode === 'largePiece') {
@@ -137,7 +137,7 @@ function constructor(server) {
         return operatorLists;
     }
 
-    const getMachineOperatorCounts = async function(machine) {
+    const getMachineOperatorCounts = async function (machine) {
         let operatorCountPromises = machine.map((operator) => {
             return getOperatorCounts(operator);
         });
@@ -152,7 +152,7 @@ function constructor(server) {
         return returnArray;
     }
 
-    const getAllOperatorCounts = async function() {
+    const getAllOperatorCounts = async function () {
         const machineList = await getMachineOperatorLists();
         let resultArray = [];
         for await (const machine of machineList) {
@@ -272,7 +272,7 @@ function constructor(server) {
 
             const operator = Object.assign({}, storeJSON.operatorInfo);
             const item = Object.assign({}, storeJSON.item);
-            
+
 
             const formattedCount = {
                 timestamp: storeJSON.timestamp,
@@ -295,7 +295,7 @@ function constructor(server) {
                 station: 1,
                 lane: item.sortNumber
             }
-            
+
             const insertFormattedCount = await db.collection('count').insertOne(formattedCount);
 
             const state = {
@@ -342,14 +342,14 @@ function constructor(server) {
         const activeMachineStates = await stateTickerCollection.find().sort({ "machine.name": 1 }).toArray();
 
         async function machineSession(serial) {
-            let machineStatesMostRecentFind = await stateCollection.find({ 'machine.serial': parseInt(serial), 'status.code': { $ne: null }}).sort({ timestamp: -1 }).limit(1).toArray();
+            let machineStatesMostRecentFind = await stateCollection.find({ 'machine.serial': parseInt(serial), 'status.code': { $ne: null } }).sort({ timestamp: -1 }).limit(1).toArray();
             let machineStatesMostRecent;
             let machineStatesMostRecentTimestamp;
             if (machineStatesMostRecentFind.length) {
                 machineStatesMostRecent = machineStatesMostRecentFind[0];
                 machineStatesMostRecentTimestamp = new Date(machineStatesMostRecent.timestamp);
             }
-             
+
             let diff;
             if (machineStatesMostRecent.status && machineStatesMostRecent.status.code == 1) {
                 let machineStatesNextMostRecent;
@@ -360,7 +360,7 @@ function constructor(server) {
                         if (machineStatesNextMostRecent.status.code == 1) {
                             machineStatesMostRecent = Object.assign({}, machineStatesNextMostRecent);
                             machineStatesMostRecentTimestamp = new Date(machineStatesNextMostRecent.timestamp);
-                            
+
                         } else {
                             break;
                         }
@@ -531,6 +531,201 @@ function constructor(server) {
                 }
                 return { status: machineState.status, machineInfo: machineState.machine, fault: fault, timeOnTask: 0, onTime: 0, totalCount: 0, items: [], operators: [] };
             }
+        }));
+        res.json(machineRunTimesArray);
+    });
+
+    router.get('/production/statistics/machines/all', async (req, res, next) => {
+        const stateCollection = db.collection('state');
+        const stateTickerCollection = db.collection('stateTicker');
+        const countCollection = db.collection('count');
+
+        const currentDateTime = DateTime.now().startOf('day').toISO();
+        const nowDateTime = DateTime.now().toISO();
+        const startDate = new Date(currentDateTime);
+
+        const activeMachineStates = await stateTickerCollection.find({timestamp: {'$gte': new Date(currentDateTime)}}).sort({ "machine.name": 1 }).toArray();
+
+        async function machineSessions(serial) {
+
+            let sessionArray = [];
+
+            const machineStatesHistorySinceStart = await stateCollection.find({ 'machine.serial': parseInt(serial), status: { $ne: null }, 'timestamp': { '$gte': new Date(currentDateTime) } }).sort({ timestamp: -1 }).toArray();
+            const machineStatesHistoryPreviousOne = await stateCollection.find({ 'machine.serial': parseInt(serial), status: { $ne: null }, 'timestamp': { '$lte': new Date(currentDateTime) } }).sort({ timestamp: -1 }).limit(1).toArray();
+            const machineStatesHistory = machineStatesHistorySinceStart.concat(machineStatesHistoryPreviousOne);
+            while (machineStatesHistory.length) {
+                let lastSessionStart, lastSessionEnd;
+                let lastSessionStartTS, lastSessionEndTS;
+                let diff;
+
+                do {
+                    lastSessionStart = machineStatesHistory.pop();
+
+                    if (lastSessionStart.status.code == 1) {
+                        const lastSessionStartTSCheck = new Date(lastSessionStart.timestamp);
+                        if (startDate > lastSessionStartTSCheck) {
+                            lastSessionStartTS = startDate;
+                        } else {
+                            lastSessionStartTS = new Date(lastSessionStart.timestamp);
+                        }
+                    }
+                } while (machineStatesHistory.length && lastSessionStart.status.code != 1) //HERE, NEED TO CONTINUE UNITL END FOUND
+
+                if (machineStatesHistory.length) {
+                    do {
+                        lastSessionEnd = machineStatesHistory.pop();
+                    } while (machineStatesHistory.length && lastSessionEnd.status.code == 1)
+                    if (!lastSessionEnd || lastSessionEnd.status.code == 1) {
+                        lastSessionEndTS = new Date();
+                    } else {
+                        lastSessionEndTS = new Date(lastSessionEnd.timestamp);
+                    }
+                } else {
+                    lastSessionEndTS = new Date();
+                }
+
+                if (lastSessionStartTS && lastSessionEndTS) {
+                    diff = Interval.fromDateTimes(DateTime.fromISO(lastSessionStartTS.toISOString()), DateTime.fromISO(lastSessionEndTS.toISOString()));
+                } else if (lastSessionStartTS) {
+                    lastSessionEndTS = new Date();
+                    diff = Interval.fromDateTimes(DateTime.fromISO(lastSessionStartTS.toISOString()), DateTime.fromISO(lastSessionEndTS.toISOString()));
+                }
+
+                if (diff && diff.isValid) {
+                    const sessionDuration = Duration.fromMillis(diff.length());
+                    const sessionDurationString = sessionDuration.as('seconds') > 60 ? sessionDuration.as('minutes') + ' minutes' : sessionDuration.as('seconds') + ' seconds';
+                    let sessionObject = { start: DateTime.fromISO(lastSessionStartTS.toISOString()), duration: sessionDuration.as('seconds') }
+                    sessionObject['end'] = DateTime.fromISO(lastSessionEndTS.toISOString());
+                    sessionArray.push(sessionObject);
+                }
+
+            }
+            return sessionArray;
+        }
+
+        const machineRunTimesArray = await Promise.all(activeMachineStates.map(async (machineState) => {
+            const serial = machineState.machine.serial;
+            const arr = await machineSessions(serial);
+            const machineDuration = arr.reduce((duration, session) => duration + session.duration, 0);
+
+            const operators = await Promise.all(machineState.operators.map(async (operator) => {
+                if (operator.id == 0) {
+                    operator.id = serial + 900000;
+                    //result.push({ id: serial + 900000, station: operator.station ? operator.station : 1 })
+                }
+
+                const pipeline = [{
+                    '$match': {
+                        'machine.serial': serial,
+                        'operator.id': operator.id,
+                        'station': operator.station ? operator.station : 1,
+                        'timestamp': { '$gte': new Date(currentDateTime) }
+                    }
+                }, {
+                    '$group': {
+                        '_id': '$item.name',
+                        'count': {
+                            '$count': {}
+                        },
+                        'standard': {
+                            '$first': '$item.standard'
+                        },
+                        'operator': { '$first': '$operator' },
+                        'station': { '$first': '$station' }
+                    }
+                }, {
+                    '$addFields': {
+                        'timeCreditDenom': {
+                            '$divide': [
+                                '$standard', 3600
+                            ]
+                        }
+                    }
+                }, {
+                    '$addFields': {
+                        'timeCredit': {
+                            '$divide': [
+                                '$count', '$timeCreditDenom'
+                            ]
+                        }
+                    }
+                }]
+
+                const operatorItemTotals = await countCollection.aggregate(pipeline).toArray();
+
+                if (operatorItemTotals.length) {
+                    const runTime = parseInt(machineDuration);
+                    const operator = operatorItemTotals[0].operator;
+                    const station = operatorItemTotals[0].station;
+                    const operatorTotal = operatorItemTotals.reduce((total, item) => total + item.count, 0);
+                    const operatorTotalTimeCredit = operatorItemTotals.reduce((total, item) => {
+                        if (item.standard < 60) {
+                            return total + (item.timeCredit / 60);
+                        } else {
+                            return total + item.timeCredit;
+                        }
+                        
+                    }, 0 );
+                    const operatorEfficiency = parseInt((operatorTotalTimeCredit / runTime) * 100);
+                    const operatorPace = (operatorTotal / (runTime / 60)) * 60;
+                    const tasks = operatorItemTotals.map((item) => {
+                        let standard;
+                        if (item.standard < 60) {
+                            standard = item.standard * 60;
+                        } else {
+                            standard = item.standard;
+                        }
+                        return {
+                            name: item['_id'],
+                            standard: standard
+                        }
+                    })
+                    return {
+                        id: operator.id || 0,
+                        name: operator.name ? operator.name : operator.id,
+                        pace: parseInt(operatorPace),
+                        timeOnTask: parseInt(runTime),
+                        count: parseInt(operatorTotal) || 0,
+                        efficiency: operatorEfficiency,
+                        station: station ? station : 1,
+                        tasks: tasks
+                    };
+                }
+
+                return;
+            }));
+            delete machineState.machine.ipAddress;
+            if (machineState.status.softrolColor) {
+                machineState.status.color = '' + machineState.status.softrolColor;
+                delete machineState.status.softrolColor;
+            }
+            let fault = null;
+            if (machineState.status.code >= 2) {
+                if (machineState.status.color == null) {
+                    machineState.status.color = 'Red';
+                }
+                fault = machineState.status;
+            } else if (machineState.status.code == 1) {
+                if (machineState.status.color == null) {
+                    machineState.status.color = 'Green';
+                }
+            } else {
+                if (machineState.status.color == null) {
+                    machineState.status.color = 'Gray';
+                }
+            }
+            const machineTotalCountFind = await countCollection.find({ 'machine.serial': parseInt(serial), 'timestamp': { '$gte': new Date(currentDateTime) } }).toArray();
+            let items = [];
+            const totalCount = machineTotalCountFind.length;
+                    const itemTemplate = {
+                id: 1,
+                count: 0
+            }
+            items.push(itemTemplate);
+            items.push(itemTemplate);
+            items.push(itemTemplate);
+            items.push(itemTemplate);
+            return { status: machineState.status, machineInfo: machineState.machine, fault: fault, timeOnTask: parseInt(machineDuration), onTime: parseInt(machineDuration), totalCount: parseInt(totalCount), items: items, operators: operators.filter(element => element != null) };
         }));
         res.json(machineRunTimesArray);
     });
