@@ -1,0 +1,17 @@
+<table class="base-table">
+    <thead>
+      <tr>
+        <th *ngFor="let col of columns">{{ col }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of rows">
+        <td *ngFor="let col of columns"
+    [ngClass]="col === 'Efficiency' ? getEfficiencyClass(row[col]) + ' efficiency' : ''">
+  {{ row[col] }}
+</td>
+
+      </tr>
+    </tbody>
+  </table>
+  
