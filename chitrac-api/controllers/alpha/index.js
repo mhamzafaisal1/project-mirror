@@ -565,10 +565,6 @@ function constructor(server) {
         res.json(resultArray);
     })
 
-    router.get('/passport', (req, res, next) => {
-        res.json(server.passport);
-    });
-
     function routePublic(req, res, fileName) {
         var options = {
             root: __dirname + '/../public/',
@@ -609,6 +605,10 @@ function constructor(server) {
         };
         res.json(json);
     };
+
+    router.get('/passport', (req, res, next) => {
+        res.json(server.passport);
+    });
 
     // =====================================
     // LOGIN ===============================
