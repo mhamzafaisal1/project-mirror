@@ -33,4 +33,14 @@ export class LeveloneDashboardComponent {
   ngOnDestroy() {
     this.sub.unsubscribe();
   }
+
+  machineTrackBy(index: number, machine: any) {
+    return machine.machineInfo?.serial;
+  }
+  operatorTrackBy(index: number, operator: any) {
+    return operator.id;
+  }
+  itemTrackBy(index: number, item: any) {
+    return item.id;
+  }
 }
