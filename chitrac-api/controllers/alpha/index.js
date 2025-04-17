@@ -1088,9 +1088,9 @@ router.get('/run-session/state/cycles', async (req, res) => {
       for (const state of states) {
         const status = state.status?.name;
   
-        if (status === 'Run' && !currentStart) {
+        if (status === 1 && !currentStart) {
           currentStart = state.timestamp;
-        } else if (status !== 'Run' && currentStart) {
+        } else if (status !== 1 && currentStart) {
           if (currentStart >= startDate && state.timestamp <= endDate) {
             cycles.push({
               start: currentStart,
