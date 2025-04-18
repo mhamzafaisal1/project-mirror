@@ -71,7 +71,7 @@ export class UserService {
   }
 
   public logout() {
-    return this.http.get<any>('/api/passport/user/logout').pipe(map(x => {
+    return this.http.get<{username: string}>('/api/passport/user/logout').pipe(map(x => {
       // store user details and jwt token in local storage to keep user logged in between page refreshes
       localStorage.setItem('user', JSON.stringify({ username: null }));
       this.userSubject.next({ username: null });

@@ -70,8 +70,8 @@ function constructor(server) {
 
     // process the login form
     router.post('/user/login', passport.authenticate('local-login', {
-        successRedirect: '/api/alpha/passport/user', // redirect to the secure profile section
-        failureRedirect: '/api/alpha/passport/user/login', // redirect back to the signup page if there is an error
+        successRedirect: '/api/passport/user', // redirect to the secure profile section
+        failureRedirect: '/api/passport/user/login', // redirect back to the signup page if there is an error
         failureFlash: true // allow flash messages
     }))
 
@@ -97,8 +97,8 @@ function constructor(server) {
 
     // process the signup form
     router.post('/user/signup', isLoggedIn, passport.authenticate('local-signup', {
-        successRedirect: '/api/alpha/passport/user', // redirect to the secure profile section
-        failureRedirect: '/api/alpha/passport/signup', // redirect back to the signup page if there is an error
+        successRedirect: '/api/passport/user', // redirect to the secure profile section
+        failureRedirect: '/api/passport/signup', // redirect back to the signup page if there is an error
         failureFlash: true // allow flash messages
     }))
 
