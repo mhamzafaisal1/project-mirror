@@ -1161,124 +1161,123 @@ router.get('/run-session/state/cycles', async (req, res) => {
 //   });
   
 router.get('/run-session/state/operator-cycles', async (req, res) => {
-    try {
-      const { startTime, endTime, machineSerial } = req.query;
-  
-      if (!startTime || !endTime || !machineSerial) {
-        return res.status(400).json({ error: 'startTime, endTime, and machineSerial are required' });
+  try {
+    const { startTime, endTime, machineSerial } = req.query;
+
+    if (!startTime || !endTime || !machineSerial) {
+      return res.status(400).json({ error: 'startTime, endTime, and machineSerial are required' });
+    }
+
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+    const serial = parseInt(machineSerial);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid startTime or endTime format' });
+    }
+
+    const paddedStart = new Date(startDate.getTime() - 5 * 60 * 1000);
+    const paddedEnd = new Date(endDate.getTime() + 5 * 60 * 1000);
+
+    const states = await db.collection('state')
+      .find({
+        'machine.serial': serial,
+        timestamp: { $gte: paddedStart, $lte: paddedEnd }
+      })
+      .sort({ timestamp: 1 })
+      .project({
+        timestamp: 1,
+        'status.code': 1,
+        'status.name': 1
+      })
+      .toArray();
+
+    const cycles = [];
+    let currentStart = null;
+
+    for (const state of states) {
+      const code = state.status?.code;
+      if (code === 1 && !currentStart) {
+        currentStart = state.timestamp;
+      } else if (code !== 1 && currentStart) {
+        if (currentStart >= startDate && state.timestamp <= endDate) {
+          cycles.push({
+            start: currentStart,
+            end: state.timestamp,
+            endStatus: state.status?.name
+          });
+        }
+        currentStart = null;
       }
-  
-      const startDate = new Date(startTime);
-      const endDate = new Date(endTime);
-      const serial = parseInt(machineSerial);
-  
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        return res.status(400).json({ error: 'Invalid startTime or endTime format' });
-      }
-  
-      const paddedStart = new Date(startDate.getTime() - 5 * 60 * 1000);
-      const paddedEnd = new Date(endDate.getTime() + 5 * 60 * 1000);
-  
-      // Step 1: Get all state records
-      const states = await db.collection('state')
+    }
+
+    for (const cycle of cycles) {
+      const stateAtStart = await db.collection('state')
+        .findOne({
+          'machine.serial': serial,
+          timestamp: { $gte: new Date(cycle.start) }
+        });
+
+      const operators = stateAtStart?.operators || [];
+
+      const countRecords = await db.collection('count')
         .find({
           'machine.serial': serial,
-          timestamp: { $gte: paddedStart, $lte: paddedEnd }
+          timestamp: {
+            $gte: new Date(cycle.start),
+            $lte: new Date(cycle.end)
+          }
         })
         .sort({ timestamp: 1 })
-        .project({
-          timestamp: 1,
-          'status.code': 1,
-          'status.name': 1
-        })
         .toArray();
-  
-      // Step 2: Walk through states to extract session cycles
-      const cycles = [];
-      let currentStart = null;
-  
-      for (const state of states) {
-        const code = state.status?.code;
-  
-        if (code === 1 && !currentStart) {
-          currentStart = state.timestamp;
-        } else if (code !== 1 && currentStart) {
-          if (currentStart >= startDate && state.timestamp <= endDate) {
-            cycles.push({
-              start: currentStart,
-              end: state.timestamp,
-              endStatus: state.status?.name
-            });
-          }
-          currentStart = null;
-        }
-      }
-  
-      // Step 3: For each cycle, get state and count records, and map counts to operators
-      for (const cycle of cycles) {
-        const stateAtStart = await db.collection('state')
-          .findOne({
-            'machine.serial': serial,
-            timestamp: { $gte: new Date(cycle.start) }
-          });
-  
-        const operators = stateAtStart?.operators || [];
-  
-        const countRecords = await db.collection('count')
-          .find({
-            'machine.serial': serial,
-            timestamp: {
-              $gte: new Date(cycle.start),
-              $lte: new Date(cycle.end)
-            }
-          })
-          .sort({ timestamp: 1 })
-          .toArray();
-  
-        // Group counts by operator -> then by item
-        const operatorMap = {};
-  
-        for (const record of countRecords) {
-          const operatorId = record.operator?.id;
-          const item = record.item;
-  
-          if (!operatorId || operatorId === -1 || !item?.id) continue;
-  
-          if (!operatorMap[operatorId]) {
-            operatorMap[operatorId] = {};
-          }
-  
-          if (!operatorMap[operatorId][item.id]) {
-            operatorMap[operatorId][item.id] = [];
-          }
-  
-          operatorMap[operatorId][item.id].push(item);
-        }
-  
-        // Format the result: operator -> items -> count
-        cycle.operators = Object.entries(operatorMap).map(([opId, itemMap]) => {
-          const items = Object.entries(itemMap).map(([itemId, itemArray]) => ({
-            id: itemArray[0].id,
-            name: itemArray[0].name,
-            standard: itemArray[0].standard,
-            count: itemArray.length
-          }));
-  
-          return {
-            id: parseInt(opId),
-            items
+
+      const operatorMap = {};
+
+      for (const record of countRecords) {
+        const operatorId = record.operator?.id;
+        const operatorName = record.operator?.name;
+        const item = record.item;
+
+        if (!operatorId || operatorId === -1 || !item?.id) continue;
+
+        if (!operatorMap[operatorId]) {
+          operatorMap[operatorId] = {
+            name: operatorName,
+            items: {}
           };
-        });
+        }
+
+        if (!operatorMap[operatorId].items[item.id]) {
+          operatorMap[operatorId].items[item.id] = [];
+        }
+
+        operatorMap[operatorId].items[item.id].push(item);
       }
-  
-      res.json(cycles);
-  
-    } catch (error) {
-      logger.error('Error calculating operator cycles with item totals:', error);
-      res.status(500).json({ error: 'Failed to fetch operator-based session cycles' });
+
+      cycle.operators = Object.entries(operatorMap).map(([opId, data]) => {
+        const items = Object.entries(data.items).map(([itemId, itemArray]) => ({
+          id: itemArray[0].id,
+          name: itemArray[0].name,
+          standard: itemArray[0].standard,
+          count: itemArray.length
+        }));
+
+        return {
+          id: parseInt(opId),
+          name: data.name || null,
+          items
+        };
+      });
     }
-  });
-  
+
+    res.json(cycles);
+
+  } catch (error) {
+    logger.error('Error calculating operator cycles with item totals:', error);
+    res.status(500).json({ error: 'Failed to fetch operator-based session cycles' });
+  }
+});
+
 
   /***  Operator Cycle End */
 
