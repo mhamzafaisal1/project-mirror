@@ -232,10 +232,14 @@ function constructor(server) {
     });
 
     router.post('/ac360/post', async (req, res, next) => {
+        const currentDateTime = new Date();
         let bodyJSON = Object.assign({}, req.body);
         if (bodyJSON.timestamp) {
             bodyJSON.timestamp = new Date(DateTime.fromISO(bodyJSON.timestamp + 'Z'));
-            //bodyJSON.timestamp = new Date(DateTime.fromFormat(bodyJSON.timestamp + '+0', "yyyy-MM-dd'T'HH:mm:ss.SSSZ").toISO());
+            /** TEMPORARY FIX for future timestamps coming from AC360s on boot,  */
+            if (bodyJSON.timestamp > currentDateTime) {
+                bodyJSON.timestamp = currentDateTime;
+            }
         }
 
         let storeJSON = Object.assign({}, bodyJSON);
