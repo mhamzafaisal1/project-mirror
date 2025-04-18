@@ -1,4 +1,4 @@
-#ChiTrac API
+# ChiTrac API
 
 The ChiTrac API is a Web Service and Application Programming Interface (API) for providing current, configuration, and historical information about networked Chicago Dryer (CD) equipment. Data is available in JSON format from all routes.
 
@@ -6,10 +6,9 @@ If a route specification ends with "?xml", that route has data also available vi
 
 ---
 
-##Available Routes
+## Available Routes
 
 [/api/alpha/sample/machineOverview](#apialphasamplemachineoverview)
-
 
 [/api/machine/status/:serialNumber/?xml](#apimachinestatusserialnumberxml)
 
@@ -21,9 +20,9 @@ If a route specification ends with "?xml", that route has data also available vi
 
 [/api/machine/leveltwo/:serialNumber/xml](#apimachineleveltwoserialnumberxml)
 
-##Machine Routes
+## Machine Routes
 
-###/api/alpha/sample/machineOverview
+### /api/alpha/sample/machineOverview
 
 Data Format:
 ```
@@ -41,11 +40,11 @@ Data Format:
 {
 	"code":3,						Unique ID code for status type
 	"name":"Stop"					Name for the current status type
-	"color":"Red"					Color for Softrol to use for displaying this status
+	"color":"Red"					Color for use for displaying this status
 },
 "timeOnTask":360,					Time on task in seconds for machine
+"onTime":360,						Powered on time in seconds for machine
 "totalCount":216,					Total piece count for machine
-"efficiency":86.52,					Efficiency across all operators
 "operators":[
 {
 	"id":117811,					Operator ID
@@ -96,31 +95,23 @@ Data Format:
 		"standard":625
 	}]
 }],
-"tasks":[
+"items":[
 {
 	"id":4,							Item/task unique ID
-	"name":"Pool Towel",			Item/task name
-	"standard":625,					Item/task pace standard in pieces per hour
 	"count":600						Item count
 }, {
 	"id":5,
-	"name":"Bath Towel",
-	"standard":625,
 	"count":61
 }, {
 	"id":4,
-	"name":"Pool Towel",
-	"standard":625,
 	"count":41
 }, {
 	"id":5,
-	"name":"Bath Towel",
-	"standard":625,
 	"count":54
 }]
 ```
 
-###/api/softrol/levelone/all/xml
+### /api/softrol/levelone/all/xml
 
 Data Format:
 ```
@@ -233,7 +224,7 @@ Data Format:
 </levelone>
 ```
 
-###/api/machine/status/:serialNumber/?xml
+### /api/machine/status/:serialNumber/?xml
 
 This route provides live status information for a machine.
 
@@ -243,7 +234,7 @@ This route provides live status information for a machine.
 | serialNumber | Serial Number of Desired Machine | Yes |
 | xml | Include xml parameter if xml output is desired | No |
 
-####Example Machine Status
+#### Example Machine Status
 
 ```
 <machineState>
@@ -438,7 +429,7 @@ This route provides live status information for a machine.
 </machineState>
 ```
 
-###/api/machines/config/?xml
+### /api/machines/config/?xml
 
 This route provides configuration definition for all CD machines in the system, as stored in the database
 
@@ -458,7 +449,7 @@ This route provides configuration definition for all CD machines in the system, 
 </machines>
 ```
 
-###/api/operators/config/?xml
+### /api/operators/config/?xml
 
 This route provides configuration definition for all operators in the system, as stored in the database
 
@@ -476,7 +467,7 @@ This route provides configuration definition for all operators in the system, as
 </operators>
 ```
 
-###/api/items/config/?xml
+### /api/items/config/?xml
 
 This route provides configuration definition for all items in the system, as stored in the database
 
@@ -498,7 +489,7 @@ This route provides configuration definition for all items in the system, as sto
 </items>
 ```
 
-###/api/machine/levelone/:serialNumber/xml
+### /api/machine/levelone/:serialNumber/xml
 
 |  | Input Parameters |  |
 | --- | --- | --- |
@@ -614,7 +605,7 @@ Multi-Lane:
 </levelOne>
 ```
 
-###/api/machine/leveltwo/:serialNumber/xml
+### /api/machine/leveltwo/:serialNumber/xml
 
 |  | Input Parameters |  |
 | --- | --- | --- |
