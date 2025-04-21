@@ -8,6 +8,10 @@ const { DateTime, Duration, Interval } = require("luxon"); //For handling dates 
 const ObjectId = require("mongodb").ObjectId;
 const startupDT = DateTime.now();
 const bcrypt = require("bcryptjs");
+const { parseAndValidateQueryParams, createPaddedTimeRange, createMongoDateQuery, formatDuration } = require('../../utils/time');
+const { fetchStatesForMachine, groupStatesByMachine, extractCyclesFromStates } = require('../../utils/state');
+const { getCountRecords, getOperatorItemMapFromCounts } = require('../../utils/count');
+const { calculateRuntime, calculateDowntime, calculateTotalCount, calculateMisfeeds, calculateAvailability, calculateThroughput, calculateEfficiency, calculateOEE } = require('../../utils/analytics');
 
 module.exports = function (server) {
   return constructor(server);
@@ -17,11 +21,6 @@ function constructor(server) {
   const db = server.db;
   const logger = server.logger;
   const passport = server.passport;
-
-
-
-
-
 
 
   router.get("/timestamp", (req, res, next) => {
@@ -661,475 +660,48 @@ router.get('/production/statistics/machines/all', async (req, res, next) => {
   /*** Run Session Start */
 
 router.get('/run-session/state/cycles', async (req, res) => {
-    try {
-      const { startTime, endTime, machineSerial } = req.query;
-  
-      if (!startTime || !endTime || !machineSerial) {
-        return res.status(400).json({ error: 'startTime, endTime, and machineSerial are required' });
-      }
-  
-      const startDate = new Date(startTime);
-      const endDate = new Date(endTime);
-      const serial = parseInt(machineSerial);
-  
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        return res.status(400).json({ error: 'Invalid startTime or endTime format' });
-      }
-  
-      const paddedStart = new Date(startDate.getTime() - 5 * 60 * 1000);
-      const paddedEnd = new Date(endDate.getTime() + 5 * 60 * 1000);
-  
-      // Step 1: Get all state records
-      const states = await db.collection('state')
-        .find({
-          'machine.serial': serial,
-          timestamp: { $gte: paddedStart, $lte: paddedEnd }
-        })
-        .sort({ timestamp: 1 })
-        .project({
-          timestamp: 1,
-          'status.code': 1
-        })
-        .toArray();
-  
-      // Step 2: Walk through states to extract session cycles
-      const cycles = [];
-      let currentStart = null;
-  
-      for (const state of states) {
-        const status = state.status?.code;
-  
-        if (status === 1 && !currentStart) {
-          currentStart = state.timestamp;
-        } else if (status !== 1 && currentStart) {
-          if (currentStart >= startDate && state.timestamp <= endDate) {
-            cycles.push({
-              start: currentStart,
-              end: state.timestamp,
-              endStatus: status
-            });
-          }
-          currentStart = null;
-        }
-      }
-  
-      // Step 3: For each cycle, get count records
-      for (const cycle of cycles) {
-        const countData = await db.collection('count')
-          .find({
-            'machine.serial': serial,
-            timestamp: {
-              $gte: new Date(cycle.start),
-              $lte: new Date(cycle.end)
-            }
-          })
-          .sort({ timestamp: 1 })
-          .toArray();
-  
-        cycle.counts = countData; // Attach to the session object
-      }
-  
-      res.json(cycles);
-  
-    } catch (error) {
-      logger.error('Error calculating session cycles with counts:', error);
-      res.status(500).json({ error: 'Failed to fetch session cycles' });
+  try {
+    // Step 1: Parse and validate query parameters
+    const { start, end, serial } = parseAndValidateQueryParams(req);
+    
+    // Step 2: Create padded time range
+    const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+    
+    // Step 3: Get all state records using state.js utility
+    const states = await fetchStatesForMachine(db, serial, paddedStart, paddedEnd);
+
+    // Step 4: Extract cycles using state.js utility
+    const cycles = extractCyclesFromStates(states, start, end);
+
+    // Step 5: For each cycle, get count records using count.js utility
+    for (const cycle of cycles) {
+      const countData = await getCountRecords(db, serial, cycle.start, cycle.end);
+      cycle.counts = countData;
     }
-  });
+
+    res.json(cycles);
+
+  } catch (error) {
+    logger.error('Error calculating session cycles with counts:', error);
+    res.status(500).json({ error: 'Failed to fetch session cycles' });
+  }
+});
 
   /*** Run Session End */
 
   /***  Operator Cycle Start */
-
-//   router.get('/run-session/state/operator-cycles', async (req, res) => {
-//     try {
-//       const { startTime, endTime, machineSerial } = req.query;
-  
-//       if (!startTime || !endTime || !machineSerial) {
-//         return res.status(400).json({ error: 'startTime, endTime, and machineSerial are required' });
-//       }
-  
-//       const startDate = new Date(startTime);
-//       const endDate = new Date(endTime);
-//       const serial = parseInt(machineSerial);
-  
-//       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-//         return res.status(400).json({ error: 'Invalid startTime or endTime format' });
-//       }
-  
-//       const paddedStart = new Date(startDate.getTime() - 5 * 60 * 1000);
-//       const paddedEnd = new Date(endDate.getTime() + 5 * 60 * 1000);
-  
-//       const states = await db.collection('state')
-//         .find({
-//           'machine.serial': serial,
-//           timestamp: { $gte: paddedStart, $lte: paddedEnd }
-//         })
-//         .sort({ timestamp: 1 })
-//         .project({
-//           timestamp: 1,
-//           'status.code': 1,
-//           operators: 1
-//         })
-//         .toArray();
-  
-//       const cycles = [];
-//       let currentStart = null;
-//       let currentOperators = [];
-  
-//       for (const state of states) {
-//         const status = state.status?.code;
-  
-//         if (status === 1 && !currentStart) {
-//           currentStart = state.timestamp;
-//           currentOperators = state.operators || [];
-//         } else if (status !== 1 && currentStart) {
-//           if (currentStart >= startDate && state.timestamp <= endDate) {
-//             cycles.push({
-//               start: currentStart,
-//               end: state.timestamp,
-//               endStatus: status,
-//               operators: currentOperators
-//             });
-//           }
-//           currentStart = null;
-//           currentOperators = [];
-//         }
-//       }
-  
-//       // Step 3: For each cycle, fetch and group counts by operator
-//       for (const cycle of cycles) {
-//         const allCounts = await db.collection('count')
-//           .find({
-//             'machine.serial': serial,
-//             timestamp: {
-//               $gte: new Date(cycle.start),
-//               $lte: new Date(cycle.end)
-//             }
-//           })
-//           .sort({ timestamp: 1 })
-//           .toArray();
-  
-//         const grouped = {};
-//         for (const count of allCounts) {
-//           const operatorId = count.operator?.id;
-//           if (!operatorId) continue;
-  
-//           if (!grouped[operatorId]) grouped[operatorId] = [];
-//           grouped[operatorId].push(count);
-//         }
-  
-//         cycle.operatorCounts = Object.entries(grouped).map(([operatorId, counts]) => ({
-//           operatorId: parseInt(operatorId),
-//           counts
-//         }));
-  
-//         delete cycle.operators;
-//       }
-  
-//       res.json(cycles);
-  
-//     } catch (error) {
-//       logger.error('Error calculating operator session cycles:', error);
-//       res.status(500).json({ error: 'Failed to fetch operator session cycles' });
-//     }
-//   });
-  
-// router.get('/run-session/state/operator-cycles', async (req, res) => {
-//   try {
-//     const { startTime, endTime, machineSerial } = req.query;
-
-//     if (!startTime || !endTime || !machineSerial) {
-//       return res.status(400).json({ error: 'startTime, endTime, and machineSerial are required' });
-//     }
-
-//     const startDate = new Date(startTime);
-//     const endDate = new Date(endTime);
-//     const serial = parseInt(machineSerial);
-
-//     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-//       return res.status(400).json({ error: 'Invalid startTime or endTime format' });
-//     }
-
-//     const paddedStart = new Date(startDate.getTime() - 5 * 60 * 1000);
-//     const paddedEnd = new Date(endDate.getTime() + 5 * 60 * 1000);
-
-//     const states = await db.collection('state')
-//       .find({
-//         'machine.serial': serial,
-//         timestamp: { $gte: paddedStart, $lte: paddedEnd }
-//       })
-//       .sort({ timestamp: 1 })
-//       .project({
-//         timestamp: 1,
-//         'status.code': 1,
-//         'status.name': 1
-//       })
-//       .toArray();
-
-//     const cycles = [];
-//     let currentStart = null;
-
-//     for (const state of states) {
-//       const code = state.status?.code;
-//       if (code === 1 && !currentStart) {
-//         currentStart = state.timestamp;
-//       } else if (code !== 1 && currentStart) {
-//         if (currentStart >= startDate && state.timestamp <= endDate) {
-//           cycles.push({
-//             start: currentStart,
-//             end: state.timestamp,
-//             endStatus: state.status?.name
-//           });
-//         }
-//         currentStart = null;
-//       }
-//     }
-
-//     for (const cycle of cycles) {
-//       const countRecords = await db.collection('count')
-//         .find({
-//           'machine.serial': serial,
-//           timestamp: {
-//             $gte: new Date(cycle.start),
-//             $lte: new Date(cycle.end)
-//           },
-//           'operator.id': { $exists: true, $ne: -1 }
-//         })
-//         .sort({ timestamp: 1 })
-//         .toArray();
-
-//       const operatorMap = {};
-
-//       for (const record of countRecords) {
-//         const operatorId = record.operator?.id;
-//         const operatorName = record.operator?.name || 'Unknown';
-//         const item = record.item;
-
-//         if (!operatorId || !item?.id) continue;
-
-//         if (!operatorMap[operatorId]) {
-//           operatorMap[operatorId] = {
-//             name: operatorName,
-//             items: {}
-//           };
-//         }
-
-//         if (!operatorMap[operatorId].items[item.id]) {
-//           operatorMap[operatorId].items[item.id] = [];
-//         }
-
-//         operatorMap[operatorId].items[item.id].push(item);
-//       }
-
-//       cycle.operators = Object.entries(operatorMap).map(([opId, data]) => {
-//         const items = Object.entries(data.items).map(([itemId, itemArray]) => ({
-//           id: itemArray[0].id,
-//           name: itemArray[0].name,
-//           standard: itemArray[0].standard,
-//           count: itemArray.length
-//         }));
-
-//         return {
-//           id: parseInt(opId),
-//           name: data.name,
-//           items
-//         };
-//       });
-//     }
-
-//     res.json(cycles);
-
-//   } catch (error) {
-//     logger.error('Error calculating operator cycles with item totals:', error);
-//     res.status(500).json({ error: 'Failed to fetch operator-based session cycles' });
-//   }
-// });
-
-// router.get('/run-session/state/operator-cycles', async (req, res) => {
-//   try {
-//     const { startTime, endTime, machineSerial } = req.query;
-
-//     if (!startTime || !endTime || !machineSerial) {
-//       return res.status(400).json({ error: 'startTime, endTime, and machineSerial are required' });
-//     }
-
-//     const startDate = new Date(startTime);
-//     const endDate = new Date(endTime);
-//     const serial = parseInt(machineSerial);
-
-//     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-//       return res.status(400).json({ error: 'Invalid startTime or endTime format' });
-//     }
-
-//     const paddedStart = new Date(startDate.getTime() - 5 * 60 * 1000);
-//     const paddedEnd = new Date(endDate.getTime() + 5 * 60 * 1000);
-
-//     const states = await db.collection('state')
-//       .find({
-//         'machine.serial': serial,
-//         timestamp: { $gte: paddedStart, $lte: paddedEnd }
-//       })
-//       .sort({ timestamp: 1 })
-//       .project({
-//         timestamp: 1,
-//         'status.code': 1,
-//         'status.name': 1
-//       })
-//       .toArray();
-
-//     const machineMeta = await db.collection('state')
-//       .findOne({ 'machine.serial': serial, 'program.mode': { $exists: true } });
-
-//     const isAc360 = machineMeta?.program?.mode === 'ac360';
-
-//     const cycles = [];
-//     let currentStart = null;
-
-//     for (const state of states) {
-//       const code = state.status?.code;
-//       if (code === 1 && !currentStart) {
-//         currentStart = state.timestamp;
-//       } else if (code !== 1 && currentStart) {
-//         if (currentStart >= startDate && state.timestamp <= endDate) {
-//           cycles.push({
-//             start: currentStart,
-//             end: state.timestamp,
-//             endStatus: state.status?.name
-//           });
-//         }
-//         currentStart = null;
-//       }
-//     }
-
-//     for (const cycle of cycles) {
-//       const countRecords = await db.collection('count')
-//         .find({
-//           'machine.serial': serial,
-//           timestamp: {
-//             $gte: new Date(cycle.start),
-//             $lte: new Date(cycle.end)
-//           },
-//           'operator.id': { $exists: true, $ne: -1 }
-//         })
-//         .sort({ timestamp: 1 })
-//         .toArray();
-
-//         const operatorMap = {};
-
-//         for (const record of countRecords) {
-//           const operatorId = record.operator?.id;
-//           const operatorName = record.operator?.name;
-//           const item = record.item;
-        
-//           if (!operatorId || operatorId === -1 || !item) continue;
-        
-//           if (!operatorMap[operatorId]) {
-//             operatorMap[operatorId] = {
-//               name: operatorName || 'Unknown',
-//               items: {}
-//             };
-//           }
-        
-//           const itemIdKey = item?.id ?? 'unknown';
-//           if (!operatorMap[operatorId].items[itemIdKey]) {
-//             operatorMap[operatorId].items[itemIdKey] = [];
-//           }
-        
-//           operatorMap[operatorId].items[itemIdKey].push(item);
-//         }
-        
-//         // Enhance operator names from count data
-//         for (const opId of Object.keys(operatorMap)) {
-//           if (!operatorMap[opId].name || operatorMap[opId].name === 'Unknown') {
-//             const match = countRecords.find(rec => rec.operator?.id === parseInt(opId) && rec.operator?.name);
-//             if (match) {
-//               operatorMap[opId].name = match.operator.name;
-//             }
-//           }
-//         }
-        
-//         //Map to array format
-//         cycle.operators = Object.entries(operatorMap).map(([opId, data]) => {
-//           const items = Object.entries(data.items).map(([itemId, itemArray]) => ({
-//             id: itemArray[0].id,
-//             name: itemArray[0].name,
-//             standard: itemArray[0].standard,
-//             count: itemArray.length
-//           }));
-        
-//           return {
-//             id: parseInt(opId),
-//             name: data.name,
-//             items
-//           };
-//         });        
-//     }
-
-//     res.json(cycles);
-
-//   } catch (error) {
-//     logger.error('Error calculating operator cycles with item totals:', error);
-//     res.status(500).json({ error: 'Failed to fetch operator-based session cycles' });
-//   }
-// });
-
 router.get('/run-session/state/operator-cycles', async (req, res) => {
   try {
-    const { startTime, endTime, machineSerial } = req.query;
-
-    if (!startTime || !endTime) {
-      return res.status(400).json({ error: 'startTime and endTime are required' });
-    }
-
-    const startDate = new Date(startTime);
-    const endDate = new Date(endTime);
-    const serial = machineSerial ? parseInt(machineSerial) : null;
-
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return res.status(400).json({ error: 'Invalid startTime or endTime format' });
-    }
-
-    const paddedStart = new Date(startDate.getTime() - 5 * 60 * 1000);
-    const paddedEnd = new Date(endDate.getTime() + 5 * 60 * 1000);
-
-    const matchFilter = {
-      timestamp: { $gte: paddedStart, $lte: paddedEnd }
-    };
-
-    if (serial) {
-      matchFilter['machine.serial'] = serial;
-    }
-
-    const states = await db.collection('state')
-      .find(matchFilter)
-      .sort({ timestamp: 1 })
-      .project({
-        timestamp: 1,
-        'machine.serial': 1,
-        'machine.name': 1,
-        'program.mode': 1,
-        'status.code': 1,
-        'status.name': 1
-      })
-      .toArray();
-
-    const groupedByMachine = {};
-
-    for (const state of states) {
-      const machineSerial = state.machine?.serial;
-      if (!groupedByMachine[machineSerial]) {
-        groupedByMachine[machineSerial] = {
-          machine: {
-            serial: machineSerial,
-            name: state.machine?.name || null,
-            mode: state.program?.mode || null
-          },
-          states: []
-        };
-      }
-      groupedByMachine[machineSerial].states.push(state);
-    }
+    // Step 1: Parse and validate query parameters
+    const { start, end, serial } = parseAndValidateQueryParams(req);
+    
+    // Step 2: Create padded time range
+    const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+    
+    // Step 3: Get all state records using state.js utility
+    const states = await fetchStatesForMachine(db, serial, paddedStart, paddedEnd);
+    // Step 4: Group states by machine using state.js utility
+    const groupedByMachine = groupStatesByMachine(states);
 
     const allResults = [];
 
@@ -1138,71 +710,17 @@ router.get('/run-session/state/operator-cycles', async (req, res) => {
       const { serial: machineSerial, mode: machineMode } = group.machine;
       const isAc360 = machineMode === 'ac360';
 
-      const cycles = [];
-      let currentStart = null;
+      // Step 5: Extract cycles using state.js utility
+      const cycles = extractCyclesFromStates(group.states, start, end);
 
-      for (const state of group.states) {
-        const code = state.status?.code;
-        if (code === 1 && !currentStart) {
-          currentStart = state.timestamp;
-        } else if (code !== 1 && currentStart) {
-          if (currentStart >= startDate && state.timestamp <= endDate) {
-            cycles.push({
-              start: currentStart,
-              end: state.timestamp,
-              endStatus: state.status?.name
-            });
-          }
-          currentStart = null;
-        }
-      }
-
+      // Step 6: For each cycle, get count records and process operators
       for (const cycle of cycles) {
-        const countRecords = await db.collection('count')
-          .find({
-            'machine.serial': machineSerial,
-            timestamp: {
-              $gte: new Date(cycle.start),
-              $lte: new Date(cycle.end)
-            },
-            'operator.id': { $exists: true, $ne: -1 }
-          })
-          .sort({ timestamp: 1 })
-          .toArray();
+        const countRecords = await getCountRecords(db, machineSerial, cycle.start, cycle.end);
+        
+        // Step 7: Get operator-item mapping using count.js utility
+        const operatorMap = getOperatorItemMapFromCounts(countRecords);
 
-        const operatorMap = {};
-
-        for (const record of countRecords) {
-          const operatorId = record.operator?.id;
-          const operatorName = record.operator?.name;
-          const item = record.item;
-
-          if (!operatorId || operatorId === -1 || !item) continue;
-
-          if (!operatorMap[operatorId]) {
-            operatorMap[operatorId] = {
-              name: operatorName || 'Unknown',
-              items: {}
-            };
-          }
-
-          const itemIdKey = item?.id ?? 'unknown';
-          if (!operatorMap[operatorId].items[itemIdKey]) {
-            operatorMap[operatorId].items[itemIdKey] = [];
-          }
-
-          operatorMap[operatorId].items[itemIdKey].push(item);
-        }
-
-        for (const opId of Object.keys(operatorMap)) {
-          if (!operatorMap[opId].name || operatorMap[opId].name === 'Unknown') {
-            const match = countRecords.find(rec => rec.operator?.id === parseInt(opId) && rec.operator?.name);
-            if (match) {
-              operatorMap[opId].name = match.operator.name;
-            }
-          }
-        }
-
+        // Step 8: Format operators data
         cycle.operators = Object.entries(operatorMap).map(([opId, data]) => {
           const items = Object.entries(data.items).map(([itemId, itemArray]) => ({
             id: itemArray[0].id,
@@ -1231,10 +749,6 @@ router.get('/run-session/state/operator-cycles', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch operator-based session cycles' });
   }
 });
-
-
-
-
   /***  Operator Cycle End */
   router.get("/machine/operator/counts", async (req, res, next) => {
     const machineList = await getMachineOperatorLists();
@@ -1245,6 +759,90 @@ router.get('/run-session/state/operator-cycles', async (req, res) => {
     }
     res.json(resultArray);
   });
+
+    /***  Analytics Routes Start */
+  router.get('/analytics/machine-performance', async (req, res) => {
+    try {
+     // Step 1: Parse and validate query parameters
+     const { start, end, serial } = parseAndValidateQueryParams(req);
+     // Step 2: Create padded time range
+     const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);   
+     // Step 3: Get all state records using state.js utility
+     const states = await fetchStatesForMachine(db, serial, paddedStart, paddedEnd);
+      // Step 4: Get count records using count.js utility
+      const counts = await getCountRecords(db, serial, start, end);
+
+      // Step 5: Calculate metrics using analytics.js functions
+      const totalQueryMs = new Date(end) - new Date(start);
+      const runtimeMs = await calculateRuntime(states, start, end);
+      const downtimeMs = calculateDowntime(totalQueryMs, runtimeMs);
+      const totalCount = calculateTotalCount(counts);
+      const misfeedCount = calculateMisfeeds(counts);
+      const availability = calculateAvailability(runtimeMs, downtimeMs, totalQueryMs);
+      const throughput = calculateThroughput(totalCount, misfeedCount);
+      const efficiency = calculateEfficiency(runtimeMs, totalCount);
+      const oee = calculateOEE(availability, efficiency, throughput);
+
+      // Step 6: Get current machine status
+      const currentState = states[states.length - 1] || {};
+
+      // Step 7: Format response
+      const response = {
+        machine: {
+          name: currentState.machine?.name || 'Unknown',
+          serial: currentState.machine?.serial || serial
+        },
+        currentStatus: {
+          code: currentState.status?.code || 0,
+          name: currentState.status?.name || 'Unknown'
+        },
+        metrics: {
+          runtime: {
+            total: runtimeMs,
+            formatted: formatDuration(runtimeMs)
+          },
+          downtime: {
+            total: downtimeMs,
+            formatted: formatDuration(downtimeMs)
+          },
+          output: {
+            totalCount,
+            misfeedCount
+          },
+          performance: {
+            availability: {
+              value: availability,
+              percentage: (availability * 100).toFixed(2) + '%'
+            },
+            throughput: {
+              value: throughput,
+              percentage: (throughput * 100).toFixed(2) + '%'
+            },
+            efficiency: {
+              value: efficiency,
+              percentage: (efficiency * 100).toFixed(2) + '%'
+            },
+            oee: {
+              value: oee,
+              percentage: (oee * 100).toFixed(2) + '%'
+            }
+          }
+        },
+        timeRange: {
+          start: start,
+          end: end,
+          total: formatDuration(totalQueryMs)
+        }
+      };
+
+      res.json(response);
+    } catch (error) {
+      logger.error('Error calculating machine performance metrics:', error);
+      res.status(500).json({ error: 'Failed to fetch machine performance metrics' });
+    }
+  });
+
+    /***  Analytics Route End */
 
   return router;
 }
