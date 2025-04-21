@@ -1,0 +1,16 @@
+.bar-chart-container {
+    width: 100%;
+    min-height: 400px;
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  
+    svg text {
+      fill: black; // Light theme fallback
+    }
+  
+    :host-context(.dark-theme) .bar-chart-container svg text {
+      fill: white; // Works for component-scoped themes
+    }
+  }
+  
