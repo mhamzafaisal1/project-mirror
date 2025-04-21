@@ -24,7 +24,7 @@ return totalCounts;
 
 function calculateMisfeeds(counts) {
   // Count misfeeds from status codes or specific item names
-  const misfeeds = 20;
+  const misfeeds = 0;
   return misfeeds;
 }
 
@@ -41,9 +41,18 @@ function calculateThroughput(totalCount, misfeedCount) {
   return Math.min(Math.max(throughput, 0), 1);
 }
 
+//working on this: adding time credit, get the item and then figure out the time credit for it 
+function calculateTimeCredit(totalCount) {
+    const timeCredit = totalCount;
+    return timeCredit;
+}
+
+
 function calculateEfficiency(runtimeMs, totalCount) {
   if (!runtimeMs || !totalCount) return 0;
   // Convert runtime to hours for efficiency calculation
+  const timeCredit = totalCount;
+
   const runtimeHours = runtimeMs / (60 * 60 * 1000);
   const efficiency = totalCount / runtimeHours;
   return Math.min(Math.max(efficiency, 0), 1);
