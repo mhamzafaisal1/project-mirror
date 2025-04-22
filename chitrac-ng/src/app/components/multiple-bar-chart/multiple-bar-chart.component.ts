@@ -63,7 +63,7 @@ export class MultipleBarChartComponent implements OnChanges, OnDestroy, AfterVie
 
     const isDarkTheme = document.body.classList.contains('dark-theme');
     const textColor = isDarkTheme ? 'white' : 'black';
-    const seriesColors = ['#4c2c92', '#2c7d92', '#922c7d']; // Different colors for each series
+    const seriesColors = ['#28a745', '#ffc107', '#dc3545']; // green, yellow, red
 
     const svg = d3.select(element)
       .append('svg')

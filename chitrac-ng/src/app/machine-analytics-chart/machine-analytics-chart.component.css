@@ -2,6 +2,8 @@
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
+  background-color: #1e1e1e; /* dark background */
+  color: black;
 }
 
 .controls {
@@ -10,7 +12,7 @@
   align-items: center;
   margin-bottom: 20px;
   padding: 15px;
-  background-color: #f5f5f5;
+  background-color: #2c2c2c; /* dark control panel */
   border-radius: 5px;
 }
 
@@ -28,15 +30,22 @@
 
 label {
   font-weight: 500;
-  color: #333;
+  color: #e0e0e0; /* light label text */
 }
 
 input[type="date"],
 select {
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid #444;
   border-radius: 4px;
   font-size: 14px;
+  background-color: #333;
+  color: #f0f0f0;
+}
+
+input[type="date"]::placeholder,
+select::placeholder {
+  color: #aaa;
 }
 
 .charts {
@@ -46,14 +55,14 @@ select {
 }
 
 .chart-wrapper {
-  background-color: white;
+  background-color: #2a2a2a; /* dark chart background */
   padding: 20px;
   border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(255, 255, 255, 0.05);
 }
 
 .chart-wrapper h3 {
   margin: 0 0 15px 0;
-  color: #333;
+  color: #f5f5f5;
   font-size: 16px;
-} 
+}

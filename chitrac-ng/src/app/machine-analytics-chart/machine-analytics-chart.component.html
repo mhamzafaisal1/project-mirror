@@ -3,7 +3,7 @@
     <div class="date-controls">
       <label for="startDate">Start Date:</label>
       <input type="date" id="startDate" [(ngModel)]="startDate" (change)="onDateChange()">
-      
+
       <label for="endDate">End Date:</label>
       <input type="date" id="endDate" [(ngModel)]="endDate" (change)="onDateChange()">
     </div>
@@ -21,7 +21,7 @@
 
   <div class="charts">
     <div *ngFor="let chart of charts" class="chart-wrapper">
-      <h3>{{ chart.machine.name }} ({{ chart.machine.serial }})</h3>
+      <h3>{{ chart.title }}</h3>
       <app-multiple-bar-chart [data]="chart"></app-multiple-bar-chart>
     </div>
   </div>

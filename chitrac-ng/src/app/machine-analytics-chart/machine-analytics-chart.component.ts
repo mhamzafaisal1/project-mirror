@@ -19,8 +19,8 @@ interface Machine {
 export class MachineAnalyticsChartComponent implements OnInit {
   charts: BarChartData[] = [];
   selectedMachine: string = '';
-  startTime: string = '';
-  endTime: string = '';
+  startDate: string = '';
+  endDate: string = '';
   machines: Machine[] = [];
 
   constructor(private machineAnalyticsService: MachineAnalyticsService) {}
@@ -33,13 +33,23 @@ export class MachineAnalyticsChartComponent implements OnInit {
 
   private setDefaultDates(): void {
     const now = new Date();
-    // Set end time to current time
-    this.endTime = now.toISOString();
-    
-    // Set start time to midnight of current date
-    const startDate = new Date(now);
-    startDate.setHours(0, 0, 0, 0);
-    this.startTime = startDate.toISOString();
+    this.endDate = now.toISOString().split('T')[0];
+
+    const midnight = new Date(this.endDate);
+    midnight.setHours(0, 0, 0, 0);
+    this.startDate = midnight.toISOString().split('T')[0];
+  }
+
+  private buildTimestamps(): { startTime: string; endTime: string } {
+    const start = new Date(this.startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(this.endDate);
+    end.setHours(23, 59, 59, 999);
+
+    return {
+      startTime: start.toISOString(),
+      endTime: end.toISOString()
+    };
   }
 
   private fetchMachines(): void {
@@ -54,36 +64,34 @@ export class MachineAnalyticsChartComponent implements OnInit {
   }
 
   fetchData(): void {
-    if (!this.startTime || !this.endTime) return;
+    const { startTime, endTime } = this.buildTimestamps();
 
-    this.machineAnalyticsService.getMachineHourlyStates(this.selectedMachine, this.startTime, this.endTime)
-      .subscribe({
-        next: (data: any[]) => {
-          this.processChartData(data);
-        },
-        error: (error: any) => {
-          console.error('Error fetching hourly states:', error);
-        }
-      });
+    this.machineAnalyticsService.getMachineHourlyStates(this.selectedMachine, endTime).subscribe({
+      next: (data: any[]) => {
+        this.processChartData(data);
+      },
+      error: (error: any) => {
+        console.error('Error fetching hourly states:', error);
+      }
+    });
   }
 
   private processChartData(data: any[]): void {
-    this.charts = data.map(machineData => {
-      const hours = machineData.hours.map((hour: any) => hour.hour);
-      const series = {
-        'Runtime': machineData.hours.map((hour: any) => hour.runtime),
-        'Paused': machineData.hours.map((hour: any) => hour.paused),
-        'Faulted': machineData.hours.map((hour: any) => hour.faulted)
-      };
-
-      return {
-        title: `${machineData.name || machineData.serial} (${machineData.serial})`,
-        data: {
-          hours,
-          series
+    this.charts = data.map(machineData => ({
+      title: `${machineData.machine.name || machineData.machine.serial} (${machineData.machine.serial})`,
+      data: {
+        hours: machineData.data.hours,
+        series: {
+          'Running': machineData.data.series.Running,
+          'Paused': machineData.data.series.Paused,
+          'Faulted': machineData.data.series.Faulted
         }
-      };
-    });
+      },
+      machine: {
+        name: machineData.machine.name,
+        serial: machineData.machine.serial
+      }
+    }));
   }
 
   onDateChange(): void {

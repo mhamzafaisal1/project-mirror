@@ -13,7 +13,13 @@ export class MachineAnalyticsService {
     return this.http.get('/api/alpha/machines');
   }
 
-  getMachineHourlyStates(machineSerial: string, startTime: string, endTime: string): Observable<any> {
+  getMachineHourlyStates(machineSerial: string, endTime: string): Observable<any> {
+    const endDate = new Date(endTime);
+     // Set start to 12:00 AM of the endDate
+  const startDate = new Date(endDate);
+  startDate.setHours(0, 0, 0, 0);
+  const startTime = startDate.toISOString();
+  
     let params = new HttpParams()
       .set('startTime', startTime)
       .set('endTime', endTime);

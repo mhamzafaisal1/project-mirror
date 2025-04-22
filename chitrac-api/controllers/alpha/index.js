@@ -970,7 +970,8 @@ router.get('/run-session/state/operator-cycles', async (req, res) => {
         machines = await getAllMachinesFromStates(db, paddedStart, paddedEnd);
       }
   
-      const startDate = new Date(start);
+      const startDate = new Date(end);
+      console.log(startDate, "startDate");
       const titleDate = startDate.toLocaleDateString('en-US', {
         month: 'long',
         day: 'numeric',
