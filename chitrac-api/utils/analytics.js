@@ -1,9 +1,9 @@
-const { extractCyclesFromStates } = require('./state');
+const { extractCyclesFromStates } = require("./state");
 
 async function calculateRuntime(states, startTime, endTime) {
   // Use the same cycle extraction logic as run-session/state/cycles
   const cycles = extractCyclesFromStates(states, startTime, endTime);
-  
+
   // Sum up the duration of all cycles
   return cycles.reduce((total, cycle) => {
     const cycleStart = new Date(cycle.start);
@@ -18,8 +18,8 @@ function calculateDowntime(totalQueryMs, runtimeMs) {
 }
 
 function calculateTotalCount(counts) {
-const totalCounts =  counts.length;
-return totalCounts;
+  const totalCounts = counts.length;
+  return totalCounts;
 }
 
 function calculateMisfeeds(counts) {
@@ -30,7 +30,7 @@ function calculateMisfeeds(counts) {
 
 function calculateAvailability(runtimeMs, downtimeMs, totalQueryMs) {
   if (!totalQueryMs) return 0;
-  const availability = (runtimeMs + downtimeMs) / totalQueryMs;
+  const availability = runtimeMs / totalQueryMs;
   return Math.min(Math.max(availability, 0), 1);
 }
 
@@ -41,23 +41,58 @@ function calculateThroughput(totalCount, misfeedCount) {
   return Math.min(Math.max(throughput, 0), 1);
 }
 
-//working on this: adding time credit, get the item and then figure out the time credit for it 
-function calculateTimeCredit(totalCount) {
-    const timeCredit = totalCount;
-    return timeCredit;
+/***  Time Credit Calculation Start */
+function calculateTimeCreditsByItem(countRecords) {
+  const itemMap = {};
+
+  for (const record of countRecords) {
+    const item = record.item;
+    const key = `${item.id}-${item.name}`; // use both ID + name for uniqueness
+
+    if (!itemMap[key]) {
+      itemMap[key] = {
+        id: item.id,
+        name: item.name,
+        standard: item.standard,
+        count: 0
+      };
+    }
+
+    itemMap[key].count += 1;
+  }
+
+  const itemsWithTimeCredit = Object.values(itemMap).map(item => {
+    const { count, standard } = item;
+    // Convert standard to per hour if it's in per minute (standard < 60)
+    const standardPerHour = standard < 60 ? standard * 60 : standard;
+    const timeCredit = standardPerHour > 0 ? count / (standardPerHour / 3600) : 0;
+    return {
+      ...item,
+      timeCredit: parseFloat(timeCredit.toFixed(2))
+    };
+  });
+
+  return itemsWithTimeCredit;
 }
 
+function calculateTotalTimeCredit(countRecords) {
+  const itemCredits = calculateTimeCreditsByItem(countRecords);
+  const totalTimeCredit = itemCredits.reduce((sum, item) => sum + item.timeCredit, 0);
+  return parseFloat(totalTimeCredit.toFixed(2));
+}
 
-function calculateEfficiency(runtimeMs, totalCount) {
+/***  Time Credit Calculation End */
+
+/***  Efficiency Calculation Start */
+function calculateEfficiency(runtimeMs, totalCount, counts) {
   if (!runtimeMs || !totalCount) return 0;
-  // Convert runtime to hours for efficiency calculation
-  const timeCredit = totalCount;
-
-  const runtimeHours = runtimeMs / (60 * 60 * 1000);
-  const efficiency = totalCount / runtimeHours;
+  // Convert runtime to seconds for efficiency calculation
+  const runtimeSeconds = runtimeMs / (1000);
+  const totalTimeCredit = calculateTotalTimeCredit(counts);
+  const efficiency = totalTimeCredit / runtimeSeconds;
   return Math.min(Math.max(efficiency, 0), 1);
 }
-
+/***  Efficiency Calculation End */
 function calculateOEE(availability, efficiency, throughput) {
   return availability * efficiency * throughput;
 }
@@ -70,6 +105,5 @@ module.exports = {
   calculateAvailability,
   calculateThroughput,
   calculateEfficiency,
-  calculateOEE
+  calculateOEE,
 };
-  

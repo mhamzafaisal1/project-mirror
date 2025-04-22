@@ -771,7 +771,6 @@ router.get('/run-session/state/operator-cycles', async (req, res) => {
      const states = await fetchStatesForMachine(db, serial, paddedStart, paddedEnd);
       // Step 4: Get count records using count.js utility
       const counts = await getCountRecords(db, serial, start, end);
-
       // Step 5: Calculate metrics using analytics.js functions
       const totalQueryMs = new Date(end) - new Date(start);
       const runtimeMs = await calculateRuntime(states, start, end);
@@ -780,7 +779,7 @@ router.get('/run-session/state/operator-cycles', async (req, res) => {
       const misfeedCount = calculateMisfeeds(counts);
       const availability = calculateAvailability(runtimeMs, downtimeMs, totalQueryMs);
       const throughput = calculateThroughput(totalCount, misfeedCount);
-      const efficiency = calculateEfficiency(runtimeMs, totalCount);
+      const efficiency = calculateEfficiency(runtimeMs, totalCount, counts);
       const oee = calculateOEE(availability, efficiency, throughput);
 
       // Step 6: Get current machine status
