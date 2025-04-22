@@ -9,7 +9,7 @@ const ObjectId = require("mongodb").ObjectId;
 const startupDT = DateTime.now();
 const bcrypt = require("bcryptjs");
 const { parseAndValidateQueryParams, createPaddedTimeRange, createMongoDateQuery, formatDuration } = require('../../utils/time');
-const { fetchStatesForMachine, groupStatesByMachine, extractCyclesFromStates } = require('../../utils/state');
+const { fetchStatesForMachine, groupStatesByMachine, extractCyclesFromStates, extractPausedCyclesFromStates, extractFaultCyclesFromStates, processAllMachinesCycles } = require('../../utils/state');
 const { getCountRecords, getOperatorItemMapFromCounts } = require('../../utils/count');
 const { calculateRuntime, calculateDowntime, calculateTotalCount, calculateMisfeeds, calculateAvailability, calculateThroughput, calculateEfficiency, calculateOEE } = require('../../utils/analytics');
 
@@ -873,6 +873,88 @@ router.get('/run-session/state/operator-cycles', async (req, res) => {
     } catch (error) {
       logger.error('Error calculating machine performance metrics:', error);
       res.status(500).json({ error: 'Failed to fetch machine performance metrics' });
+    }
+  });
+
+  router.get('/analytics/machine-state-totals', async (req, res) => {
+    try {
+      // Step 1: Parse and validate query parameters
+      const { start, end, serial } = parseAndValidateQueryParams(req);
+      // Step 2: Create padded time range
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+      
+      let results;
+      
+      if (serial) {
+        // If serial provided, process single machine
+        const states = await fetchStatesForMachine(db, serial, paddedStart, paddedEnd);
+        
+        if (!states.length) {
+          return res.json([]);
+        }
+
+        // Extract all types of cycles
+        const runningCycles = extractCyclesFromStates(states, start, end);
+        const pausedCycles = extractPausedCyclesFromStates(states, start, end);
+        const faultCycles = extractFaultCyclesFromStates(states, start, end);
+
+        // Calculate total durations
+        const runningTime = runningCycles.reduce((total, cycle) => total + cycle.duration, 0);
+        const pausedTime = pausedCycles.reduce((total, cycle) => total + cycle.duration, 0);
+        const faultedTime = faultCycles.reduce((total, cycle) => total + cycle.duration, 0);
+
+        // Helper function to format duration with hours, minutes, and seconds
+        const formatDurationWithSeconds = (ms) => {
+          const totalSeconds = Math.floor(ms / 1000);
+          const hours = Math.floor(totalSeconds / 3600);
+          const minutes = Math.floor((totalSeconds % 3600) / 60);
+          const seconds = totalSeconds % 60;
+          
+          return {
+            hours,
+            minutes,
+            seconds
+          };
+        };
+
+        // Format response for this machine
+        results = [{
+          machine: {
+            name: states[0].machine?.name || 'Unknown',
+            serial: parseInt(serial)
+          },
+          timeTotals: {
+            running: {
+              total: runningTime,
+              formatted: formatDurationWithSeconds(runningTime),
+              cycles: runningCycles
+            },
+            paused: {
+              total: pausedTime,
+              formatted: formatDurationWithSeconds(pausedTime),
+              cycles: pausedCycles
+            },
+            faulted: {
+              total: faultedTime,
+              formatted: formatDurationWithSeconds(faultedTime),
+              cycles: faultCycles
+            }
+          },
+          timeRange: {
+            start: start,
+            end: end,
+            total: formatDurationWithSeconds(new Date(end) - new Date(start))
+          }
+        }];
+      } else {
+        // If no serial provided, process all machines
+        results = await processAllMachinesCycles(db, paddedStart, paddedEnd);
+      }
+
+      res.json(results);
+    } catch (error) {
+      logger.error('Error calculating machine state time totals:', error);
+      res.status(500).json({ error: 'Failed to fetch machine state time totals' });
     }
   });
 

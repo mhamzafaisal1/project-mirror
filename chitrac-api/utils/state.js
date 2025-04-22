@@ -51,14 +51,215 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
           cycles.push({
             start: currentStart,
             end: state.timestamp,
-            endStatus: state.status?.name
+            duration: state.timestamp - currentStart
           });
         }
         currentStart = null;
       }
     }
+  
+    // Handle case where machine is still running at the end
+    if (currentStart) {
+      const endTime = new Date(queryEnd);
+      if (currentStart >= queryStart) {
+        cycles.push({
+          start: currentStart,
+          end: endTime,
+          duration: endTime - currentStart
+        });
+      }
+    }
+  
     return cycles;
   }
   
-  module.exports = { fetchStatesForMachine, groupStatesByMachine, extractCyclesFromStates };
+  function extractPausedCyclesFromStates(states, queryStart, queryEnd) {
+    const cycles = [];
+    let currentPauseStart = null;
+  
+    for (const state of states) {
+      const code = state.status?.code;
+      
+      if (code === 0 && !currentPauseStart) {
+        // Start of a pause
+        currentPauseStart = state.timestamp;
+      } else if (code !== 0 && currentPauseStart) {
+        // End of a pause (can transition to running or fault)
+        if (currentPauseStart >= queryStart && state.timestamp <= queryEnd) {
+          cycles.push({
+            pauseStart: currentPauseStart,
+            pauseEnd: state.timestamp,
+            duration: state.timestamp - currentPauseStart
+          });
+        }
+        currentPauseStart = null;
+      }
+    }
+  
+    // Handle case where machine is still paused at the end
+    if (currentPauseStart) {
+      const endTime = new Date(queryEnd);
+      if (currentPauseStart >= queryStart) {
+        cycles.push({
+          pauseStart: currentPauseStart,
+          pauseEnd: endTime,
+          duration: endTime - currentPauseStart
+        });
+      }
+    }
+  
+    return cycles;
+  }
+  
+  function extractFaultCyclesFromStates(states, queryStart, queryEnd) {
+    const cycles = [];
+    let currentFaultStart = null;
+  
+    for (const state of states) {
+      const code = state.status?.code;
+      
+      if (code > 1 && !currentFaultStart) {
+        // Start of a fault
+        currentFaultStart = state.timestamp;
+      } else if (code <= 1 && currentFaultStart) {
+        // End of a fault (can transition to running or paused)
+        if (currentFaultStart >= queryStart && state.timestamp <= queryEnd) {
+          cycles.push({
+            faultStart: currentFaultStart,
+            faultEnd: state.timestamp,
+            duration: state.timestamp - currentFaultStart
+          });
+        }
+        currentFaultStart = null;
+      }
+    }
+  
+    // Handle case where machine is still faulted at the end
+    if (currentFaultStart) {
+      const endTime = new Date(queryEnd);
+      if (currentFaultStart >= queryStart) {
+        cycles.push({
+          faultStart: currentFaultStart,
+          faultEnd: endTime,
+          duration: endTime - currentFaultStart
+        });
+      }
+    }
+  
+    return cycles;
+  }
+  
+  async function getAllMachinesFromStates(db, start, end) {
+    const query = {
+      timestamp: { $gte: start, $lte: end }
+    };
+
+    // Get unique machines from state collection
+    const machines = await db.collection('state')
+      .find(query)
+      .project({
+        'machine.serial': 1,
+        'machine.name': 1
+      })
+      .toArray();
+
+    // Create unique machine list
+    const uniqueMachines = {};
+    machines.forEach(state => {
+      const serial = state.machine?.serial;
+      if (serial && !uniqueMachines[serial]) {
+        uniqueMachines[serial] = {
+          serial: serial,
+          name: state.machine?.name || null
+        };
+      }
+    });
+
+    return Object.values(uniqueMachines);
+  }
+
+  async function processAllMachinesCycles(db, start, end) {
+    try {
+      // Get all unique machines
+      const machines = await getAllMachinesFromStates(db, start, end);
+      const results = [];
+
+      // Process each machine
+      for (const machine of machines) {
+        // Get states for this machine
+        const states = await fetchStatesForMachine(db, machine.serial, start, end);
+        
+        if (states.length > 0) {
+          // Extract all types of cycles
+          const runningCycles = extractCyclesFromStates(states, start, end);
+          const pausedCycles = extractPausedCyclesFromStates(states, start, end);
+          const faultCycles = extractFaultCyclesFromStates(states, start, end);
+
+          // Calculate total durations
+          const runningTime = runningCycles.reduce((total, cycle) => total + cycle.duration, 0);
+          const pausedTime = pausedCycles.reduce((total, cycle) => total + cycle.duration, 0);
+          const faultedTime = faultCycles.reduce((total, cycle) => total + cycle.duration, 0);
+
+          // Format durations
+          const formatDurationWithSeconds = (ms) => {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            
+            return {
+              hours,
+              minutes,
+              seconds
+            };
+          };
+
+          // Add machine result to array
+          results.push({
+            machine: {
+              name: machine.name || 'Unknown',
+              serial: machine.serial
+            },
+            timeTotals: {
+              running: {
+                total: runningTime,
+                formatted: formatDurationWithSeconds(runningTime),
+                cycles: runningCycles
+              },
+              paused: {
+                total: pausedTime,
+                formatted: formatDurationWithSeconds(pausedTime),
+                cycles: pausedCycles
+              },
+              faulted: {
+                total: faultedTime,
+                formatted: formatDurationWithSeconds(faultedTime),
+                cycles: faultCycles
+              }
+            },
+            timeRange: {
+              start: start,
+              end: end,
+              total: formatDurationWithSeconds(new Date(end) - new Date(start))
+            }
+          });
+        }
+      }
+
+      return results;
+    } catch (error) {
+      console.error('Error processing all machines cycles:', error);
+      throw error;
+    }
+  }
+  
+  module.exports = {
+    fetchStatesForMachine,
+    groupStatesByMachine,
+    extractCyclesFromStates,
+    extractPausedCyclesFromStates,
+    extractFaultCyclesFromStates,
+    getAllMachinesFromStates,
+    processAllMachinesCycles
+  };
   
