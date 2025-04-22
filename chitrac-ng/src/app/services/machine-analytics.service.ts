@@ -9,6 +9,22 @@ export class MachineAnalyticsService {
 
   constructor(private http: HttpClient) {}
 
+  getMachines(): Observable<any> {
+    return this.http.get('/api/alpha/machines');
+  }
+
+  getMachineHourlyStates(machineSerial: string, startTime: string, endTime: string): Observable<any> {
+    let params = new HttpParams()
+      .set('startTime', startTime)
+      .set('endTime', endTime);
+
+    if (machineSerial) {
+      params = params.set('machineSerial', machineSerial);
+    }
+
+    return this.http.get('/api/alpha/analytics/machine-hourly-states', { params });
+  }
+
   getMachinePerformance(startTime: string, endTime: string, machineSerial?: number): Observable<any> {
     let params = new HttpParams()
       .set('startTime', startTime)
@@ -40,5 +56,17 @@ export class MachineAnalyticsService {
     }
 
     return this.http.get('/api/alpha/run-session/state/operator-cycles', { params });
+  }
+
+  getMachineStateTotals(startTime: string, endTime: string, machineSerial?: number): Observable<any> {
+    let params = new HttpParams()
+      .set('startTime', startTime)
+      .set('endTime', endTime);
+
+    if (machineSerial) {
+      params = params.set('machineSerial', machineSerial.toString());
+    }
+
+    return this.http.get('/api/alpha/analytics/machine-state-totals', { params });
   }
 }

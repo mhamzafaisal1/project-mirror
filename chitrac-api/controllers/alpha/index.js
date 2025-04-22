@@ -9,7 +9,7 @@ const ObjectId = require("mongodb").ObjectId;
 const startupDT = DateTime.now();
 const bcrypt = require("bcryptjs");
 const { parseAndValidateQueryParams, createPaddedTimeRange, createMongoDateQuery, formatDuration } = require('../../utils/time');
-const { fetchStatesForMachine, groupStatesByMachine, extractCyclesFromStates, extractPausedCyclesFromStates, extractFaultCyclesFromStates, processAllMachinesCycles } = require('../../utils/state');
+const { fetchStatesForMachine, groupStatesByMachine, extractCyclesFromStates, extractPausedCyclesFromStates, extractFaultCyclesFromStates, processAllMachinesCycles, getAllMachinesFromStates, calculateHourlyStateDurations } = require('../../utils/state');
 const { getCountRecords, getOperatorItemMapFromCounts } = require('../../utils/count');
 const { calculateRuntime, calculateDowntime, calculateTotalCount, calculateMisfeeds, calculateAvailability, calculateThroughput, calculateEfficiency, calculateOEE } = require('../../utils/analytics');
 
@@ -957,6 +957,64 @@ router.get('/run-session/state/operator-cycles', async (req, res) => {
       res.status(500).json({ error: 'Failed to fetch machine state time totals' });
     }
   });
+
+  router.get('/analytics/machine-hourly-states', async (req, res) => {
+    try {
+      const { start, end, serial } = parseAndValidateQueryParams(req);
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+  
+      let machines;
+      if (serial) {
+        machines = [{ serial: parseInt(serial) }];
+      } else {
+        machines = await getAllMachinesFromStates(db, paddedStart, paddedEnd);
+      }
+  
+      const startDate = new Date(start);
+      const titleDate = startDate.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+      });
+  
+      const results = [];
+  
+      for (const machine of machines) {
+        const states = await fetchStatesForMachine(db, machine.serial, paddedStart, paddedEnd);
+        if (!states.length) continue;
+  
+        const runningCycles = extractCyclesFromStates(states, start, end);
+        const pausedCycles = extractPausedCyclesFromStates(states, start, end);
+        const faultCycles = extractFaultCyclesFromStates(states, start, end);
+  
+        const runningHours = calculateHourlyStateDurations(runningCycles, start, end, 'Running' );
+        const pausedHours = calculateHourlyStateDurations(pausedCycles, start, end, 'Paused');
+        const faultedHours = calculateHourlyStateDurations(faultCycles, start, end, 'Faulted');
+  
+        results.push({
+          title: `Machine Activity - ${titleDate}`,
+          data: {
+            hours: Array.from({ length: 24 }, (_, i) => i),
+            series: {
+              Running: runningHours,
+              Paused: pausedHours,
+              Faulted: faultedHours
+            }
+          },
+          machine: {
+            name: states[0].machine?.name || 'Unknown',
+            serial: machine.serial
+          }
+        });
+      }
+  
+      res.json(results);
+    } catch (error) {
+      logger.error('Error calculating machine state time totals:', error);
+      res.status(500).json({ error: 'Failed to fetch machine state time totals' });
+    }
+  });
+  
+    
 
     /***  Analytics Route End */
 

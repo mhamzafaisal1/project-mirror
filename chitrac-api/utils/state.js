@@ -153,7 +153,6 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     const query = {
       timestamp: { $gte: start, $lte: end }
     };
-
     // Get unique machines from state collection
     const machines = await db.collection('state')
       .find(query)
@@ -162,13 +161,13 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
         'machine.name': 1
       })
       .toArray();
-
+    
     // Create unique machine list
     const uniqueMachines = {};
     machines.forEach(state => {
       const serial = state.machine?.serial;
       if (serial && !uniqueMachines[serial]) {
-        uniqueMachines[serial] = {
+        uniqueMachines[serial] = {  
           serial: serial,
           name: state.machine?.name || null
         };
@@ -252,6 +251,51 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
       throw error;
     }
   }
+
+
+  function calculateHourlyStateDurations(cycles, start, end, mode) {
+    const hourlyDurations = Array(24).fill(0);
+    const rangeStart = new Date(start);
+    const rangeEnd = new Date(end);
+  
+    // Define which keys to use based on mode
+    const keyMap = {
+      Running: { startKey: 'start', endKey: 'end' },
+      Paused: { startKey: 'pauseStart', endKey: 'pauseEnd' },
+      Faulted: { startKey: 'faultStart', endKey: 'faultEnd' }
+    };
+  
+    const { startKey, endKey } = keyMap[mode];
+  
+    for (const cycle of cycles) {
+      const originalStart = new Date(cycle[startKey]);
+      const originalEnd = new Date(cycle[endKey]);
+  
+      if (isNaN(originalStart) || isNaN(originalEnd)) continue;
+  
+      const clampedStart = originalStart < rangeStart ? rangeStart : originalStart;
+      const clampedEnd = originalEnd > rangeEnd ? rangeEnd : originalEnd;
+  
+      let current = new Date(clampedStart);
+  
+      while (current < clampedEnd) {
+        const hour = current.getHours();
+  
+        const nextHour = new Date(current);
+        nextHour.setHours(hour + 1, 0, 0, 0);
+  
+        const segmentEnd = nextHour < clampedEnd ? nextHour : clampedEnd;
+        const duration = segmentEnd - current;
+  
+        hourlyDurations[hour] += duration;
+        current = segmentEnd;
+      }
+    }
+  
+    return hourlyDurations;
+  }
+  
+  
   
   module.exports = {
     fetchStatesForMachine,
@@ -260,6 +304,7 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     extractPausedCyclesFromStates,
     extractFaultCyclesFromStates,
     getAllMachinesFromStates,
-    processAllMachinesCycles
+    processAllMachinesCycles,
+    calculateHourlyStateDurations
   };
   
