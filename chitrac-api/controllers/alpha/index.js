@@ -763,78 +763,113 @@ router.get('/run-session/state/operator-cycles', async (req, res) => {
     /***  Analytics Routes Start */
   router.get('/analytics/machine-performance', async (req, res) => {
     try {
-     // Step 1: Parse and validate query parameters
-     const { start, end, serial } = parseAndValidateQueryParams(req);
-     // Step 2: Create padded time range
-     const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);   
-     // Step 3: Get all state records using state.js utility
-     const states = await fetchStatesForMachine(db, serial, paddedStart, paddedEnd);
-      // Step 4: Get count records using count.js utility
-      const counts = await getCountRecords(db, serial, start, end);
-      // Step 5: Calculate metrics using analytics.js functions
-      const totalQueryMs = new Date(end) - new Date(start);
-      const runtimeMs = await calculateRuntime(states, start, end);
-      const downtimeMs = calculateDowntime(totalQueryMs, runtimeMs);
-      const totalCount = calculateTotalCount(counts);
-      const misfeedCount = calculateMisfeeds(counts);
-      const availability = calculateAvailability(runtimeMs, downtimeMs, totalQueryMs);
-      const throughput = calculateThroughput(totalCount, misfeedCount);
-      const efficiency = calculateEfficiency(runtimeMs, totalCount, counts);
-      const oee = calculateOEE(availability, efficiency, throughput);
-
-      // Step 6: Get current machine status
-      const currentState = states[states.length - 1] || {};
-
-      // Step 7: Format response
-      const response = {
-        machine: {
-          name: currentState.machine?.name || 'Unknown',
-          serial: currentState.machine?.serial || serial
-        },
-        currentStatus: {
-          code: currentState.status?.code || 0,
-          name: currentState.status?.name || 'Unknown'
-        },
-        metrics: {
-          runtime: {
-            total: runtimeMs,
-            formatted: formatDuration(runtimeMs)
-          },
-          downtime: {
-            total: downtimeMs,
-            formatted: formatDuration(downtimeMs)
-          },
-          output: {
-            totalCount,
-            misfeedCount
-          },
-          performance: {
-            availability: {
-              value: availability,
-              percentage: (availability * 100).toFixed(2) + '%'
+      // Step 1: Parse and validate query parameters
+      const { start, end, serial } = parseAndValidateQueryParams(req);
+      // Step 2: Create padded time range
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+      
+      let states;
+      let groupedStates;
+      
+      if (serial) {
+        // If serial provided, get states for just that machine
+        const machineStates = await fetchStatesForMachine(db, serial, paddedStart, paddedEnd);
+        // Create a single group for this machine
+        groupedStates = {
+          [serial]: {
+            machine: {
+              serial: serial,
+              name: machineStates[0]?.machine?.name || null,
+              mode: machineStates[0]?.program?.mode || null
             },
-            throughput: {
-              value: throughput,
-              percentage: (throughput * 100).toFixed(2) + '%'
-            },
-            efficiency: {
-              value: efficiency,
-              percentage: (efficiency * 100).toFixed(2) + '%'
-            },
-            oee: {
-              value: oee,
-              percentage: (oee * 100).toFixed(2) + '%'
-            }
+            states: machineStates
           }
-        },
-        timeRange: {
-          start: start,
-          end: end,
-          total: formatDuration(totalQueryMs)
-        }
-      };
+        };
+      } else {
+        // If no serial, get all states and group them
+        const allStates = await fetchStatesForMachine(db, null, paddedStart, paddedEnd);
+        groupedStates = groupStatesByMachine(allStates);
+      }
+      
+      const results = [];
+      
+      // Process each machine's states
+      for (const [machineSerial, group] of Object.entries(groupedStates)) {
+        const states = group.states;
+        
+        // Skip if no states found for this machine
+        if (!states.length) continue;
+        
+        // Get counts for this machine
+        const counts = await getCountRecords(db, parseInt(machineSerial), start, end);
+        
+        // Calculate metrics for this machine
+        const totalQueryMs = new Date(end) - new Date(start);
+        const runtimeMs = await calculateRuntime(states, start, end);
+        const downtimeMs = calculateDowntime(totalQueryMs, runtimeMs);
+        const totalCount = calculateTotalCount(counts);
+        const misfeedCount = calculateMisfeeds(counts);
+        const availability = calculateAvailability(runtimeMs, downtimeMs, totalQueryMs);
+        const throughput = calculateThroughput(totalCount, misfeedCount);
+        const efficiency = calculateEfficiency(runtimeMs, totalCount, counts);
+        const oee = calculateOEE(availability, efficiency, throughput);
 
-      res.json(response);
+        // Get current status for this machine
+        const currentState = states[states.length - 1] || {};
+
+        // Format response for this machine
+        const machineResponse = {
+          machine: {
+            name: currentState.machine?.name || 'Unknown',
+            serial: currentState.machine?.serial || parseInt(machineSerial)
+          },
+          currentStatus: {
+            code: currentState.status?.code || 0,
+            name: currentState.status?.name || 'Unknown'
+          },
+          metrics: {
+            runtime: {
+              total: runtimeMs,
+              formatted: formatDuration(runtimeMs)
+            },
+            downtime: {
+              total: downtimeMs,
+              formatted: formatDuration(downtimeMs)
+            },
+            output: {
+              totalCount,
+              misfeedCount
+            },
+            performance: {
+              availability: {
+                value: availability,
+                percentage: (availability * 100).toFixed(2) + '%'
+              },
+              throughput: {
+                value: throughput,
+                percentage: (throughput * 100).toFixed(2) + '%'
+              },
+              efficiency: {
+                value: efficiency,
+                percentage: (efficiency * 100).toFixed(2) + '%'
+              },
+              oee: {
+                value: oee,
+                percentage: (oee * 100).toFixed(2) + '%'
+              }
+            }
+          },
+          timeRange: {
+            start: start,
+            end: end,
+            total: formatDuration(totalQueryMs)
+          }
+        };
+
+        results.push(machineResponse);
+      }
+
+      res.json(results);
     } catch (error) {
       logger.error('Error calculating machine performance metrics:', error);
       res.status(500).json({ error: 'Failed to fetch machine performance metrics' });

@@ -11,6 +11,7 @@ import { LeveloneTableV2Component } from './levelone-table-v2/levelone-table-v2.
 import { LeveloneBarChartComponent } from './levelone-bar-chart/levelone-bar-chart.component';
 import { LevelonePieChartComponent } from './levelone-pie-chart/levelone-pie-chart.component';
 import { LeveloneLineChartComponent } from './levelone-line-chart/levelone-line-chart.component';
+import { MachineAnalyticsDashboardComponent } from './machine-analytics-dashboard/machine-analytics-dashboard.component';
 
 
 import { AuthGuard } from './guards/auth.guard';
@@ -27,5 +28,6 @@ export const routes: Routes = [
 	{ path: 'ng/levelone-bar-chart', component: LeveloneBarChartComponent },
 	{ path: 'ng/levelone-pie-chart', component: LevelonePieChartComponent },
 	{ path: 'ng/levelone-line-chart', component: LeveloneLineChartComponent },
+	{ path: 'ng/machineAnalytics', component: MachineAnalyticsDashboardComponent },
 	{ path: 'ng/*', redirectTo: 'ng/home' }
 	];
