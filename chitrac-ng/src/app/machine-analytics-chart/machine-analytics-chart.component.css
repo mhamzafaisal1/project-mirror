@@ -50,6 +50,29 @@ select::placeholder {
   opacity: 0.7;
 }
 
+input[type="date"] {
+  padding: 8px;
+  border: 1px solid var(--theme-color-primary-darkest);
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: var(--theme-color-surface);
+  color: var(--theme-color-on-surface-variant);
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) saturate(100%) invert(var(--theme-icon-invert, 0.8));
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-datetime-edit {
+  color: var(--theme-color-on-surface-variant);
+}
+
+input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  color: var(--theme-color-on-surface-variant);
+}
+
 .charts {
   display: flex;
   flex-direction: column;
