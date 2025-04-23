@@ -13,6 +13,7 @@ import { LevelonePieChartComponent } from './levelone-pie-chart/levelone-pie-cha
 import { LeveloneLineChartComponent } from './levelone-line-chart/levelone-line-chart.component';
 import { MachineAnalyticsDashboardComponent } from './machine-analytics-dashboard/machine-analytics-dashboard.component';
 import { MachineAnalyticsChartComponent } from './machine-analytics-chart/machine-analytics-chart.component';
+import { OperatorAnalyticsDashboardComponent } from './operator-analytics-dashboard/operator-analytics-dashboard.component';
 
 import { AuthGuard } from './guards/auth.guard';
 
@@ -30,5 +31,6 @@ export const routes: Routes = [
 	{ path: 'ng/levelone-line-chart', component: LeveloneLineChartComponent },
 	{ path: 'ng/machineAnalytics', component: MachineAnalyticsDashboardComponent },
 	{ path: 'ng/machineAnalytics/chart', component: MachineAnalyticsChartComponent },
+	{ path: 'ng/operatorAnalytics', component: OperatorAnalyticsDashboardComponent },
 	{ path: 'ng/*', redirectTo: 'ng/home' }
 	];

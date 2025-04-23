@@ -1,0 +1,22 @@
+<div class="analytics-container">
+    <div class="analytics-inputs">
+      <label>
+        Start Time:
+        <input type="datetime-local" [(ngModel)]="startTime" />
+      </label>
+    
+      <label>
+        End Time:
+        <input type="datetime-local" [(ngModel)]="endTime" />
+      </label>
+    
+      <label>
+        Operator ID:
+        <input type="text" [(ngModel)]="operatorId" />
+      </label>
+    
+      <button (click)="fetchAnalyticsData()">Fetch Analytics</button>
+    </div>
+    
+    <base-table *ngIf="rows.length" [columns]="columns" [rows]="rows"></base-table>
+  </div>
