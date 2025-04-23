@@ -38,114 +38,93 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     return grouped;
   }
   
-  function extractCyclesFromStates(states, queryStart, queryEnd) {
-    const cycles = [];
-    let currentStart = null;
-  
+  function extractAllCyclesFromStates(states, queryStart, queryEnd) {
+    const cycles = {
+      running: [],
+      paused: [],
+      fault: []
+    };
+    
+    let currentRunningStart = null;
+    let currentPauseStart = null;
+    let currentFaultStart = null;
+    
+    // Convert query times to Date objects once
+    const startTime = new Date(queryStart);
+    const endTime = new Date(queryEnd);
+    
     for (const state of states) {
       const code = state.status?.code;
-      if (code === 1 && !currentStart) {
-        currentStart = state.timestamp;
-      } else if (code !== 1 && currentStart) {
-        if (currentStart >= queryStart && state.timestamp <= queryEnd) {
-          cycles.push({
-            start: currentStart,
-            end: state.timestamp,
-            duration: state.timestamp - currentStart
+      const timestamp = new Date(state.timestamp);
+      
+      // Handle running cycles
+      if (code === 1 && !currentRunningStart) {
+        currentRunningStart = timestamp;
+      } else if (code !== 1 && currentRunningStart) {
+        if (currentRunningStart >= startTime && timestamp <= endTime) {
+          cycles.running.push({
+            start: currentRunningStart,
+            end: timestamp,
+            duration: timestamp - currentRunningStart
           });
         }
-        currentStart = null;
+        currentRunningStart = null;
       }
-    }
-  
-    // Handle case where machine is still running at the end
-    if (currentStart) {
-      const endTime = new Date(queryEnd);
-      if (currentStart >= queryStart) {
-        cycles.push({
-          start: currentStart,
-          end: endTime,
-          duration: endTime - currentStart
-        });
-      }
-    }
-  
-    return cycles;
-  }
-  
-  function extractPausedCyclesFromStates(states, queryStart, queryEnd) {
-    const cycles = [];
-    let currentPauseStart = null;
-  
-    for (const state of states) {
-      const code = state.status?.code;
       
+      // Handle paused cycles
       if (code === 0 && !currentPauseStart) {
-        // Start of a pause
-        currentPauseStart = state.timestamp;
+        currentPauseStart = timestamp;
       } else if (code !== 0 && currentPauseStart) {
-        // End of a pause (can transition to running or fault)
-        if (currentPauseStart >= queryStart && state.timestamp <= queryEnd) {
-          cycles.push({
-            pauseStart: currentPauseStart,
-            pauseEnd: state.timestamp,
-            duration: state.timestamp - currentPauseStart
+        if (currentPauseStart >= startTime && timestamp <= endTime) {
+          cycles.paused.push({
+            start: currentPauseStart,
+            end: timestamp,
+            duration: timestamp - currentPauseStart
           });
         }
         currentPauseStart = null;
       }
-    }
-  
-    // Handle case where machine is still paused at the end
-    if (currentPauseStart) {
-      const endTime = new Date(queryEnd);
-      if (currentPauseStart >= queryStart) {
-        cycles.push({
-          pauseStart: currentPauseStart,
-          pauseEnd: endTime,
-          duration: endTime - currentPauseStart
-        });
-      }
-    }
-  
-    return cycles;
-  }
-  
-  function extractFaultCyclesFromStates(states, queryStart, queryEnd) {
-    const cycles = [];
-    let currentFaultStart = null;
-  
-    for (const state of states) {
-      const code = state.status?.code;
       
+      // Handle fault cycles
       if (code > 1 && !currentFaultStart) {
-        // Start of a fault
-        currentFaultStart = state.timestamp;
+        currentFaultStart = timestamp;
       } else if (code <= 1 && currentFaultStart) {
-        // End of a fault (can transition to running or paused)
-        if (currentFaultStart >= queryStart && state.timestamp <= queryEnd) {
-          cycles.push({
-            faultStart: currentFaultStart,
-            faultEnd: state.timestamp,
-            duration: state.timestamp - currentFaultStart
+        if (currentFaultStart >= startTime && timestamp <= endTime) {
+          cycles.fault.push({
+            start: currentFaultStart,
+            end: timestamp,
+            duration: timestamp - currentFaultStart
           });
         }
         currentFaultStart = null;
       }
     }
-  
-    // Handle case where machine is still faulted at the end
-    if (currentFaultStart) {
-      const endTime = new Date(queryEnd);
-      if (currentFaultStart >= queryStart) {
-        cycles.push({
-          faultStart: currentFaultStart,
-          faultEnd: endTime,
-          duration: endTime - currentFaultStart
-        });
-      }
+    
+    // Handle any ongoing cycles at the end
+    if (currentRunningStart && currentRunningStart >= startTime) {
+      cycles.running.push({
+        start: currentRunningStart,
+        end: endTime,
+        duration: endTime - currentRunningStart
+      });
     }
-  
+    
+    if (currentPauseStart && currentPauseStart >= startTime) {
+      cycles.paused.push({
+        start: currentPauseStart,
+        end: endTime,
+        duration: endTime - currentPauseStart
+      });
+    }
+    
+    if (currentFaultStart && currentFaultStart >= startTime) {
+      cycles.fault.push({
+        start: currentFaultStart,
+        end: endTime,
+        duration: endTime - currentFaultStart
+      });
+    }
+    
     return cycles;
   }
   
@@ -190,14 +169,12 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
         
         if (states.length > 0) {
           // Extract all types of cycles
-          const runningCycles = extractCyclesFromStates(states, start, end);
-          const pausedCycles = extractPausedCyclesFromStates(states, start, end);
-          const faultCycles = extractFaultCyclesFromStates(states, start, end);
+          const cycles = extractAllCyclesFromStates(states, start, end);
 
           // Calculate total durations
-          const runningTime = runningCycles.reduce((total, cycle) => total + cycle.duration, 0);
-          const pausedTime = pausedCycles.reduce((total, cycle) => total + cycle.duration, 0);
-          const faultedTime = faultCycles.reduce((total, cycle) => total + cycle.duration, 0);
+          const runningTime = cycles.running.reduce((total, cycle) => total + cycle.duration, 0);
+          const pausedTime = cycles.paused.reduce((total, cycle) => total + cycle.duration, 0);
+          const faultedTime = cycles.fault.reduce((total, cycle) => total + cycle.duration, 0);
 
           // Format durations
           const formatDurationWithSeconds = (ms) => {
@@ -223,17 +200,17 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
               running: {
                 total: runningTime,
                 formatted: formatDurationWithSeconds(runningTime),
-                cycles: runningCycles
+                cycles: cycles.running
               },
               paused: {
                 total: pausedTime,
                 formatted: formatDurationWithSeconds(pausedTime),
-                cycles: pausedCycles
+                cycles: cycles.paused
               },
               faulted: {
                 total: faultedTime,
                 formatted: formatDurationWithSeconds(faultedTime),
-                cycles: faultCycles
+                cycles: cycles.fault
               }
             },
             timeRange: {
@@ -322,48 +299,92 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
       .toArray();
   }
   
-  function groupStatesByOperator(states) {
-    const grouped = {};
+  // function groupStatesByOperator(states) {
+  //   const grouped = {};
     
-    for (const state of states) {
-      // Each state can have multiple operators, so we need to process each one
-      if (state.operators && Array.isArray(state.operators)) {
-        for (const operator of state.operators) {
-          // Skip if operator is null or doesn't have an id
-          if (!operator || !operator.id) {
-            continue;
-          }
+  //   for (const state of states) {
+  //     // Each state can have multiple operators, so we need to process each one
+  //     if (state.operators && Array.isArray(state.operators)) {
+  //       for (const operator of state.operators) {
+  //         // Skip if operator is null or doesn't have an id
+  //         if (!operator || !operator.id) {
+  //           continue;
+  //         }
           
-          const operatorId = operator.id;
+  //         const operatorId = operator.id;
           
-          if (operatorId !== -1) { // Skip the -1 operator ID
-            if (!grouped[operatorId]) {
-              grouped[operatorId] = {
-                operator: {
-                  id: operatorId,
-                  name: operator.name || null,
-                  station: operator.station || null
-                },
-                states: []
-              };
-            }
+  //         if (operatorId !== -1) { // Skip the -1 operator ID
+  //           if (!grouped[operatorId]) {
+  //             grouped[operatorId] = {
+  //               operator: {
+  //                 id: operatorId,
+  //                 name: operator.name || null,
+  //                 station: operator.station || null
+  //               },
+  //               states: []
+  //             };
+  //           }
             
-            // Add the state to this operator's group
-            grouped[operatorId].states.push(state);
-          }
+  //           // Add the state to this operator's group
+  //           grouped[operatorId].states.push(state);
+  //         }
+  //       }
+  //     }
+  //   }
+    
+  //   return grouped;
+  // }
+  
+  function groupStatesByOperator(states) {
+    const grouped = new Map();
+    const operatorCache = new Map(); // Cache for operator info
+  
+    for (const state of states) {
+      const operators = state.operators;
+      if (!Array.isArray(operators)) continue;
+  
+      // Extract essential state data once per state
+      const essentialState = {
+        timestamp: state.timestamp,
+        status: state.status,
+        machine: state.machine,
+        program: state.program
+      };
+  
+      for (const operator of operators) {
+        if (!operator || typeof operator.id !== 'number' || operator.id === -1) continue;
+  
+        let operatorGroup = grouped.get(operator.id);
+        
+        if (!operatorGroup) {
+          // Cache operator info to avoid recreating it
+          const operatorInfo = operatorCache.get(operator.id) || {
+            id: operator.id,
+            name: operator.name || null,
+            station: operator.station || null
+          };
+          operatorCache.set(operator.id, operatorInfo);
+  
+          operatorGroup = {
+            operator: operatorInfo,
+            states: []
+          };
+          grouped.set(operator.id, operatorGroup);
         }
+  
+        // Push reference to essential state data
+        operatorGroup.states.push(essentialState);
       }
     }
-    
-    return grouped;
+  
+    return Object.fromEntries(grouped);
   }
   
+
   module.exports = {
     fetchStatesForMachine,
     groupStatesByMachine,
-    extractCyclesFromStates,
-    extractPausedCyclesFromStates,
-    extractFaultCyclesFromStates,
+    extractAllCyclesFromStates,
     getAllMachinesFromStates,
     processAllMachinesCycles,
     calculateHourlyStateDurations,

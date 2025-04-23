@@ -1,4 +1,4 @@
-const { extractCyclesFromStates, extractPausedCyclesFromStates, extractFaultCyclesFromStates } = require("./state");
+const { extractCyclesFromStates, extractPausedCyclesFromStates, extractFaultCyclesFromStates, extractAllCyclesFromStates } = require("./state");
 
 async function calculateRuntime(states, startTime, endTime) {
   // Use the same cycle extraction logic as run-session/state/cycles
@@ -96,59 +96,20 @@ function calculateOEE(availability, efficiency, throughput) {
 }
 
 /**
- * Calculates the total runtime for an operator based on machine states
+ * Calculates all time metrics for an operator based on machine states
  * @param {Array} states - Array of state records where the operator was active
  * @param {Date} startTime - Start time of the query period
  * @param {Date} endTime - End time of the query period
- * @returns {number} Total runtime in milliseconds
+ * @returns {Object} Object containing runtime, paused time, and fault time in milliseconds
  */
-async function calculateOperatorRuntime(states, startTime, endTime) {
-  // Use the same cycle extraction logic as machine runtime
-  const cycles = extractCyclesFromStates(states, startTime, endTime);
-
-  // Sum up the duration of all cycles
-  return cycles.reduce((total, cycle) => {
-    const cycleStart = new Date(cycle.start);
-    const cycleEnd = new Date(cycle.end);
-    const cycleDuration = cycleEnd - cycleStart;
-    return total + cycleDuration;
-  }, 0);
-}
-
-/**
- * Calculates the total paused time for an operator based on machine states
- * @param {Array} states - Array of state records where the operator was active
- * @param {Date} startTime - Start time of the query period
- * @param {Date} endTime - End time of the query period
- * @returns {number} Total paused time in milliseconds
- */
-async function calculateOperatorPausedTime(states, startTime, endTime) {
-  const cycles = extractPausedCyclesFromStates(states, startTime, endTime);
-
-  return cycles.reduce((total, cycle) => {
-    const cycleStart = new Date(cycle.pauseStart);
-    const cycleEnd = new Date(cycle.pauseEnd);
-    const cycleDuration = cycleEnd - cycleStart;
-    return total + cycleDuration;
-  }, 0);
-}
-
-/**
- * Calculates the total fault time for an operator based on machine states
- * @param {Array} states - Array of state records where the operator was active
- * @param {Date} startTime - Start time of the query period
- * @param {Date} endTime - End time of the query period
- * @returns {number} Total fault time in milliseconds
- */
-async function calculateOperatorFaultTime(states, startTime, endTime) {
-  const cycles = extractFaultCyclesFromStates(states, startTime, endTime);
-
-  return cycles.reduce((total, cycle) => {
-    const cycleStart = new Date(cycle.faultStart);
-    const cycleEnd = new Date(cycle.faultEnd);
-    const cycleDuration = cycleEnd - cycleStart;
-    return total + cycleDuration;
-  }, 0);
+function calculateOperatorTimes(states, startTime, endTime) {
+  const cycles = extractAllCyclesFromStates(states, startTime, endTime);
+  
+  return {
+    runtime: cycles.running.reduce((total, cycle) => total + cycle.duration, 0),
+    pausedTime: cycles.paused.reduce((total, cycle) => total + cycle.duration, 0),
+    faultTime: cycles.fault.reduce((total, cycle) => total + cycle.duration, 0)
+  };
 }
 
 /**
@@ -178,8 +139,6 @@ module.exports = {
   calculateThroughput,
   calculateEfficiency,
   calculateOEE,
-  calculateOperatorRuntime,
-  calculateOperatorPausedTime,
-  calculateOperatorFaultTime,
+  calculateOperatorTimes,
   calculatePiecesPerHour
 };

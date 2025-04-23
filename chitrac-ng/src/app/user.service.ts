@@ -61,7 +61,6 @@ export class UserService {
         this.userSubject.next(x.user);
         return x.user;
       } else {
-        console.log('getCurrentUser');
         localStorage.setItem('user', JSON.stringify({ username: null }));
         this.userSubject.next({ username: null });
         return { username: null };
