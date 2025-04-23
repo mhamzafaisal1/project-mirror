@@ -57,7 +57,7 @@ export class MultipleBarChartComponent implements OnChanges, OnDestroy, AfterVie
     const element = this.chartContainer.nativeElement;
     element.innerHTML = ''; // Clear existing chart
 
-    const margin = { top: 40, right: 120, bottom: 50, left: 50 };
+    const margin = { top: 40, right: 120, bottom: 50, left: 80 };
     const width = 900 - margin.left - margin.right;
     const height = 400 - margin.top - margin.bottom;
 

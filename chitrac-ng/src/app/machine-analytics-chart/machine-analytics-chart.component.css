@@ -58,12 +58,16 @@ select::placeholder {
 
 .chart-wrapper {
   background-color: var(--theme-color-surface-container);
-  padding: 20px;
+  padding: 20px 20px 20px 40px;
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   width: 100%;
+  box-sizing: border-box;
 }
 
+.chart-wrapper canvas {
+  margin-left: 10px;
+}
 
 .chart-wrapper h3 {
   margin: 0 0 15px 0;
