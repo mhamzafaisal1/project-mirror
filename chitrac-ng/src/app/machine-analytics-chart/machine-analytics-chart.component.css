@@ -1,10 +1,11 @@
 .chart-container {
   padding: 20px;
-  max-width: 1200px;
+  max-width: 100%; /* was 1200px */
   margin: 0 auto;
-  background-color: #1e1e1e; /* dark background */
-  color: black;
+  background-color: var(--theme-color-surface);
+  color: var(--theme-color-on-surface-variant);
 }
+
 
 .controls {
   display: flex;
@@ -12,7 +13,7 @@
   align-items: center;
   margin-bottom: 20px;
   padding: 15px;
-  background-color: #2c2c2c; /* dark control panel */
+  background-color: var(--theme-color-surface-container);
   border-radius: 5px;
 }
 
@@ -30,39 +31,42 @@
 
 label {
   font-weight: 500;
-  color: #e0e0e0; /* light label text */
+  color: var(--theme-color-on-surface-variant);
 }
 
 input[type="date"],
 select {
   padding: 8px;
-  border: 1px solid #444;
+  border: 1px solid var(--theme-color-primary-darkest);
   border-radius: 4px;
   font-size: 14px;
-  background-color: #333;
-  color: #f0f0f0;
+  background-color: var(--theme-color-surface);
+  color: var(--theme-color-on-surface-variant);
 }
 
 input[type="date"]::placeholder,
 select::placeholder {
-  color: #aaa;
+  color: var(--theme-color-on-surface-variant);
+  opacity: 0.7;
 }
 
 .charts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 20px;
 }
 
 .chart-wrapper {
-  background-color: #2a2a2a; /* dark chart background */
+  background-color: var(--theme-color-surface-container);
   padding: 20px;
   border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 100%;
 }
+
 
 .chart-wrapper h3 {
   margin: 0 0 15px 0;
-  color: #f5f5f5;
+  color: var(--theme-color-on-surface-variant);
   font-size: 16px;
 }

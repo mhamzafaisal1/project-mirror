@@ -40,14 +40,11 @@ export class MachineAnalyticsChartComponent implements OnInit {
     this.startDate = midnight.toISOString().split('T')[0];
   }
 
-  private buildTimestamps(): { startTime: string; endTime: string } {
-    const start = new Date(this.startDate);
-    start.setHours(0, 0, 0, 0);
+  private buildTimestamps(): { endTime: string } {
     const end = new Date(this.endDate);
     end.setHours(23, 59, 59, 999);
 
     return {
-      startTime: start.toISOString(),
       endTime: end.toISOString()
     };
   }
@@ -64,7 +61,7 @@ export class MachineAnalyticsChartComponent implements OnInit {
   }
 
   fetchData(): void {
-    const { startTime, endTime } = this.buildTimestamps();
+    const { endTime } = this.buildTimestamps();
 
     this.machineAnalyticsService.getMachineHourlyStates(this.selectedMachine, endTime).subscribe({
       next: (data: any[]) => {
