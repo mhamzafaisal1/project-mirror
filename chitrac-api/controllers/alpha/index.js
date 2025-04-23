@@ -1457,5 +1457,147 @@ function constructor(server) {
 
   /***  Analytics Route End */
 
+  // Softrol Route start
+
+
+router.get('/softrol/get-softrol-data', async (req, res) => {
+  try {
+    // Step 1: Parse and validate query parameters
+    const { start, end, operatorId } = parseAndValidateQueryParams(req);
+
+    // Step 2: Create padded time range
+    const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+
+    let states;
+    let groupedStates;
+
+    if (operatorId) {
+      // If operatorId provided, get states for just that operator
+      states = await fetchStatesForOperator(
+        db,
+        operatorId,
+        paddedStart,
+        paddedEnd
+      );
+      // Create a single group for this operator
+      groupedStates = {
+        [operatorId]: {
+          operator: {
+            id: operatorId,
+            name: await getOperatorNameFromCount(db, operatorId),
+          },
+          states: states,
+        },
+      };
+    } else {
+      // If no operatorId, get all states and group them by operator
+      const allStates = await fetchStatesForOperator(
+        db,
+        null,
+        paddedStart,
+        paddedEnd
+      );
+      groupedStates = groupStatesByOperator(allStates);
+
+      // Update operator names for all groups
+      for (const [opId, group] of Object.entries(groupedStates)) {
+        group.operator.name = await getOperatorNameFromCount(db, opId);
+      }
+    }
+
+    const results = [];
+
+    // Process each operator's states
+    for (const [operatorId, group] of Object.entries(groupedStates)) {
+      const states = group.states;
+
+      // Skip if no states found for this operator
+      if (!states.length) continue;
+
+      // Get counts for this operator
+      const validCounts = await getValidCountsForOperator(
+        db,
+        parseInt(operatorId),
+        start,
+        end
+      );
+      // Get misfeed counts for this operator
+      const misfeedCounts = await getMisfeedCountsForOperator(
+        db,
+        parseInt(operatorId),
+        start,
+        end
+      );
+
+      // Calculate metrics for this operator
+      const totalQueryMs = new Date(end) - new Date(start);
+      const { runtime: runtimeMs, pausedTime: pausedTimeMs, faultTime: faultTimeMs } = calculateOperatorTimes(states, start, end);
+      const totalCount = calculateTotalCount(validCounts, misfeedCounts);
+      const misfeedCount = calculateMisfeeds(misfeedCounts);
+      const piecesPerHour = calculatePiecesPerHour(totalCount, runtimeMs);
+      const efficiency = calculateEfficiency(runtimeMs, totalCount, validCounts);
+
+      // Get current status for this operator
+      const currentState = states[states.length - 1] || {};
+
+      // Format response for this operator
+      const operatorResponse = {
+        operator: {
+          id: parseInt(operatorId),
+          name: group.operator.name || "Unknown",
+        },
+        currentStatus: {
+          code: currentState.status?.code || 0,
+          name: currentState.status?.name || "Unknown",
+        },
+        metrics: {
+          runtime: {
+            total: runtimeMs,
+            formatted: formatDuration(runtimeMs),
+          },
+          pausedTime: {
+            total: pausedTimeMs,
+            formatted: formatDuration(pausedTimeMs),
+          },
+          faultTime: {
+            total: faultTimeMs,
+            formatted: formatDuration(faultTimeMs),
+          },
+          output: {
+            totalCount,
+            misfeedCount,
+            validCount: totalCount - misfeedCount,
+          },
+          performance: {
+            piecesPerHour: {
+              value: piecesPerHour,
+              formatted: Math.round(piecesPerHour).toString(),
+            },
+            efficiency: {
+              value: efficiency,
+              percentage: (efficiency * 100).toFixed(2) + "%",
+            },
+          },
+        },
+        timeRange: {
+          start: start,
+          end: end,
+          total: formatDuration(totalQueryMs),
+        },
+      };
+
+      results.push(operatorResponse);
+    }
+
+    res.json(results);
+  } catch (error) {
+    logger.error("Error calculating operator performance metrics:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch operator performance metrics" });
+  }
+});
+  // Softrol Route end
+
   return router;
 }
