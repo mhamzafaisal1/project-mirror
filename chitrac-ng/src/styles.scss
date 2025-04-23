@@ -24,8 +24,13 @@ $testcolor2: mat.get-theme-color($light-theme, primary, 60);
 }
 
 :root {
-  
+  --theme-icon-invert: 0; /* default for light mode */
 }
+
+body.dark-theme {
+  --theme-icon-invert: 1; /* full invert for dark mode */
+}
+
 
 .dark-theme {
   @include create-dark-theme();
