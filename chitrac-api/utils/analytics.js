@@ -17,15 +17,13 @@ function calculateDowntime(totalQueryMs, runtimeMs) {
   return Math.max(totalQueryMs - runtimeMs, 0);
 }
 
-function calculateTotalCount(counts) {
-  const totalCounts = counts.length;
+function calculateTotalCount(validCounts, misfeedCounts) {
+  const totalCounts = validCounts.length + misfeedCounts.length;
   return totalCounts;
 }
 
-function calculateMisfeeds(counts) {
-  // Count misfeeds from status codes or specific item names
-  const misfeeds = 0;
-  return misfeeds;
+function calculateMisfeeds(misfeedCounts) {
+  return misfeedCounts.length;
 }
 
 function calculateAvailability(runtimeMs, downtimeMs, totalQueryMs) {

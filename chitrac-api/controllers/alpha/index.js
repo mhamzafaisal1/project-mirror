@@ -10,7 +10,7 @@ const startupDT = DateTime.now();
 const bcrypt = require("bcryptjs");
 const { parseAndValidateQueryParams, createPaddedTimeRange, createMongoDateQuery, formatDuration } = require('../../utils/time');
 const { fetchStatesForMachine, groupStatesByMachine, extractCyclesFromStates, extractPausedCyclesFromStates, extractFaultCyclesFromStates, processAllMachinesCycles, getAllMachinesFromStates, calculateHourlyStateDurations } = require('../../utils/state');
-const { getCountRecords, getOperatorItemMapFromCounts } = require('../../utils/count');
+const { getCountRecords, getOperatorItemMapFromCounts, getValidCounts, getMisfeedCounts } = require('../../utils/count');
 const { calculateRuntime, calculateDowntime, calculateTotalCount, calculateMisfeeds, calculateAvailability, calculateThroughput, calculateEfficiency, calculateOEE } = require('../../utils/analytics');
 
 module.exports = function (server) {
@@ -801,14 +801,16 @@ router.get('/run-session/state/operator-cycles', async (req, res) => {
         if (!states.length) continue;
         
         // Get counts for this machine
-        const counts = await getCountRecords(db, parseInt(machineSerial), start, end);
+        const validCounts = await getValidCounts(db, parseInt(machineSerial), start, end);
+        // Get misfeed counts for this machine
+        const misfeedCounts = await getMisfeedCounts(db, parseInt(machineSerial), start, end);
         
         // Calculate metrics for this machine
         const totalQueryMs = new Date(end) - new Date(start);
         const runtimeMs = await calculateRuntime(states, start, end);
         const downtimeMs = calculateDowntime(totalQueryMs, runtimeMs);
-        const totalCount = calculateTotalCount(counts);
-        const misfeedCount = calculateMisfeeds(counts);
+        const totalCount = calculateTotalCount(validCounts, misfeedCounts);
+        const misfeedCount = calculateMisfeeds(misfeedCounts);
         const availability = calculateAvailability(runtimeMs, downtimeMs, totalQueryMs);
         const throughput = calculateThroughput(totalCount, misfeedCount);
         const efficiency = calculateEfficiency(runtimeMs, totalCount, counts);

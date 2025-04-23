@@ -8,6 +8,32 @@ async function getCountRecords(db, serial, start, end) {
       .sort({ timestamp: 1 })
       .toArray();
   }
+
+  async function getValidCounts(db, serial, start, end) {
+    return db.collection('count')
+      .find({
+        'machine.serial': serial,
+        timestamp: { $gte: new Date(start), $lte: new Date(end) },
+        'operator.id': { $exists: true, $ne: -1 },
+        misfeed: { $ne: true } // Exclude misfeeds
+      })
+      .sort({ timestamp: 1 })
+      .toArray();
+  }
+
+  
+  async function getMisfeedCounts(db, serial, start, end) {
+    return db.collection('count')
+      .find({
+        'machine.serial': serial,
+        timestamp: { $gte: new Date(start), $lte: new Date(end) },
+        'operator.id': { $exists: true, $ne: -1 },
+        misfeed: true // Only misfeeds
+      })
+      .sort({ timestamp: 1 })
+      .toArray();
+  }
+  
   
   function getOperatorItemMapFromCounts(countRecords) {
     const operatorMap = {};
@@ -45,5 +71,5 @@ async function getCountRecords(db, serial, start, end) {
   
     return operatorMap;
   }
-  module.exports = { getCountRecords, getOperatorItemMapFromCounts };
+  module.exports = { getCountRecords, getOperatorItemMapFromCounts, getValidCounts, getMisfeedCounts };
   
