@@ -1071,9 +1071,9 @@ router.get('/run-session/state/operator-cycles', async (req, res) => {
         
         // Calculate metrics for this operator
         const totalQueryMs = new Date(end) - new Date(start);
-        const runtimeMs = await calculateOperatorRuntime(states, start, end);
-        const pausedTimeMs = await calculateOperatorPausedTime(states, start, end);
-        const faultTimeMs = await calculateOperatorFaultTime(states, start, end);
+        const runtimeMs =  calculateOperatorRuntime(states, start, end);
+        const pausedTimeMs =  calculateOperatorPausedTime(states, start, end);
+        const faultTimeMs =  calculateOperatorFaultTime(states, start, end);
         const totalCount = calculateTotalCount(validCounts, misfeedCounts);
         const misfeedCount = calculateMisfeeds(misfeedCounts);
         const piecesPerHour = calculatePiecesPerHour(totalCount, runtimeMs);
