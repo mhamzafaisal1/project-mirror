@@ -295,7 +295,68 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     return hourlyDurations;
   }
   
+  // State functions for Operator
+
+  async function fetchStatesForOperator(db, operatorId, paddedStart, paddedEnd) {
+    const query = {
+      timestamp: { $gte: paddedStart, $lte: paddedEnd },
+      'operators': { $exists: true, $ne: [] } // Ensure we only get states that have operators
+    };
+
+    if (operatorId) {
+      query['operators.id'] = operatorId;
+    }
+
+    return db.collection('state')
+      .find(query)
+      .sort({ timestamp: 1 })
+      .project({
+        timestamp: 1,
+        'machine.serial': 1,
+        'machine.name': 1,
+        'program.mode': 1,
+        'status.code': 1,
+        'status.name': 1,
+        'operators': 1
+      })
+      .toArray();
+  }
   
+  function groupStatesByOperator(states) {
+    const grouped = {};
+    
+    for (const state of states) {
+      // Each state can have multiple operators, so we need to process each one
+      if (state.operators && Array.isArray(state.operators)) {
+        for (const operator of state.operators) {
+          // Skip if operator is null or doesn't have an id
+          if (!operator || !operator.id) {
+            continue;
+          }
+          
+          const operatorId = operator.id;
+          
+          if (operatorId !== -1) { // Skip the -1 operator ID
+            if (!grouped[operatorId]) {
+              grouped[operatorId] = {
+                operator: {
+                  id: operatorId,
+                  name: operator.name || null,
+                  station: operator.station || null
+                },
+                states: []
+              };
+            }
+            
+            // Add the state to this operator's group
+            grouped[operatorId].states.push(state);
+          }
+        }
+      }
+    }
+    
+    return grouped;
+  }
   
   module.exports = {
     fetchStatesForMachine,
@@ -305,6 +366,8 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     extractFaultCyclesFromStates,
     getAllMachinesFromStates,
     processAllMachinesCycles,
-    calculateHourlyStateDurations
+    calculateHourlyStateDurations,
+    fetchStatesForOperator,
+    groupStatesByOperator
   };
   

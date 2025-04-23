@@ -71,5 +71,70 @@ async function getCountRecords(db, serial, start, end) {
   
     return operatorMap;
   }
-  module.exports = { getCountRecords, getOperatorItemMapFromCounts, getValidCounts, getMisfeedCounts };
+
+  // Count functions for Operator
+
+  // Operator-specific count functions
+  async function getValidCountsForOperator(db, operatorId, start, end) {
+    return db.collection('count')
+      .find({
+        'operator.id': operatorId,
+        timestamp: { $gte: new Date(start), $lte: new Date(end) },
+        misfeed: { $ne: true } // Exclude misfeeds
+      })
+      .sort({ timestamp: 1 })
+      .toArray();
+  }
+
+  async function getMisfeedCountsForOperator(db, operatorId, start, end) {
+    return db.collection('count')
+      .find({
+        'operator.id': operatorId,
+        timestamp: { $gte: new Date(start), $lte: new Date(end) },
+        misfeed: true // Only misfeeds
+      })
+      .sort({ timestamp: 1 })
+      .toArray();
+  }
+
+  /**
+   * Gets the operator name from the count collection based on operator ID
+   * @param {Object} db - MongoDB database instance
+   * @param {number} operatorId - Operator ID to look up
+   * @returns {Promise<string>} Operator name or 'Unknown' if not found
+   */
+  async function getOperatorNameFromCount(db, operatorId) {
+    if (!operatorId) return 'Unknown';
+    
+    try {
+      // Convert operatorId to number if it's a string
+      const numericOperatorId = typeof operatorId === 'string' ? parseInt(operatorId, 10) : operatorId;
+      
+      const count = await db.collection('count')
+        .findOne(
+          { 'operator.id': numericOperatorId },
+          { projection: { 'operator.name': 1 } }
+        );
+        
+      if (!count || !count.operator || !count.operator.name) {
+        console.log(`No operator name found for ID: ${numericOperatorId}`);
+        return 'Unknown';
+      }
+      
+      return count.operator.name;
+    } catch (error) {
+      console.error('Error getting operator name:', error);
+      return 'Unknown';
+    }
+  }
+
+  module.exports = {
+    getCountRecords,
+    getValidCounts,
+    getMisfeedCounts,
+    getOperatorItemMapFromCounts,
+    getValidCountsForOperator,
+    getMisfeedCountsForOperator,
+    getOperatorNameFromCount
+  };
   

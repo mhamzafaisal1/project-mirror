@@ -13,12 +13,20 @@ const TIME_CONSTANTS = {
 /**
  * Validates and parses query parameters for MongoDB date queries
  * @param {Object} req - Express request object
- * @returns {Object} { start, end, serial } - Validated dates and serial number
+ * @returns {Object} { start, end, serial, operatorId } - Validated dates and IDs
  */
 function parseAndValidateQueryParams(req) {
-  const { startTime, endTime, machineSerial, start, end, serial } = req.query;
+  const { 
+    startTime, 
+    endTime, 
+    machineSerial, 
+    start, 
+    end, 
+    serial,
+    operatorId
+  } = req.query;
   
-  // Use either naming convention
+  // Use either naming convention for dates
   const startDate = startTime || start;
   const endDate = endTime || end;
   const machineId = machineSerial || serial;
@@ -30,13 +38,15 @@ function parseAndValidateQueryParams(req) {
   const startDateObj = validateDateString(startDate);
   const endDateObj = validateDateString(endDate);
   const serialNum = machineId ? parseInt(machineId) : null;
+  const operatorNum = operatorId ? parseInt(operatorId) : null;
   
   validateTimeRange(startDateObj, endDateObj);
   
   return { 
     start: convertToMongoDate(startDateObj),
     end: convertToMongoDate(endDateObj),
-    serial: serialNum
+    serial: serialNum,
+    operatorId: operatorNum
   };
 }
 
