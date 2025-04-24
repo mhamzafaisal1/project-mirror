@@ -37,7 +37,7 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     }
     return grouped;
   }
-  function extractAllCyclesFromStates(states, queryStart, queryEnd, mode = null) {
+  function extractAllCyclesFromStates(states, queryStart, queryEnd, mode) {
     const startTime = new Date(queryStart);
     const endTime = new Date(queryEnd);
   
@@ -244,14 +244,9 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     const rangeStart = new Date(start);
     const rangeEnd = new Date(end);
   
-    // Define which keys to use based on mode
-    const keyMap = {
-      Running: { startKey: 'start', endKey: 'end' },
-      Paused: { startKey: 'pauseStart', endKey: 'pauseEnd' },
-      Faulted: { startKey: 'faultStart', endKey: 'faultEnd' }
-    };
-  
-    const { startKey, endKey } = keyMap[mode];
+    // All cycle types use the same property names
+    const startKey = 'start';
+    const endKey = 'end';
   
     for (const cycle of cycles) {
       const originalStart = new Date(cycle[startKey]);

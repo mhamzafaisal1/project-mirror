@@ -869,7 +869,8 @@ function constructor(server) {
   });
 
   /*** Run Session Start */
-
+//Machine specific count data for cycles within a timestamp range, needs timestamp range and serial number (WORKS !!)
+//Is it still required ?
   router.get("/run-session/state/cycles", async (req, res) => {
     try {
       // Step 1: Parse and validate query parameters
@@ -887,10 +888,11 @@ function constructor(server) {
       );
 
       // Step 4: Extract cycles using state.js utility
-      const cycles = extractCyclesFromStates(states, start, end);
+      const cycles = extractAllCyclesFromStates(states, start, end);
+      const runningCycles = cycles.running;
 
       // Step 5: For each cycle, get count records using count.js utility
-      for (const cycle of cycles) {
+      for (const cycle of runningCycles) {
         const countData = await getCountRecords(
           db,
           serial,
@@ -900,7 +902,7 @@ function constructor(server) {
         cycle.counts = countData;
       }
 
-      res.json(cycles);
+      res.json(runningCycles);
     } catch (error) {
       logger.error("Error calculating session cycles with counts:", error);
       res.status(500).json({ error: "Failed to fetch session cycles" });
@@ -910,6 +912,8 @@ function constructor(server) {
   /*** Run Session End */
 
   /***  Operator Cycle Start */
+  //Machine Specific Operator Cycles (WORKS !!)
+  //Is it still required ?
   router.get("/run-session/state/operator-cycles", async (req, res) => {
     try {
       // Step 1: Parse and validate query parameters
@@ -936,10 +940,11 @@ function constructor(server) {
         const isAc360 = machineMode === "ac360";
 
         // Step 5: Extract cycles using state.js utility
-        const cycles = extractCyclesFromStates(group.states, start, end);
+        const cycles = extractAllCyclesFromStates(group.states, start, end);
+        const runningCycles = cycles.running;
 
         // Step 6: For each cycle, get count records and process operators
-        for (const cycle of cycles) {
+        for (const cycle of runningCycles) {
           const countRecords = await getCountRecords(
             db,
             machineSerial,
@@ -971,7 +976,7 @@ function constructor(server) {
 
         allResults.push({
           machine: group.machine,
-          cycles,
+          cycles: runningCycles,
         });
       }
 
@@ -986,20 +991,24 @@ function constructor(server) {
         .json({ error: "Failed to fetch operator-based session cycles" });
     }
   });
+
   /***  Operator Cycle End */
-  router.get("/machine/operator/counts", async (req, res, next) => {
-    const machineList = await getMachineOperatorLists();
-    let resultArray = [];
-    for await (const machine of machineList) {
-      const machineOperatorCounts = await getMachineOperatorCounts(machine);
-      resultArray.push(machineOperatorCounts);
-    }
-    res.json(resultArray);
-  });
+
+  // Machine Operator Counts Route (DOES NOT WORK !!)
+  // Is it still required ? 
+  // router.get("/machine/operator/counts", async (req, res, next) => {
+  //   const machineList = await getMachineOperatorLists();
+  //   let resultArray = [];
+  //   for await (const machine of machineList) {
+  //     const machineOperatorCounts = await getMachineOperatorCounts(machine);
+  //     resultArray.push(machineOperatorCounts);
+  //   }
+  //   res.json(resultArray);
+  // });
 
   /***  Analytics Routes Start */
 
-  // Analytics Route sorted by Machine
+  // Analytics Route sorted by Machine - for the Machine Analytics dashboard (WORKS !!)
   router.get("/analytics/machine-performance", async (req, res) => {
     try {
       // Step 1: Parse and validate query parameters
@@ -1049,6 +1058,10 @@ function constructor(server) {
         // Skip if no states found for this machine
         if (!states.length) continue;
 
+        // Extract all types of cycles
+        const cycles = extractAllCyclesFromStates(states, start, end);
+        const runningCycles = cycles.running;
+
         // Get counts for this machine
         const validCounts = await getValidCounts(
           db,
@@ -1066,7 +1079,7 @@ function constructor(server) {
 
         // Calculate metrics for this machine
         const totalQueryMs = new Date(end) - new Date(start);
-        const runtimeMs = await calculateRuntime(states, start, end);
+        const runtimeMs = runningCycles.reduce((total, cycle) => total + cycle.duration, 0);
         const downtimeMs = calculateDowntime(totalQueryMs, runtimeMs);
         const totalCount = calculateTotalCount(validCounts, misfeedCounts);
         const misfeedCount = calculateMisfeeds(misfeedCounts);
@@ -1076,7 +1089,7 @@ function constructor(server) {
           totalQueryMs
         );
         const throughput = calculateThroughput(totalCount, misfeedCount);
-        const efficiency = calculateEfficiency(runtimeMs, totalCount, counts);
+        const efficiency = calculateEfficiency(runtimeMs, totalCount, validCounts);
         const oee = calculateOEE(availability, efficiency, throughput);
 
         // Get current status for this machine
@@ -1143,6 +1156,9 @@ function constructor(server) {
     }
   });
 
+
+  // Analytics Route sorted by Machine - For the multiple bar chart in  non array format(WORKS !!)
+  //Is it still required ?
   router.get("/analytics/machine-state-totals", async (req, res) => {
     try {
       // Step 1: Parse and validate query parameters
@@ -1166,9 +1182,10 @@ function constructor(server) {
         }
 
         // Extract all types of cycles
-        const runningCycles = extractCyclesFromStates(states, start, end);
-        const pausedCycles = extractPausedCyclesFromStates(states, start, end);
-        const faultCycles = extractFaultCyclesFromStates(states, start, end);
+        const cycles = extractAllCyclesFromStates(states, start, end);
+        const runningCycles = cycles.running;
+        const pausedCycles = cycles.paused;
+        const faultCycles = cycles.fault;
 
         // Calculate total durations
         const runningTime = runningCycles.reduce(
@@ -1243,6 +1260,8 @@ function constructor(server) {
     }
   });
 
+  // Analytics Route sorted by Machine - For the multiple bar chart (WORKS !!)
+
   router.get("/analytics/machine-hourly-states", async (req, res) => {
     try {
       const { start, end, serial } = parseAndValidateQueryParams(req);
@@ -1272,9 +1291,10 @@ function constructor(server) {
         );
         if (!states.length) continue;
 
-        const runningCycles = extractCyclesFromStates(states, start, end);
-        const pausedCycles = extractPausedCyclesFromStates(states, start, end);
-        const faultCycles = extractFaultCyclesFromStates(states, start, end);
+        const cycles = extractAllCyclesFromStates(states, start, end);
+        const runningCycles = cycles.running;
+        const pausedCycles = cycles.paused;
+        const faultCycles = cycles.fault;
 
         const runningHours = calculateHourlyStateDurations(
           runningCycles,
@@ -1321,7 +1341,7 @@ function constructor(server) {
     }
   });
 
-  // Analytics Route sorted by Operator
+  // Analytics Route sorted by Operator (WORKS !!)
   router.get("/analytics/operator-performance", async (req, res) => {
     try {
       // Step 1: Parse and validate query parameters
@@ -1407,16 +1427,6 @@ function constructor(server) {
           validCounts
         );
 
-        logger.info(
-          `Operator ${operatorId} on machine ${machineSerial} counts:`,
-          {
-            validCounts: validCounts.length,
-            misfeedCounts: misfeedCounts.length,
-            cycleStart: cycle.start,
-            cycleEnd: cycle.end,
-          }
-        );
-
         // Get current status for this operator
         const currentState = states[states.length - 1] || {};
 
@@ -1480,7 +1490,7 @@ function constructor(server) {
 
   /***  Analytics Route End */
 
-  // Softrol Route start
+  // Softrol Route start (WORKS !!)
 
   router.get("/softrol/get-softrol-data", async (req, res) => {
     try {
