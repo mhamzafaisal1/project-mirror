@@ -994,17 +994,7 @@ function constructor(server) {
 
   /***  Operator Cycle End */
 
-  // Machine Operator Counts Route (DOES NOT WORK !!)
-  // Is it still required ? 
-  // router.get("/machine/operator/counts", async (req, res, next) => {
-  //   const machineList = await getMachineOperatorLists();
-  //   let resultArray = [];
-  //   for await (const machine of machineList) {
-  //     const machineOperatorCounts = await getMachineOperatorCounts(machine);
-  //     resultArray.push(machineOperatorCounts);
-  //   }
-  //   res.json(resultArray);
-  // });
+
 
   /***  Analytics Routes Start */
 
