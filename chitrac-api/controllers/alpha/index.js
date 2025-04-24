@@ -1484,9 +1484,27 @@ function constructor(server) {
 
   router.get("/softrol/get-softrol-data", async (req, res) => {
     try {
-      // Step 1: Parse and validate query parameters
-      const { start, end } = parseAndValidateQueryParams(req); // operatorId removed
-      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+      // Step 1: Validate start parameter
+      const start = req.query.start;
+      if (!start) {
+        return res.status(400).json({ error: "Start time parameter is required" });
+      }
+      
+      // Validate start is a valid ISO date string
+      const startDate = new Date(start);
+      if (isNaN(startDate.getTime())) {
+        return res.status(400).json({ error: "Invalid start time format. Please use ISO date string" });
+      }
+
+      // Get the latest state record to use as end date if needed
+      const latestState = await db.collection('state')
+        .find()
+        .sort({ timestamp: -1 })
+        .limit(1)
+        .toArray();
+      
+      const end = latestState.length > 0 ? latestState[0].timestamp : new Date().toISOString();
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(startDate, new Date(end));
 
       // Step 2: Fetch all states and group by operatorId + machineSerial
       const allStates = await fetchStatesForOperator(
@@ -1518,17 +1536,24 @@ function constructor(server) {
         };
       });
 
-      // Batch fetch all counts in a single query
-      const allCounts = await db.collection('count')
-        .find({
-          $or: operatorMachinePairs.map(pair => ({
-            'operator.id': pair.operatorId,
-            'machine.serial': pair.machineSerial,
-            timestamp: { $gte: new Date(start), $lte: new Date(end) }
-          }))
-        })
-        .sort({ timestamp: 1 })
-        .toArray();
+  // Prevent MongoDB $or error if operatorMachinePairs is empty
+if (operatorMachinePairs.length === 0) {
+  return res.json([]); // No valid sessions
+}
+
+// Build query safely
+const countQuery = {
+  $or: operatorMachinePairs.map(pair => ({
+    'operator.id': pair.operatorId,
+    'machine.serial': pair.machineSerial
+  })),
+  timestamp: { $gte: new Date(start), $lte: new Date(end) }
+};
+
+const allCounts = await db.collection('count')
+  .find(countQuery)
+  .sort({ timestamp: 1 })
+  .toArray();
 
       const results = [];
 
@@ -1537,16 +1562,26 @@ function constructor(server) {
         const states = group.states;
         if (!states.length) continue;
 
-        // Filter counts for this operator-machine pair
+        // Get the first and last completed cycles for this operator-machine pair
+        const firstCycle = group.completedCycles[0];
+        const lastCycle = group.completedCycles[group.completedCycles.length - 1];
+        
+        // Use the actual cycle timestamps
+        const cycleStart = firstCycle.start;
+        const cycleEnd = lastCycle.end;
+
+        // Filter counts for this operator-machine pair within the cycle time range
         const counts = allCounts.filter(count => 
           count.operator.id === parseInt(operatorId) && 
-          count.machine.serial === parseInt(machineSerial)
+          count.machine.serial === parseInt(machineSerial) &&
+          new Date(count.timestamp) >= cycleStart &&
+          new Date(count.timestamp) <= cycleEnd
         );
 
         const validCounts = counts.filter(count => !count.misfeed);
         const misfeedCounts = counts.filter(count => count.misfeed);
 
-        const { runtime: runtimeMs } = calculateOperatorTimes(states, start, end);
+        const { runtime: runtimeMs } = calculateOperatorTimes(states, cycleStart, cycleEnd);
         const totalCount = validCounts.length + misfeedCounts.length;
         const piecesPerHour = calculatePiecesPerHour(totalCount, runtimeMs);
         const efficiency = calculateEfficiency(runtimeMs, totalCount, validCounts);
@@ -1556,21 +1591,11 @@ function constructor(server) {
         results.push({
           operatorId: parseInt(operatorId),
           machineSerial: parseInt(machineSerial),
-          startTimestamp: start,
-          endTimestamp: end,
+          startTimestamp: cycleStart.toISOString(),
+          endTimestamp: cycleEnd.toISOString(),
           totalCount,
           task: itemNames,
-          standard: {
-            piecesPerHour: {
-              value: piecesPerHour,
-              formatted: Math.round(piecesPerHour).toString(),
-            },
-            efficiency: {
-              value: efficiency,
-              percentage: (efficiency * 100).toFixed(2) + "%",
-            },
-            Standard: Math.round(piecesPerHour * (efficiency * 100)),
-          },
+          standard: Math.round(piecesPerHour * (efficiency)),      
         });
       }
 
