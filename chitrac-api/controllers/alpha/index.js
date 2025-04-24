@@ -25,6 +25,9 @@ const {
   processAllMachinesCycles,
   getAllMachinesFromStates,
   calculateHourlyStateDurations,
+  groupStatesByOperatorAndSerial,
+  extractAllCyclesFromStates,
+  getCompletedCyclesForOperator,
 } = require("../../utils/state");
 const {
   getCountRecords,
@@ -34,6 +37,8 @@ const {
   getValidCountsForOperator,
   getMisfeedCountsForOperator,
   getOperatorNameFromCount,
+  extractItemNamesFromCounts,
+  getCountsForOperator,
 } = require("../../utils/count");
 const {
   calculateRuntime,
@@ -1388,11 +1393,29 @@ function constructor(server) {
 
         // Calculate metrics for this operator
         const totalQueryMs = new Date(end) - new Date(start);
-        const { runtime: runtimeMs, pausedTime: pausedTimeMs, faultTime: faultTimeMs } = calculateOperatorTimes(states, start, end);
+        const {
+          runtime: runtimeMs,
+          pausedTime: pausedTimeMs,
+          faultTime: faultTimeMs,
+        } = calculateOperatorTimes(states, start, end);
         const totalCount = calculateTotalCount(validCounts, misfeedCounts);
         const misfeedCount = calculateMisfeeds(misfeedCounts);
         const piecesPerHour = calculatePiecesPerHour(totalCount, runtimeMs);
-        const efficiency = calculateEfficiency(runtimeMs, totalCount, validCounts);
+        const efficiency = calculateEfficiency(
+          runtimeMs,
+          totalCount,
+          validCounts
+        );
+
+        logger.info(
+          `Operator ${operatorId} on machine ${machineSerial} counts:`,
+          {
+            validCounts: validCounts.length,
+            misfeedCounts: misfeedCounts.length,
+            cycleStart: cycle.start,
+            cycleEnd: cycle.end,
+          }
+        );
 
         // Get current status for this operator
         const currentState = states[states.length - 1] || {};
@@ -1459,116 +1482,85 @@ function constructor(server) {
 
   // Softrol Route start
 
+  router.get("/softrol/get-softrol-data", async (req, res) => {
+    try {
+      // Step 1: Parse and validate query parameters
+      const { start, end } = parseAndValidateQueryParams(req); // operatorId removed
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
 
-router.get('/softrol/get-softrol-data', async (req, res) => {
-  try {
-    // Step 1: Parse and validate query parameters
-    const { start, end, operatorId } = parseAndValidateQueryParams(req);
-
-    // Step 2: Create padded time range
-    const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
-
-    let states;
-    let groupedStates;
-
-    if (operatorId) {
-      // If operatorId provided, get states for just that operator
-      states = await fetchStatesForOperator(
-        db,
-        operatorId,
-        paddedStart,
-        paddedEnd
-      );
-      // Create a single group for this operator
-      groupedStates = {
-        [operatorId]: {
-          operator: {
-            id: operatorId,
-            name: await getOperatorNameFromCount(db, operatorId),
-          },
-          states: states,
-        },
-      };
-    } else {
-      // If no operatorId, get all states and group them by operator
+      // Step 2: Fetch all states and group by operatorId + machineSerial
       const allStates = await fetchStatesForOperator(
         db,
         null,
         paddedStart,
         paddedEnd
       );
-      groupedStates = groupStatesByOperator(allStates);
+      const groupedStates = groupStatesByOperatorAndSerial(allStates);
 
-      // Update operator names for all groups
-      for (const [opId, group] of Object.entries(groupedStates)) {
-        group.operator.name = await getOperatorNameFromCount(db, opId);
+      // Process completed cycles for each operator-machine group
+      const completedCyclesByGroup = {};
+      for (const [key, group] of Object.entries(groupedStates)) {
+        const completedCycles = getCompletedCyclesForOperator(group.states);
+        if (completedCycles.length > 0) {
+          completedCyclesByGroup[key] = {
+            ...group,
+            completedCycles
+          };
+        }
       }
-    }
 
-    const results = [];
+      // Get all operator IDs and machine serials
+      const operatorMachinePairs = Object.keys(completedCyclesByGroup).map(key => {
+        const [operatorId, machineSerial] = key.split("-");
+        return {
+          operatorId: parseInt(operatorId),
+          machineSerial: parseInt(machineSerial)
+        };
+      });
 
-    // Process each operator's states
-    for (const [operatorId, group] of Object.entries(groupedStates)) {
-      const states = group.states;
+      // Batch fetch all counts in a single query
+      const allCounts = await db.collection('count')
+        .find({
+          $or: operatorMachinePairs.map(pair => ({
+            'operator.id': pair.operatorId,
+            'machine.serial': pair.machineSerial,
+            timestamp: { $gte: new Date(start), $lte: new Date(end) }
+          }))
+        })
+        .sort({ timestamp: 1 })
+        .toArray();
 
-      // Skip if no states found for this operator
-      if (!states.length) continue;
+      const results = [];
 
-      // Get counts for this operator
-      const validCounts = await getValidCountsForOperator(
-        db,
-        parseInt(operatorId),
-        start,
-        end
-      );
-      // Get misfeed counts for this operator
-      const misfeedCounts = await getMisfeedCountsForOperator(
-        db,
-        parseInt(operatorId),
-        start,
-        end
-      );
+      for (const [key, group] of Object.entries(completedCyclesByGroup)) {
+        const [operatorId, machineSerial] = key.split("-");
+        const states = group.states;
+        if (!states.length) continue;
 
-      // Calculate metrics for this operator
-      const totalQueryMs = new Date(end) - new Date(start);
-      const { runtime: runtimeMs, pausedTime: pausedTimeMs, faultTime: faultTimeMs } = calculateOperatorTimes(states, start, end);
-      const totalCount = calculateTotalCount(validCounts, misfeedCounts);
-      const misfeedCount = calculateMisfeeds(misfeedCounts);
-      const piecesPerHour = calculatePiecesPerHour(totalCount, runtimeMs);
-      const efficiency = calculateEfficiency(runtimeMs, totalCount, validCounts);
+        // Filter counts for this operator-machine pair
+        const counts = allCounts.filter(count => 
+          count.operator.id === parseInt(operatorId) && 
+          count.machine.serial === parseInt(machineSerial)
+        );
 
-      // Get current status for this operator
-      const currentState = states[states.length - 1] || {};
+        const validCounts = counts.filter(count => !count.misfeed);
+        const misfeedCounts = counts.filter(count => count.misfeed);
 
-      // Format response for this operator
-      const operatorResponse = {
-        operator: {
-          id: parseInt(operatorId),
-          name: group.operator.name || "Unknown",
-        },
-        currentStatus: {
-          code: currentState.status?.code || 0,
-          name: currentState.status?.name || "Unknown",
-        },
-        metrics: {
-          runtime: {
-            total: runtimeMs,
-            formatted: formatDuration(runtimeMs),
-          },
-          pausedTime: {
-            total: pausedTimeMs,
-            formatted: formatDuration(pausedTimeMs),
-          },
-          faultTime: {
-            total: faultTimeMs,
-            formatted: formatDuration(faultTimeMs),
-          },
-          output: {
-            totalCount,
-            misfeedCount,
-            validCount: totalCount - misfeedCount,
-          },
-          performance: {
+        const { runtime: runtimeMs } = calculateOperatorTimes(states, start, end);
+        const totalCount = validCounts.length + misfeedCounts.length;
+        const piecesPerHour = calculatePiecesPerHour(totalCount, runtimeMs);
+        const efficiency = calculateEfficiency(runtimeMs, totalCount, validCounts);
+
+        const itemNames = extractItemNamesFromCounts(counts);
+
+        results.push({
+          operatorId: parseInt(operatorId),
+          machineSerial: parseInt(machineSerial),
+          startTimestamp: start,
+          endTimestamp: end,
+          totalCount,
+          task: itemNames,
+          standard: {
             piecesPerHour: {
               value: piecesPerHour,
               formatted: Math.round(piecesPerHour).toString(),
@@ -1577,26 +1569,17 @@ router.get('/softrol/get-softrol-data', async (req, res) => {
               value: efficiency,
               percentage: (efficiency * 100).toFixed(2) + "%",
             },
+            Standard: Math.round(piecesPerHour * (efficiency * 100)),
           },
-        },
-        timeRange: {
-          start: start,
-          end: end,
-          total: formatDuration(totalQueryMs),
-        },
-      };
+        });
+      }
 
-      results.push(operatorResponse);
+      res.json(results);
+    } catch (error) {
+      logger.error("Error fetching Softrol operator session data:", error);
+      res.status(500).json({ error: "Failed to fetch Softrol session data" });
     }
-
-    res.json(results);
-  } catch (error) {
-    logger.error("Error calculating operator performance metrics:", error);
-    res
-      .status(500)
-      .json({ error: "Failed to fetch operator performance metrics" });
-  }
-});
+  });
   // Softrol Route end
 
   return router;

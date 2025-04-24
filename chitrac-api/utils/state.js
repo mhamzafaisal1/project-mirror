@@ -37,96 +37,105 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     }
     return grouped;
   }
+  function extractAllCyclesFromStates(states, queryStart, queryEnd, mode = null) {
+    const startTime = new Date(queryStart);
+    const endTime = new Date(queryEnd);
   
-  function extractAllCyclesFromStates(states, queryStart, queryEnd) {
     const cycles = {
       running: [],
       paused: [],
       fault: []
     };
-    
+  
     let currentRunningStart = null;
     let currentPauseStart = null;
     let currentFaultStart = null;
-    
-    // Convert query times to Date objects once
-    const startTime = new Date(queryStart);
-    const endTime = new Date(queryEnd);
-    
+  
     for (const state of states) {
       const code = state.status?.code;
       const timestamp = new Date(state.timestamp);
-      
-      // Handle running cycles
-      if (code === 1 && !currentRunningStart) {
-        currentRunningStart = timestamp;
-      } else if (code !== 1 && currentRunningStart) {
-        if (currentRunningStart >= startTime && timestamp <= endTime) {
-          cycles.running.push({
-            start: currentRunningStart,
-            end: timestamp,
-            duration: timestamp - currentRunningStart
-          });
+  
+      // Running cycles only
+      if (!mode || mode === 'running') {
+        if (code === 1 && !currentRunningStart) {
+          currentRunningStart = timestamp;
+        } else if (code !== 1 && currentRunningStart) {
+          if (currentRunningStart >= startTime && timestamp <= endTime) {
+            cycles.running.push({
+              start: currentRunningStart,
+              end: timestamp,
+              duration: timestamp - currentRunningStart
+            });
+          }
+          currentRunningStart = null;
         }
-        currentRunningStart = null;
       }
-      
-      // Handle paused cycles
-      if (code === 0 && !currentPauseStart) {
-        currentPauseStart = timestamp;
-      } else if (code !== 0 && currentPauseStart) {
-        if (currentPauseStart >= startTime && timestamp <= endTime) {
-          cycles.paused.push({
-            start: currentPauseStart,
-            end: timestamp,
-            duration: timestamp - currentPauseStart
-          });
+  
+      // Paused cycles only
+      if (!mode || mode === 'paused') {
+        if (code === 0 && !currentPauseStart) {
+          currentPauseStart = timestamp;
+        } else if (code !== 0 && currentPauseStart) {
+          if (currentPauseStart >= startTime && timestamp <= endTime) {
+            cycles.paused.push({
+              start: currentPauseStart,
+              end: timestamp,
+              duration: timestamp - currentPauseStart
+            });
+          }
+          currentPauseStart = null;
         }
-        currentPauseStart = null;
       }
-      
-      // Handle fault cycles
-      if (code > 1 && !currentFaultStart) {
-        currentFaultStart = timestamp;
-      } else if (code <= 1 && currentFaultStart) {
-        if (currentFaultStart >= startTime && timestamp <= endTime) {
-          cycles.fault.push({
-            start: currentFaultStart,
-            end: timestamp,
-            duration: timestamp - currentFaultStart
-          });
+  
+      // Faulted cycles only
+      if (!mode || mode === 'fault') {
+        if (code > 1 && !currentFaultStart) {
+          currentFaultStart = timestamp;
+        } else if (code <= 1 && currentFaultStart) {
+          if (currentFaultStart >= startTime && timestamp <= endTime) {
+            cycles.fault.push({
+              start: currentFaultStart,
+              end: timestamp,
+              duration: timestamp - currentFaultStart
+            });
+          }
+          currentFaultStart = null;
         }
-        currentFaultStart = null;
       }
     }
-    
-    // Handle any ongoing cycles at the end
-    if (currentRunningStart && currentRunningStart >= startTime) {
+  
+    // Cleanup for open cycles
+    if ((!mode || mode === 'running') && currentRunningStart && currentRunningStart >= startTime) {
       cycles.running.push({
         start: currentRunningStart,
         end: endTime,
         duration: endTime - currentRunningStart
       });
     }
-    
-    if (currentPauseStart && currentPauseStart >= startTime) {
+  
+    if ((!mode || mode === 'paused') && currentPauseStart && currentPauseStart >= startTime) {
       cycles.paused.push({
         start: currentPauseStart,
         end: endTime,
         duration: endTime - currentPauseStart
       });
     }
-    
-    if (currentFaultStart && currentFaultStart >= startTime) {
+  
+    if ((!mode || mode === 'fault') && currentFaultStart && currentFaultStart >= startTime) {
       cycles.fault.push({
         start: currentFaultStart,
         end: endTime,
         duration: endTime - currentFaultStart
       });
     }
-    
+  
+    if (mode) {
+      return cycles[mode];
+    }
+  
     return cycles;
   }
+  
   
   async function getAllMachinesFromStates(db, start, end) {
     const query = {
@@ -379,6 +388,96 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
   
     return Object.fromEntries(grouped);
   }
+
+  //Used for Softrol Route
+
+  function groupStatesByOperatorAndSerial(states) {
+    const grouped = new Map();
+    const operatorCache = new Map(); // Cache for operator info
+  
+    for (const state of states) {
+      const operators = state.operators;
+      const machineSerial = state.machine?.serial;
+  
+      if (!Array.isArray(operators) || !machineSerial) continue;
+  
+      // Extract essential state data once per state
+      const essentialState = {
+        timestamp: state.timestamp,
+        status: state.status,
+        machine: state.machine,
+        program: state.program,
+      };
+  
+      for (const operator of operators) {
+        if (!operator || typeof operator.id !== 'number' || operator.id === -1) continue;
+  
+        const key = `${operator.id}-${machineSerial}`; // operator-machine combo
+  
+        let operatorGroup = grouped.get(key);
+  
+        if (!operatorGroup) {
+          const operatorInfo = operatorCache.get(operator.id) || {
+            id: operator.id,
+            name: operator.name || null,
+            station: operator.station || null,
+          };
+          operatorCache.set(operator.id, operatorInfo);
+  
+          operatorGroup = {
+            operator: operatorInfo,
+            machineSerial,
+            states: []
+          };
+          grouped.set(key, operatorGroup);
+        }
+  
+        operatorGroup.states.push(essentialState);
+      }
+    }
+  
+    return Object.fromEntries(grouped);
+  }
+
+  const getCompletedCyclesForOperator = (states) => {
+    const completedCycles = [];
+    let currentCycle = null;
+
+    for (let i = 0; i < states.length; i++) {
+      const state = states[i];
+      const statusCode = state.status?.code;
+
+      // Start of a new running cycle
+      if (statusCode === 1 && !currentCycle) {
+        currentCycle = {
+          start: new Date(state.timestamp),
+          states: [state]
+        };
+      }
+      // Continue an existing running cycle
+      else if (statusCode === 1 && currentCycle) {
+        currentCycle.states.push(state);
+      }
+      // End of a running cycle (paused or faulted)
+      else if (statusCode !== 1 && currentCycle) {
+        currentCycle.end = new Date(state.timestamp);
+        currentCycle.duration = currentCycle.end - currentCycle.start;
+        completedCycles.push(currentCycle);
+        currentCycle = null;
+      }
+    }
+
+    // If we have an open cycle at the end, it's not completed
+    if (currentCycle) {
+      currentCycle = null;
+    }
+
+    return completedCycles;
+  }
+
+
+
+  
   
 
   module.exports = {
@@ -389,6 +488,8 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     processAllMachinesCycles,
     calculateHourlyStateDurations,
     fetchStatesForOperator,
-    groupStatesByOperator
+    groupStatesByOperator,
+    groupStatesByOperatorAndSerial,
+    getCompletedCyclesForOperator
   };
   

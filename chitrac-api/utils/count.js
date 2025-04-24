@@ -128,6 +128,27 @@ async function getCountRecords(db, serial, start, end) {
     }
   }
 
+  async function getCountsForOperator(db, operatorId, start, end) {
+    return db.collection('count')
+      .find({
+        'operator.id': operatorId,
+        timestamp: { $gte: new Date(start), $lte: new Date(end) }
+      })
+      .sort({ timestamp: 1 })
+      .toArray();
+  }
+
+  function extractItemNamesFromCounts(counts) {
+    const itemNames = new Set();
+    for (const count of counts) {
+      const item = count.item;
+      if (item && item.name) {
+        itemNames.add(item.name);
+      }
+    }
+    return Array.from(itemNames).join(', ');
+  }
+    
   module.exports = {
     getCountRecords,
     getValidCounts,
@@ -135,6 +156,8 @@ async function getCountRecords(db, serial, start, end) {
     getOperatorItemMapFromCounts,
     getValidCountsForOperator,
     getMisfeedCountsForOperator,
-    getOperatorNameFromCount
+    getOperatorNameFromCount,
+    getCountsForOperator,
+    extractItemNamesFromCounts
   };
   
