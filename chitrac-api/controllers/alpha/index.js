@@ -1380,99 +1380,125 @@ function constructor(server) {
         }
       }
 
-      const results = [];
+      // Step 3: Get all operator IDs for count query
+      const operatorIds = Object.keys(groupedStates).map(id => parseInt(id));
+      
+      // Get counts for all operators in a single query
+      const allCounts = await db.collection('count')
+        .find({
+          'operator.id': { $in: operatorIds },
+          timestamp: { $gte: new Date(start), $lte: new Date(end) }
+        })
+        .sort({ timestamp: 1 })
+        .toArray();
 
-      // Process each operator's states
-      for (const [operatorId, group] of Object.entries(groupedStates)) {
-        const states = group.states;
+      // Group counts by operator
+      const operatorCounts = {};
+      for (const count of allCounts) {
+        const opId = count.operator?.id;
+        if (!opId) continue;
 
-        // Skip if no states found for this operator
-        if (!states.length) continue;
+        if (!operatorCounts[opId]) {
+          operatorCounts[opId] = {
+            counts: [],
+            validCounts: [],
+            misfeedCounts: []
+          };
+        }
 
-        // Get counts for this operator
-        const validCounts = await getValidCountsForOperator(
-          db,
-          parseInt(operatorId),
-          start,
-          end
-        );
-        // Get misfeed counts for this operator
-        const misfeedCounts = await getMisfeedCountsForOperator(
-          db,
-          parseInt(operatorId),
-          start,
-          end
-        );
-
-        // Calculate metrics for this operator
-        const totalQueryMs = new Date(end) - new Date(start);
-        const {
-          runtime: runtimeMs,
-          pausedTime: pausedTimeMs,
-          faultTime: faultTimeMs,
-        } = calculateOperatorTimes(states, start, end);
-        const totalCount = calculateTotalCount(validCounts, misfeedCounts);
-        const misfeedCount = calculateMisfeeds(misfeedCounts);
-        const piecesPerHour = calculatePiecesPerHour(totalCount, runtimeMs);
-        const efficiency = calculateEfficiency(
-          runtimeMs,
-          totalCount,
-          validCounts
-        );
-
-        // Get current status for this operator
-        const currentState = states[states.length - 1] || {};
-
-        // Format response for this operator
-        const operatorResponse = {
-          operator: {
-            id: parseInt(operatorId),
-            name: group.operator.name || "Unknown",
-          },
-          currentStatus: {
-            code: currentState.status?.code || 0,
-            name: currentState.status?.name || "Unknown",
-          },
-          metrics: {
-            runtime: {
-              total: runtimeMs,
-              formatted: formatDuration(runtimeMs),
-            },
-            pausedTime: {
-              total: pausedTimeMs,
-              formatted: formatDuration(pausedTimeMs),
-            },
-            faultTime: {
-              total: faultTimeMs,
-              formatted: formatDuration(faultTimeMs),
-            },
-            output: {
-              totalCount,
-              misfeedCount,
-              validCount: totalCount - misfeedCount,
-            },
-            performance: {
-              piecesPerHour: {
-                value: piecesPerHour,
-                formatted: Math.round(piecesPerHour).toString(),
-              },
-              efficiency: {
-                value: efficiency,
-                percentage: (efficiency * 100).toFixed(2) + "%",
-              },
-            },
-          },
-          timeRange: {
-            start: start,
-            end: end,
-            total: formatDuration(totalQueryMs),
-          },
-        };
-
-        results.push(operatorResponse);
+        operatorCounts[opId].counts.push(count);
+        if (count.misfeed) {
+          operatorCounts[opId].misfeedCounts.push(count);
+        } else {
+          operatorCounts[opId].validCounts.push(count);
+        }
       }
 
-      res.json(results);
+      const results = [];
+
+      // Step 4: Process each operator's data in parallel
+      const operatorResults = await Promise.all(
+        Object.entries(groupedStates).map(async ([operatorId, group]) => {
+          const states = group.states;
+
+          // Skip if no states found for this operator
+          if (!states.length) return null;
+
+          // Get counts for this operator
+          const counts = operatorCounts[parseInt(operatorId)];
+          if (!counts) return null;
+
+          // Process count statistics using the new utility function
+          const stats = processCountStatistics(counts.counts);
+
+          // Calculate metrics for this operator
+          const totalQueryMs = new Date(end) - new Date(start);
+          const {
+            runtime: runtimeMs,
+            pausedTime: pausedTimeMs,
+            faultTime: faultTimeMs,
+          } = calculateOperatorTimes(states, start, end);
+
+          const piecesPerHour = calculatePiecesPerHour(stats.total, runtimeMs);
+          const efficiency = calculateEfficiency(
+            runtimeMs,
+            stats.total,
+            counts.validCounts
+          );
+
+          // Get current status for this operator
+          const currentState = states[states.length - 1] || {};
+
+          // Format response for this operator
+          return {
+            operator: {
+              id: parseInt(operatorId),
+              name: group.operator.name || "Unknown",
+            },
+            currentStatus: {
+              code: currentState.status?.code || 0,
+              name: currentState.status?.name || "Unknown",
+            },
+            metrics: {
+              runtime: {
+                total: runtimeMs,
+                formatted: formatDuration(runtimeMs),
+              },
+              pausedTime: {
+                total: pausedTimeMs,
+                formatted: formatDuration(pausedTimeMs),
+              },
+              faultTime: {
+                total: faultTimeMs,
+                formatted: formatDuration(faultTimeMs),
+              },
+              output: {
+                totalCount: stats.total,
+                misfeedCount: stats.misfeeds,
+                validCount: stats.valid,
+              },
+              performance: {
+                piecesPerHour: {
+                  value: piecesPerHour,
+                  formatted: Math.round(piecesPerHour).toString(),
+                },
+                efficiency: {
+                  value: efficiency,
+                  percentage: (efficiency * 100).toFixed(2) + "%",
+                },
+              },
+            },
+            timeRange: {
+              start: start,
+              end: end,
+              total: formatDuration(totalQueryMs),
+            },
+          };
+        })
+      );
+
+      // Filter out null results and send response
+      res.json(operatorResults.filter(result => result !== null));
     } catch (error) {
       logger.error("Error calculating operator performance metrics:", error);
       res
