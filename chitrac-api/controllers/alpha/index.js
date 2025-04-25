@@ -13,6 +13,7 @@ const {
   createPaddedTimeRange,
   createMongoDateQuery,
   formatDuration,
+  getHourlyIntervals,
 } = require("../../utils/time");
 const {
   fetchStatesForMachine,
@@ -42,6 +43,7 @@ const {
   getCountsForOperatorMachinePairs,
   groupCountsByOperatorAndMachine,
   processCountStatistics,
+  getCountsForMachine,
 } = require("../../utils/count");
 const {
   calculateRuntime,
@@ -1419,81 +1421,81 @@ function constructor(server) {
       // Step 4: Process each operator's data in parallel
       const operatorResults = await Promise.all(
         Object.entries(groupedStates).map(async ([operatorId, group]) => {
-          const states = group.states;
+        const states = group.states;
 
-          // Skip if no states found for this operator
+        // Skip if no states found for this operator
           if (!states.length) return null;
 
-          // Get counts for this operator
+        // Get counts for this operator
           const counts = operatorCounts[parseInt(operatorId)];
           if (!counts) return null;
 
           // Process count statistics using the new utility function
           const stats = processCountStatistics(counts.counts);
 
-          // Calculate metrics for this operator
-          const totalQueryMs = new Date(end) - new Date(start);
-          const {
-            runtime: runtimeMs,
-            pausedTime: pausedTimeMs,
-            faultTime: faultTimeMs,
-          } = calculateOperatorTimes(states, start, end);
+        // Calculate metrics for this operator
+        const totalQueryMs = new Date(end) - new Date(start);
+        const {
+          runtime: runtimeMs,
+          pausedTime: pausedTimeMs,
+          faultTime: faultTimeMs,
+        } = calculateOperatorTimes(states, start, end);
 
           const piecesPerHour = calculatePiecesPerHour(stats.total, runtimeMs);
-          const efficiency = calculateEfficiency(
-            runtimeMs,
+        const efficiency = calculateEfficiency(
+          runtimeMs,
             stats.total,
             counts.validCounts
-          );
+        );
 
-          // Get current status for this operator
-          const currentState = states[states.length - 1] || {};
+        // Get current status for this operator
+        const currentState = states[states.length - 1] || {};
 
-          // Format response for this operator
+        // Format response for this operator
           return {
-            operator: {
-              id: parseInt(operatorId),
-              name: group.operator.name || "Unknown",
+          operator: {
+            id: parseInt(operatorId),
+            name: group.operator.name || "Unknown",
+          },
+          currentStatus: {
+            code: currentState.status?.code || 0,
+            name: currentState.status?.name || "Unknown",
+          },
+          metrics: {
+            runtime: {
+              total: runtimeMs,
+              formatted: formatDuration(runtimeMs),
             },
-            currentStatus: {
-              code: currentState.status?.code || 0,
-              name: currentState.status?.name || "Unknown",
+            pausedTime: {
+              total: pausedTimeMs,
+              formatted: formatDuration(pausedTimeMs),
             },
-            metrics: {
-              runtime: {
-                total: runtimeMs,
-                formatted: formatDuration(runtimeMs),
-              },
-              pausedTime: {
-                total: pausedTimeMs,
-                formatted: formatDuration(pausedTimeMs),
-              },
-              faultTime: {
-                total: faultTimeMs,
-                formatted: formatDuration(faultTimeMs),
-              },
-              output: {
+            faultTime: {
+              total: faultTimeMs,
+              formatted: formatDuration(faultTimeMs),
+            },
+            output: {
                 totalCount: stats.total,
                 misfeedCount: stats.misfeeds,
                 validCount: stats.valid,
+            },
+            performance: {
+              piecesPerHour: {
+                value: piecesPerHour,
+                formatted: Math.round(piecesPerHour).toString(),
               },
-              performance: {
-                piecesPerHour: {
-                  value: piecesPerHour,
-                  formatted: Math.round(piecesPerHour).toString(),
-                },
-                efficiency: {
-                  value: efficiency,
-                  percentage: (efficiency * 100).toFixed(2) + "%",
-                },
+              efficiency: {
+                value: efficiency,
+                percentage: (efficiency * 100).toFixed(2) + "%",
               },
             },
-            timeRange: {
-              start: start,
-              end: end,
-              total: formatDuration(totalQueryMs),
-            },
-          };
+          },
+          timeRange: {
+            start: start,
+            end: end,
+            total: formatDuration(totalQueryMs),
+          },
+        };
         })
       );
 
@@ -1528,9 +1530,9 @@ function constructor(server) {
       // Step 2: Get latest state and create time range in parallel
       const [latestState] = await Promise.all([
         db.collection('state')
-          .find()
-          .sort({ timestamp: -1 })
-          .limit(1)
+        .find()
+        .sort({ timestamp: -1 })
+        .limit(1)
           .toArray(),
         // Add any other independent operations here
       ]);
@@ -1579,17 +1581,17 @@ function constructor(server) {
       // Step 5: Process each group in parallel
       const results = await Promise.all(
         Object.entries(completedCyclesByGroup).map(async ([key, group]) => {
-          const [operatorId, machineSerial] = key.split("-");
-          const states = group.states;
+        const [operatorId, machineSerial] = key.split("-");
+        const states = group.states;
           if (!states.length) return null;
 
-          // Get the first and last completed cycles for this operator-machine pair
-          const firstCycle = group.completedCycles[0];
-          const lastCycle = group.completedCycles[group.completedCycles.length - 1];
-          
-          // Use the actual cycle timestamps
-          const cycleStart = firstCycle.start;
-          const cycleEnd = lastCycle.end;
+        // Get the first and last completed cycles for this operator-machine pair
+        const firstCycle = group.completedCycles[0];
+        const lastCycle = group.completedCycles[group.completedCycles.length - 1];
+        
+        // Use the actual cycle timestamps
+        const cycleStart = firstCycle.start;
+        const cycleEnd = lastCycle.end;
 
           // Get counts for this operator-machine pair
           const countGroup = groupedCounts[`${operatorId}-${machineSerial}`];
@@ -1598,7 +1600,7 @@ function constructor(server) {
           // Process count statistics using the new utility function
           const stats = processCountStatistics(countGroup.counts);
 
-          const { runtime: runtimeMs } = calculateOperatorTimes(states, cycleStart, cycleEnd);
+        const { runtime: runtimeMs } = calculateOperatorTimes(states, cycleStart, cycleEnd);
           const piecesPerHour = calculatePiecesPerHour(stats.total, runtimeMs);
           const efficiency = calculateEfficiency(runtimeMs, stats.total, countGroup.validCounts);
 
@@ -1606,12 +1608,12 @@ function constructor(server) {
           const itemNames = extractItemNamesFromCounts(countGroup.counts);
 
           return {
-            operatorId: parseInt(operatorId),
-            machineSerial: parseInt(machineSerial),
-            startTimestamp: cycleStart.toISOString(),
-            endTimestamp: cycleEnd.toISOString(),
+          operatorId: parseInt(operatorId),
+          machineSerial: parseInt(machineSerial),
+          startTimestamp: cycleStart.toISOString(),
+          endTimestamp: cycleEnd.toISOString(),
             totalCount: stats.total,
-            task: itemNames,
+          task: itemNames,
             standard: Math.round(piecesPerHour * efficiency),      
           };
         })
@@ -1625,6 +1627,145 @@ function constructor(server) {
     }
   });
   // Softrol Route end
+
+  // API Route for line chart data for OEE% and individual operator efficiency% by hour start
+
+router.get("/analytics/machine/operator-efficiency", async (req, res) => {
+  try {
+    // Step 1: Parse and validate query parameters
+    const { start, end, serial } = parseAndValidateQueryParams(req);
+    
+    // Step 2: Create padded time range
+    const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+
+    if (!serial) {
+      return res.status(400).json({ error: "Machine serial is required" });
+    }
+
+    // Step 3: Get hourly intervals
+    const hourlyIntervals = getHourlyIntervals(paddedStart, paddedEnd);
+    
+    // Step 4: Get states and counts for the entire period
+    const states = await fetchStatesForMachine(db, serial, paddedStart, paddedEnd);
+    const counts = await getCountsForMachine(db, serial, paddedStart, paddedEnd);
+
+
+    if (!states.length) {
+      return res.json([]);
+    }
+
+    // Step 5: Process each hour
+    const hourlyData = await Promise.all(
+      hourlyIntervals.map(async interval => {
+        // Filter states and counts for this hour
+        const hourStates = states.filter(state => {
+          const stateTime = new Date(state.timestamp);
+          return stateTime >= interval.start && stateTime <= interval.end;
+        });
+        
+        const hourCounts = counts.filter(count => {
+          const countTime = new Date(count.timestamp);
+          return countTime >= interval.start && countTime <= interval.end;
+        });
+
+  
+
+        // Group counts by operator and machine
+        const groupedCounts = groupCountsByOperatorAndMachine(hourCounts);
+  
+
+        // Calculate metrics for each operator
+        const operatorMetrics = {};
+        
+        // Get unique operator IDs from counts
+        const operatorIds = new Set();
+        hourCounts.forEach(count => {
+          if (count.operator && count.operator.id) {
+            operatorIds.add(count.operator.id);
+          }
+        });
+
+        // Calculate total runtime for the hour from states
+        const { runtime: totalRuntime } = calculateOperatorTimes(hourStates, interval.start, interval.end);
+
+        // Process each operator
+        for (const operatorId of operatorIds) {
+          const countGroup = groupedCounts[`${operatorId}-${serial}`];
+          if (!countGroup) continue;
+
+          // Get operator name from first count
+          const operatorName = countGroup.counts[0]?.operator?.name || 'Unknown';
+          
+          // Process count statistics
+          const stats = processCountStatistics(countGroup.counts);
+          
+          // Calculate efficiency
+          const efficiency = calculateEfficiency(totalRuntime, stats.total, countGroup.validCounts);
+          
+          operatorMetrics[operatorId] = {
+            name: operatorName,
+            runTime: totalRuntime,
+            validCounts: stats.valid,
+            totalCounts: stats.total,
+            efficiency: efficiency * 100 // Convert to percentage
+          };
+        }
+
+        // Calculate OEE for this hour
+        const hourDuration = interval.end - interval.start;
+        const availability = (totalRuntime / hourDuration) * 100;
+        
+        const avgEfficiency = Object.values(operatorMetrics).length > 0 ?
+          Object.values(operatorMetrics)
+            .reduce((sum, op) => sum + op.efficiency, 0) / 
+            Object.keys(operatorMetrics).length : 0;
+        
+        const totalValidCounts = Object.values(operatorMetrics)
+          .reduce((sum, op) => sum + op.validCounts, 0);
+        const totalCounts = Object.values(operatorMetrics)
+          .reduce((sum, op) => sum + op.totalCounts, 0);
+        const throughput = totalCounts > 0 ? 
+          (totalValidCounts / totalCounts) * 100 : 0;
+        
+        const oee = calculateOEE(availability / 100, avgEfficiency / 100, throughput / 100) * 100;
+
+  
+
+        return {
+          hour: interval.start.toISOString(),
+          oee: Math.round(oee * 100) / 100,
+          operators: Object.entries(operatorMetrics).map(([id, metrics]) => ({
+            id: parseInt(id),
+            name: metrics.name,
+            efficiency: Math.round(metrics.efficiency * 100) / 100
+          }))
+        };
+      })
+    );
+
+    // Step 6: Format response
+    const response = {
+      machine: {
+        serial: parseInt(serial),
+        name: states[0]?.machine?.name || "Unknown"
+      },
+      timeRange: {
+        start: start,
+        end: end,
+        total: formatDuration(new Date(end) - new Date(start))
+      },
+      hourlyData
+    };
+
+    res.json(response);
+    } catch (error) {
+    logger.error("Error calculating operator efficiency:", error);
+    res.status(500).json({ error: "Failed to calculate operator efficiency" });
+    }
+  });
+ 
+  // API Route for line chart data for OEE% and individual operator efficiency% by hour end
+
 
   return router;
 }

@@ -175,6 +175,23 @@ function getMongoDateFormat(interval) {
   return formats[interval] || formats.hour;
 }
 
+function getHourlyIntervals(start, end) {
+  const intervals = [];
+  let current = new Date(start);
+  const endDate = new Date(end);
+  
+  while (current < endDate) {
+    const nextHour = new Date(current);
+    nextHour.setHours(nextHour.getHours() + 1);
+    intervals.push({
+      start: new Date(current),
+      end: nextHour > endDate ? endDate : nextHour
+    });
+    current = nextHour;
+  }
+  return intervals;
+}
+
 module.exports = {
   TIME_CONSTANTS,
   parseAndValidateQueryParams,
@@ -186,6 +203,7 @@ module.exports = {
   calculateDuration,
   formatDuration,
   createTimeGroupingPipeline,
-  getMongoDateFormat
+  getMongoDateFormat,
+  getHourlyIntervals
 };
   
