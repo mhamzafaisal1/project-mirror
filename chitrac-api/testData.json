@@ -1,0 +1,893 @@
+[
+    {
+        "operatorId": 967799,
+        "machineSerial": 67799,
+        "startTimestamp": "2025-04-11T12:27:54.130Z",
+        "endTimestamp": "2025-04-16T19:42:20.169Z",
+        "totalCount": 821,
+        "task": "Sheets",
+        "standard": 0
+    },
+    {
+        "operatorId": 967798,
+        "machineSerial": 67798,
+        "startTimestamp": "2025-04-11T17:05:05.315Z",
+        "endTimestamp": "2025-04-16T19:29:34.713Z",
+        "totalCount": 17,
+        "task": "None Entered",
+        "standard": 0
+    },
+    {
+        "operatorId": 967802,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-11T12:28:44.843Z",
+        "endTimestamp": "2025-04-16T19:45:09.010Z",
+        "totalCount": 772,
+        "task": "Bath Blankets, None Entered",
+        "standard": 3
+    },
+    {
+        "operatorId": 967801,
+        "machineSerial": 67801,
+        "startTimestamp": "2025-04-11T12:28:45.400Z",
+        "endTimestamp": "2025-04-16T19:39:49.903Z",
+        "totalCount": 727,
+        "task": "Bath Blankets",
+        "standard": 3
+    },
+    {
+        "operatorId": 967807,
+        "machineSerial": 67807,
+        "startTimestamp": "2025-04-11T14:43:35.926Z",
+        "endTimestamp": "2025-04-16T18:11:53.740Z",
+        "totalCount": 528,
+        "task": "Regular, Unknown Item, Baby Blankets, Towels",
+        "standard": 58
+    },
+    {
+        "operatorId": 967803,
+        "machineSerial": 67803,
+        "startTimestamp": "2025-04-11T13:01:19.452Z",
+        "endTimestamp": "2025-04-16T18:17:36.324Z",
+        "totalCount": 770,
+        "task": "Baby Blankets, Regular, Towels, Unknown Item, Teen Gown, Fitted Yellow",
+        "standard": 15
+    },
+    {
+        "operatorId": 967805,
+        "machineSerial": 67805,
+        "startTimestamp": "2025-04-11T12:26:02.405Z",
+        "endTimestamp": "2025-04-16T19:38:27.129Z",
+        "totalCount": 824,
+        "task": "Baby Blankets, Ink Pads, Unknown Item, Towels, Fitted Yellow, Regular, Obese",
+        "standard": 2
+    },
+    {
+        "operatorId": 135797,
+        "machineSerial": 67798,
+        "startTimestamp": "2025-04-11T12:41:18.336Z",
+        "endTimestamp": "2025-04-16T16:00:47.698Z",
+        "totalCount": 3633,
+        "task": "None Entered",
+        "standard": 35
+    },
+    {
+        "operatorId": 135807,
+        "machineSerial": 67805,
+        "startTimestamp": "2025-04-11T12:26:20.585Z",
+        "endTimestamp": "2025-04-11T16:05:10.906Z",
+        "totalCount": 912,
+        "task": "Regular, Towels, Hand Towel, Unknown Item, Fitted Yellow",
+        "standard": 164
+    },
+    {
+        "operatorId": 135811,
+        "machineSerial": 67798,
+        "startTimestamp": "2025-04-11T12:41:18.336Z",
+        "endTimestamp": "2025-04-11T16:00:12.641Z",
+        "totalCount": 868,
+        "task": "None Entered",
+        "standard": 194
+    },
+    {
+        "operatorId": 135793,
+        "machineSerial": 67801,
+        "startTimestamp": "2025-04-11T12:28:45.400Z",
+        "endTimestamp": "2025-04-15T18:50:09.323Z",
+        "totalCount": 2486,
+        "task": "Bath Blankets, None Entered",
+        "standard": 233
+    },
+    {
+        "operatorId": 135813,
+        "machineSerial": 67798,
+        "startTimestamp": "2025-04-11T12:41:18.336Z",
+        "endTimestamp": "2025-04-16T16:00:47.698Z",
+        "totalCount": 5125,
+        "task": "None Entered",
+        "standard": 214
+    },
+    {
+        "operatorId": 135816,
+        "machineSerial": 67806,
+        "startTimestamp": "2025-04-11T12:26:56.396Z",
+        "endTimestamp": "2025-04-11T12:54:45.296Z",
+        "totalCount": 238,
+        "task": "Baby Blankets",
+        "standard": 548
+    },
+    {
+        "operatorId": 135799,
+        "machineSerial": 67801,
+        "startTimestamp": "2025-04-11T12:28:45.400Z",
+        "endTimestamp": "2025-04-14T15:45:44.929Z",
+        "totalCount": 2254,
+        "task": "Bath Blankets, None Entered",
+        "standard": 404
+    },
+    {
+        "operatorId": 967804,
+        "machineSerial": 67804,
+        "startTimestamp": "2025-04-11T12:26:36.504Z",
+        "endTimestamp": "2025-04-16T19:46:39.573Z",
+        "totalCount": 3223,
+        "task": "Towels, Fitted Yellow, Fitted Green, Regular, Obese, Hand Towel, White Sheet, Baby Blankets, Unknown Item, Item 2, Ink Pads",
+        "standard": 17
+    },
+    {
+        "operatorId": 135804,
+        "machineSerial": 67799,
+        "startTimestamp": "2025-04-11T12:27:54.130Z",
+        "endTimestamp": "2025-04-14T15:38:24.119Z",
+        "totalCount": 2082,
+        "task": "Sheets",
+        "standard": 363
+    },
+    {
+        "operatorId": 135817,
+        "machineSerial": 67804,
+        "startTimestamp": "2025-04-11T12:26:47.894Z",
+        "endTimestamp": "2025-04-11T14:08:21.774Z",
+        "totalCount": 697,
+        "task": "Ink Pads, Fitted Yellow, Regular, Towels, Hand Towel, Baby Blankets, Fitted Green",
+        "standard": 426
+    },
+    {
+        "operatorId": 135794,
+        "machineSerial": 67799,
+        "startTimestamp": "2025-04-11T12:27:54.130Z",
+        "endTimestamp": "2025-04-11T19:50:02.855Z",
+        "totalCount": 1442,
+        "task": "Sheets",
+        "standard": 177
+    },
+    {
+        "operatorId": 135791,
+        "machineSerial": 67807,
+        "startTimestamp": "2025-04-11T19:33:47.136Z",
+        "endTimestamp": "2025-04-15T19:29:10.441Z",
+        "totalCount": 1652,
+        "task": "Fitted Yellow, Regular, Ink Pads, Obese, Towels, Hand Towel, Unknown Item",
+        "standard": 187
+    },
+    {
+        "operatorId": 135795,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-11T12:28:44.843Z",
+        "endTimestamp": "2025-04-11T16:38:55.573Z",
+        "totalCount": 975,
+        "task": "Bath Blankets",
+        "standard": 233
+    },
+    {
+        "operatorId": 135810,
+        "machineSerial": 67807,
+        "startTimestamp": "2025-04-11T12:30:29.996Z",
+        "endTimestamp": "2025-04-11T16:04:15.306Z",
+        "totalCount": 1528,
+        "task": "Unknown Item, Towels, Hand Towel, Blanket Large, Regular, Obese, Green-XXL, Fitted Yellow, Blue/Red Diamond, Ink Pads, Mammogram Gown, Maroon",
+        "standard": 451
+    },
+    {
+        "operatorId": 135790,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-11T12:36:13.741Z",
+        "endTimestamp": "2025-04-11T16:05:26.095Z",
+        "totalCount": 1144,
+        "task": "Bath Blankets",
+        "standard": 345
+    },
+    {
+        "operatorId": 135808,
+        "machineSerial": 67799,
+        "startTimestamp": "2025-04-11T12:44:12.181Z",
+        "endTimestamp": "2025-04-11T15:37:03.618Z",
+        "totalCount": 743,
+        "task": "Sheets",
+        "standard": 259
+    },
+    {
+        "operatorId": 967808,
+        "machineSerial": 67808,
+        "startTimestamp": "2025-04-11T12:47:51.489Z",
+        "endTimestamp": "2025-04-16T18:12:35.375Z",
+        "totalCount": 207,
+        "task": "Unknown Item, Regular, Towels, White Sheet",
+        "standard": 1
+    },
+    {
+        "operatorId": 967806,
+        "machineSerial": 67806,
+        "startTimestamp": "2025-04-11T13:00:02.886Z",
+        "endTimestamp": "2025-04-16T18:09:24.812Z",
+        "totalCount": 2,
+        "task": "Regular, Fitted Yellow",
+        "standard": 0
+    },
+    {
+        "operatorId": 135816,
+        "machineSerial": 67803,
+        "startTimestamp": "2025-04-11T13:05:46.542Z",
+        "endTimestamp": "2025-04-11T13:55:49.972Z",
+        "totalCount": 229,
+        "task": "Regular, Hand Towel, Towels, Baby Blankets, Obese, Fitted Yellow",
+        "standard": 178
+    },
+    {
+        "operatorId": 135817,
+        "machineSerial": 67808,
+        "startTimestamp": "2025-04-11T14:07:51.789Z",
+        "endTimestamp": "2025-04-11T16:04:17.349Z",
+        "totalCount": 833,
+        "task": "Baby Blankets, Unknown Item, White Sheet, Ink Pads, Fitted Yellow, Towels",
+        "standard": 476
+    },
+    {
+        "operatorId": 135816,
+        "machineSerial": 67804,
+        "startTimestamp": "2025-04-11T14:08:38.694Z",
+        "endTimestamp": "2025-04-11T16:05:12.394Z",
+        "totalCount": 1235,
+        "task": "Towels, Hand Towel, Ink Pads, Baby Blankets, Fitted Yellow",
+        "standard": 596
+    },
+    {
+        "operatorId": 135814,
+        "machineSerial": 67799,
+        "startTimestamp": "2025-04-11T15:49:49.645Z",
+        "endTimestamp": "2025-04-15T14:38:26.787Z",
+        "totalCount": 731,
+        "task": "Sheets",
+        "standard": 150
+    },
+    {
+        "operatorId": 135813,
+        "machineSerial": 67805,
+        "startTimestamp": "2025-04-11T16:32:48.155Z",
+        "endTimestamp": "2025-04-11T18:36:56.935Z",
+        "totalCount": 576,
+        "task": "Regular",
+        "standard": 249
+    },
+    {
+        "operatorId": 135797,
+        "machineSerial": 67806,
+        "startTimestamp": "2025-04-11T16:33:39.976Z",
+        "endTimestamp": "2025-04-11T19:43:41.026Z",
+        "totalCount": 1051,
+        "task": "Towels, Hand Towel, Regular, Obese, Unknown Item, Fitted Yellow",
+        "standard": 306
+    },
+    {
+        "operatorId": 135791,
+        "machineSerial": 67808,
+        "startTimestamp": "2025-04-11T16:34:59.599Z",
+        "endTimestamp": "2025-04-11T19:13:36.209Z",
+        "totalCount": 628,
+        "task": "Regular, Baby Blankets, Unknown Item, Fitted Yellow, Ink Pads",
+        "standard": 205
+    },
+    {
+        "operatorId": 135821,
+        "machineSerial": 67804,
+        "startTimestamp": "2025-04-11T16:34:52.265Z",
+        "endTimestamp": "2025-04-11T17:18:55.874Z",
+        "totalCount": 305,
+        "task": "Baby Blankets, Regular, Unknown Item, Towels",
+        "standard": 330
+    },
+    {
+        "operatorId": 135790,
+        "machineSerial": 67807,
+        "startTimestamp": "2025-04-11T16:35:25.766Z",
+        "endTimestamp": "2025-04-11T18:23:31.606Z",
+        "totalCount": 493,
+        "task": "Mammogram Gown, Maroon, Towels, Fitted Yellow",
+        "standard": 224
+    },
+    {
+        "operatorId": 135796,
+        "machineSerial": 67801,
+        "startTimestamp": "2025-04-15T18:51:03.958Z",
+        "endTimestamp": "2025-04-15T20:04:17.690Z",
+        "totalCount": 503,
+        "task": "Bath Blankets",
+        "standard": 385
+    },
+    {
+        "operatorId": 135792,
+        "machineSerial": 67803,
+        "startTimestamp": "2025-04-11T16:37:09.012Z",
+        "endTimestamp": "2025-04-16T15:59:30.594Z",
+        "totalCount": 1897,
+        "task": "Towels, Fitted Yellow, Unknown Item, Regular, Ink Pads, Hand Towel, Yellow 1/4, Mammogram Gown, Maroon, Fitted Green, Blue/Red Diamond",
+        "standard": 702
+    },
+    {
+        "operatorId": 135820,
+        "machineSerial": 67801,
+        "startTimestamp": "2025-04-11T16:39:06.516Z",
+        "endTimestamp": "2025-04-11T20:12:04.873Z",
+        "totalCount": 1352,
+        "task": "Bath Blankets, None Entered",
+        "standard": 462
+    },
+    {
+        "operatorId": 135810,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-11T16:36:44.803Z",
+        "endTimestamp": "2025-04-11T18:14:24.235Z",
+        "totalCount": 548,
+        "task": "Bath Blankets, None Entered",
+        "standard": 386
+    },
+    {
+        "operatorId": 135804,
+        "machineSerial": 67801,
+        "startTimestamp": "2025-04-11T16:39:06.516Z",
+        "endTimestamp": "2025-04-16T19:39:49.903Z",
+        "totalCount": 6226,
+        "task": "Bath Blankets, None Entered",
+        "standard": 614
+    },
+    {
+        "operatorId": 135796,
+        "machineSerial": 67799,
+        "startTimestamp": "2025-04-11T17:00:49.500Z",
+        "endTimestamp": "2025-04-11T19:50:02.855Z",
+        "totalCount": 729,
+        "task": "Sheets",
+        "standard": 0
+    },
+    {
+        "operatorId": 135803,
+        "machineSerial": 67798,
+        "startTimestamp": "2025-04-11T17:05:05.315Z",
+        "endTimestamp": "2025-04-11T19:55:27.630Z",
+        "totalCount": 556,
+        "task": "None Entered",
+        "standard": 144
+    },
+    {
+        "operatorId": 135793,
+        "machineSerial": 67798,
+        "startTimestamp": "2025-04-11T18:23:50.510Z",
+        "endTimestamp": "2025-04-14T20:00:07.048Z",
+        "totalCount": 946,
+        "task": "None Entered",
+        "standard": 0
+    },
+    {
+        "operatorId": 135793,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-11T18:40:15.802Z",
+        "endTimestamp": "2025-04-16T19:45:09.010Z",
+        "totalCount": 2799,
+        "task": "Bath Blankets, None Entered",
+        "standard": 318
+    },
+    {
+        "operatorId": 135790,
+        "machineSerial": 67798,
+        "startTimestamp": "2025-04-11T18:48:32.571Z",
+        "endTimestamp": "2025-04-11T19:55:27.630Z",
+        "totalCount": 231,
+        "task": "None Entered",
+        "standard": 128
+    },
+    {
+        "operatorId": 135791,
+        "machineSerial": 67805,
+        "startTimestamp": "2025-04-11T19:18:51.925Z",
+        "endTimestamp": "2025-04-16T15:59:25.129Z",
+        "totalCount": 1173,
+        "task": "Regular, Baby Blankets, Unknown Item, Hand Towel, Towels, Fitted Yellow",
+        "standard": 253
+    },
+    {
+        "operatorId": 135803,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-11T19:49:25.899Z",
+        "endTimestamp": "2025-04-11T20:02:57.836Z",
+        "totalCount": 71,
+        "task": "Bath Blankets",
+        "standard": 220
+    },
+    {
+        "operatorId": 135811,
+        "machineSerial": 67799,
+        "startTimestamp": "2025-04-14T12:27:53.917Z",
+        "endTimestamp": "2025-04-14T15:38:24.119Z",
+        "totalCount": 696,
+        "task": "Sheets",
+        "standard": 232
+    },
+    {
+        "operatorId": 135805,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-14T12:29:13.312Z",
+        "endTimestamp": "2025-04-14T19:46:58.283Z",
+        "totalCount": 1776,
+        "task": "Bath Blankets, None Entered",
+        "standard": 283
+    },
+    {
+        "operatorId": 135795,
+        "machineSerial": 67799,
+        "startTimestamp": "2025-04-14T12:27:53.917Z",
+        "endTimestamp": "2025-04-16T19:42:20.169Z",
+        "totalCount": 1921,
+        "task": "Sheets",
+        "standard": 363
+    },
+    {
+        "operatorId": 135815,
+        "machineSerial": 67804,
+        "startTimestamp": "2025-04-14T12:29:26.488Z",
+        "endTimestamp": "2025-04-14T12:34:21.558Z",
+        "totalCount": 25,
+        "task": "Regular",
+        "standard": 209
+    },
+    {
+        "operatorId": 135800,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-14T12:32:01.137Z",
+        "endTimestamp": "2025-04-14T19:46:58.283Z",
+        "totalCount": 3152,
+        "task": "Bath Blankets, None Entered",
+        "standard": 639
+    },
+    {
+        "operatorId": 135792,
+        "machineSerial": 67801,
+        "startTimestamp": "2025-04-14T12:32:56.086Z",
+        "endTimestamp": "2025-04-15T18:15:05.319Z",
+        "totalCount": 1930,
+        "task": "Bath Blankets, None Entered",
+        "standard": 790
+    },
+    {
+        "operatorId": 967800,
+        "machineSerial": 67800,
+        "startTimestamp": "2025-04-14T12:37:56.653Z",
+        "endTimestamp": "2025-04-15T15:54:55.085Z",
+        "totalCount": 943,
+        "task": "None Entered",
+        "standard": 15
+    },
+    {
+        "operatorId": 135803,
+        "machineSerial": 67800,
+        "startTimestamp": "2025-04-14T12:37:56.653Z",
+        "endTimestamp": "2025-04-14T20:13:49.279Z",
+        "totalCount": 1128,
+        "task": "None Entered",
+        "standard": 42
+    },
+    {
+        "operatorId": 135816,
+        "machineSerial": 67799,
+        "startTimestamp": "2025-04-14T16:33:18.346Z",
+        "endTimestamp": "2025-04-14T19:42:02.472Z",
+        "totalCount": 471,
+        "task": "Sheets",
+        "standard": 86
+    },
+    {
+        "operatorId": 135817,
+        "machineSerial": 67798,
+        "startTimestamp": "2025-04-14T16:33:07.372Z",
+        "endTimestamp": "2025-04-14T20:00:07.048Z",
+        "totalCount": 501,
+        "task": "None Entered",
+        "standard": 51
+    },
+    {
+        "operatorId": 135808,
+        "machineSerial": 67801,
+        "startTimestamp": "2025-04-14T16:33:12.433Z",
+        "endTimestamp": "2025-04-14T17:40:53.729Z",
+        "totalCount": 309,
+        "task": "Bath Blankets",
+        "standard": 280
+    },
+    {
+        "operatorId": 135815,
+        "machineSerial": 67799,
+        "startTimestamp": "2025-04-14T16:33:18.346Z",
+        "endTimestamp": "2025-04-14T19:42:02.472Z",
+        "totalCount": 241,
+        "task": "Sheets",
+        "standard": 23
+    },
+    {
+        "operatorId": 135790,
+        "machineSerial": 67799,
+        "startTimestamp": "2025-04-14T18:58:32.626Z",
+        "endTimestamp": "2025-04-16T16:00:36.062Z",
+        "totalCount": 1239,
+        "task": "Sheets",
+        "standard": 298
+    },
+    {
+        "operatorId": 135821,
+        "machineSerial": 67805,
+        "startTimestamp": "2025-04-15T12:26:19.268Z",
+        "endTimestamp": "2025-04-15T15:49:58.441Z",
+        "totalCount": 1414,
+        "task": "Fitted Yellow, Baby Blankets, Towels, Unknown Item, Regular, Hand Towel",
+        "standard": 412
+    },
+    {
+        "operatorId": 135811,
+        "machineSerial": 67806,
+        "startTimestamp": "2025-04-15T12:28:09.945Z",
+        "endTimestamp": "2025-04-15T19:43:46.131Z",
+        "totalCount": 3941,
+        "task": "White Sheet, Ink Pads, Regular, Obese, Towels, Unknown Item, Hand Towel, Baby Blankets, Fitted Yellow",
+        "standard": 798
+    },
+    {
+        "operatorId": 135807,
+        "machineSerial": 67804,
+        "startTimestamp": "2025-04-15T12:27:01.149Z",
+        "endTimestamp": "2025-04-15T19:02:38.670Z",
+        "totalCount": 1529,
+        "task": "Unknown Item, Fitted Yellow, Towels, Regular, Obese, Baby Blankets",
+        "standard": 166
+    },
+    {
+        "operatorId": 135816,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-15T12:27:42.087Z",
+        "endTimestamp": "2025-04-15T15:32:09.462Z",
+        "totalCount": 715,
+        "task": "Bath Blankets",
+        "standard": 359
+    },
+    {
+        "operatorId": 135817,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-15T12:27:42.087Z",
+        "endTimestamp": "2025-04-15T15:32:09.462Z",
+        "totalCount": 833,
+        "task": "Bath Blankets",
+        "standard": 468
+    },
+    {
+        "operatorId": 135799,
+        "machineSerial": 67799,
+        "startTimestamp": "2025-04-15T12:28:39.894Z",
+        "endTimestamp": "2025-04-16T16:00:36.062Z",
+        "totalCount": 2355,
+        "task": "Sheets",
+        "standard": 356
+    },
+    {
+        "operatorId": 135795,
+        "machineSerial": 67808,
+        "startTimestamp": "2025-04-15T12:28:10.347Z",
+        "endTimestamp": "2025-04-15T15:36:49.806Z",
+        "totalCount": 1261,
+        "task": "Towels, Unknown Item, White Sheet, Fitted Yellow",
+        "standard": 374
+    },
+    {
+        "operatorId": 135800,
+        "machineSerial": 67801,
+        "startTimestamp": "2025-04-15T12:28:43.844Z",
+        "endTimestamp": "2025-04-15T13:58:45.256Z",
+        "totalCount": 27,
+        "task": "Bath Blankets",
+        "standard": 1
+    },
+    {
+        "operatorId": 135810,
+        "machineSerial": 67798,
+        "startTimestamp": "2025-04-15T12:35:32.085Z",
+        "endTimestamp": "2025-04-15T14:52:33.366Z",
+        "totalCount": 332,
+        "task": "None Entered",
+        "standard": 969
+    },
+    {
+        "operatorId": 135815,
+        "machineSerial": 67803,
+        "startTimestamp": "2025-04-15T12:29:33.658Z",
+        "endTimestamp": "2025-04-15T15:50:09.538Z",
+        "totalCount": 1110,
+        "task": "Ink Pads, Baby Blankets, Fitted Yellow, Towels, Hand Towel, Regular, Unknown Item",
+        "standard": 360
+    },
+    {
+        "operatorId": 135790,
+        "machineSerial": 67800,
+        "startTimestamp": "2025-04-15T12:35:35.443Z",
+        "endTimestamp": "2025-04-15T15:54:55.085Z",
+        "totalCount": 2441,
+        "task": "None Entered",
+        "standard": 887
+    },
+    {
+        "operatorId": 135801,
+        "machineSerial": 67801,
+        "startTimestamp": "2025-04-15T12:31:04.223Z",
+        "endTimestamp": "2025-04-15T12:32:50.723Z",
+        "totalCount": 2,
+        "task": "Bath Blankets",
+        "standard": 192
+    },
+    {
+        "operatorId": 135800,
+        "machineSerial": 67799,
+        "startTimestamp": "2025-04-15T12:36:48.964Z",
+        "endTimestamp": "2025-04-15T19:56:42.698Z",
+        "totalCount": 1128,
+        "task": "Sheets",
+        "standard": 320
+    },
+    {
+        "operatorId": 135796,
+        "machineSerial": 67805,
+        "startTimestamp": "2025-04-15T16:21:22.520Z",
+        "endTimestamp": "2025-04-15T18:40:11.120Z",
+        "totalCount": 849,
+        "task": "Regular, Towels, Ink Pads, Fitted Yellow, Unknown Item",
+        "standard": 352
+    },
+    {
+        "operatorId": 135820,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-15T16:23:22.501Z",
+        "endTimestamp": "2025-04-15T16:35:36.198Z",
+        "totalCount": 97,
+        "task": "Bath Blankets",
+        "standard": 476
+    },
+    {
+        "operatorId": 135808,
+        "machineSerial": 67798,
+        "startTimestamp": "2025-04-15T16:25:26.096Z",
+        "endTimestamp": "2025-04-15T19:46:30.826Z",
+        "totalCount": 1415,
+        "task": "None Entered",
+        "standard": 478
+    },
+    {
+        "operatorId": 135816,
+        "machineSerial": 67808,
+        "startTimestamp": "2025-04-15T16:37:25.236Z",
+        "endTimestamp": "2025-04-16T16:00:24.245Z",
+        "totalCount": 1829,
+        "task": "Fitted Yellow, Regular, Towels, Baby Blankets, Unknown Item",
+        "standard": 225
+    },
+    {
+        "operatorId": 135820,
+        "machineSerial": 67803,
+        "startTimestamp": "2025-04-15T16:38:15.228Z",
+        "endTimestamp": "2025-04-15T19:33:46.798Z",
+        "totalCount": 1268,
+        "task": "Baby Blankets, Regular, Fitted Yellow, White Sheet, Towels",
+        "standard": 444
+    },
+    {
+        "operatorId": 135792,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-15T18:16:23.501Z",
+        "endTimestamp": "2025-04-15T19:55:33.961Z",
+        "totalCount": 900,
+        "task": "Bath Blankets",
+        "standard": 567
+    },
+    {
+        "operatorId": 135816,
+        "machineSerial": 67801,
+        "startTimestamp": "2025-04-15T18:51:09.283Z",
+        "endTimestamp": "2025-04-15T20:04:17.690Z",
+        "totalCount": 608,
+        "task": "Bath Blankets",
+        "standard": 504
+    },
+    {
+        "operatorId": 135807,
+        "machineSerial": 67798,
+        "startTimestamp": "2025-04-15T19:01:29.611Z",
+        "endTimestamp": "2025-04-15T19:46:30.826Z",
+        "totalCount": 155,
+        "task": "None Entered",
+        "standard": 108
+    },
+    {
+        "operatorId": 135815,
+        "machineSerial": 67805,
+        "startTimestamp": "2025-04-15T19:33:18.320Z",
+        "endTimestamp": "2025-04-15T20:13:08.410Z",
+        "totalCount": 828,
+        "task": "Regular, Baby Blankets, Obese, Unknown Item",
+        "standard": 1390
+    },
+    {
+        "operatorId": 135820,
+        "machineSerial": 67804,
+        "startTimestamp": "2025-04-15T19:34:32.000Z",
+        "endTimestamp": "2025-04-15T20:13:11.691Z",
+        "totalCount": 151,
+        "task": "Baby Blankets, Unknown Item, Regular, Obese",
+        "standard": 116
+    },
+    {
+        "operatorId": 135811,
+        "machineSerial": 67807,
+        "startTimestamp": "2025-04-15T19:42:20.031Z",
+        "endTimestamp": "2025-04-16T16:00:00.740Z",
+        "totalCount": 1132,
+        "task": "Towels, Hand Towel, Regular, Unknown Item, Baby Blankets, Fitted Yellow",
+        "standard": 408
+    },
+    {
+        "operatorId": 135817,
+        "machineSerial": 67806,
+        "startTimestamp": "2025-04-16T12:26:46.992Z",
+        "endTimestamp": "2025-04-16T15:59:31.572Z",
+        "totalCount": 1729,
+        "task": "Fitted Yellow, Unknown Item, Baby Blankets, Towels, Hand Towel, Ink Pads, Regular, Obese",
+        "standard": 478
+    },
+    {
+        "operatorId": 135805,
+        "machineSerial": 67801,
+        "startTimestamp": "2025-04-16T12:40:22.165Z",
+        "endTimestamp": "2025-04-16T16:00:31.590Z",
+        "totalCount": 891,
+        "task": "Bath Blankets",
+        "standard": 290
+    },
+    {
+        "operatorId": 135808,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-16T12:33:59.149Z",
+        "endTimestamp": "2025-04-16T15:04:37.023Z",
+        "totalCount": 1025,
+        "task": "Bath Blankets",
+        "standard": 461
+    },
+    {
+        "operatorId": 135803,
+        "machineSerial": 67801,
+        "startTimestamp": "2025-04-16T12:40:22.165Z",
+        "endTimestamp": "2025-04-16T16:00:31.590Z",
+        "totalCount": 945,
+        "task": "Bath Blankets",
+        "standard": 326
+    },
+    {
+        "operatorId": 135804,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-16T15:35:01.954Z",
+        "endTimestamp": "2025-04-16T16:00:52.297Z",
+        "totalCount": 216,
+        "task": "Bath Blankets",
+        "standard": 537
+    },
+    {
+        "operatorId": 135797,
+        "machineSerial": 67808,
+        "startTimestamp": "2025-04-16T16:29:37.585Z",
+        "endTimestamp": "2025-04-16T19:32:08.445Z",
+        "totalCount": 2240,
+        "task": "Regular, Towels, Fitted Yellow, Fitted Green, Mammogram Gown, Maroon, Unknown Item, Obese",
+        "standard": 903
+    },
+    {
+        "operatorId": 135813,
+        "machineSerial": 67806,
+        "startTimestamp": "2025-04-16T16:29:42.842Z",
+        "endTimestamp": "2025-04-16T19:33:15.822Z",
+        "totalCount": 2324,
+        "task": "Ink Pads, Unknown Item, Towels, Hand Towel, Fitted Yellow, Regular, Obese",
+        "standard": 916
+    },
+    {
+        "operatorId": 135821,
+        "machineSerial": 67802,
+        "startTimestamp": "2025-04-16T16:30:38.935Z",
+        "endTimestamp": "2025-04-16T17:51:54.495Z",
+        "totalCount": 525,
+        "task": "Bath Blankets",
+        "standard": 363
+    },
+    {
+        "operatorId": 135820,
+        "machineSerial": 67799,
+        "startTimestamp": "2025-04-16T16:32:35.484Z",
+        "endTimestamp": "2025-04-16T19:42:20.169Z",
+        "totalCount": 1193,
+        "task": "Sheets",
+        "standard": 418
+    },
+    {
+        "operatorId": 135814,
+        "machineSerial": 67807,
+        "startTimestamp": "2025-04-16T16:31:02.610Z",
+        "endTimestamp": "2025-04-16T19:37:26.290Z",
+        "totalCount": 1471,
+        "task": "Baby Blankets, Unknown Item, Regular, Obese, Towels, Fitted Yellow",
+        "standard": 562
+    },
+    {
+        "operatorId": 135796,
+        "machineSerial": 67798,
+        "startTimestamp": "2025-04-16T16:31:59.841Z",
+        "endTimestamp": "2025-04-16T19:29:34.713Z",
+        "totalCount": 1110,
+        "task": "None Entered",
+        "standard": 579
+    },
+    {
+        "operatorId": 135790,
+        "machineSerial": 67805,
+        "startTimestamp": "2025-04-16T16:32:25.849Z",
+        "endTimestamp": "2025-04-16T16:37:17.569Z",
+        "totalCount": 25,
+        "task": "Fitted Yellow",
+        "standard": 264
+    },
+    {
+        "operatorId": 135808,
+        "machineSerial": 67803,
+        "startTimestamp": "2025-04-16T16:33:04.114Z",
+        "endTimestamp": "2025-04-16T19:30:37.747Z",
+        "totalCount": 865,
+        "task": "Ink Pads, Regular, Towels",
+        "standard": 219
+    },
+    {
+        "operatorId": 135792,
+        "machineSerial": 67798,
+        "startTimestamp": "2025-04-16T16:58:34.175Z",
+        "endTimestamp": "2025-04-16T19:29:34.713Z",
+        "totalCount": 1312,
+        "task": "None Entered",
+        "standard": 689
+    },
+    {
+        "operatorId": 135790,
+        "machineSerial": 67801,
+        "startTimestamp": "2025-04-16T16:33:31.808Z",
+        "endTimestamp": "2025-04-16T19:39:49.903Z",
+        "totalCount": 1140,
+        "task": "Bath Blankets, None Entered",
+        "standard": 450
+    },
+    {
+        "operatorId": 135805,
+        "machineSerial": 67805,
+        "startTimestamp": "2025-04-16T16:37:51.149Z",
+        "endTimestamp": "2025-04-16T17:59:24.879Z",
+        "totalCount": 649,
+        "task": "Fitted Yellow, Unknown Item, White Sheet, Towels, Hand Towel",
+        "standard": 353
+    }
+]

@@ -435,36 +435,52 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
   }
 
   const getCompletedCyclesForOperator = (states) => {
+    if (!Array.isArray(states) || states.length === 0) {
+        return [];
+    }
+
     const completedCycles = [];
     let currentCycle = null;
-    
-    const sortedStates = states.sort((a, b) => 
+    const MAX_CYCLE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+    const sortedStates = states.sort((a, b) =>
         new Date(a.timestamp) - new Date(b.timestamp)
     );
 
     for (let i = 0; i < sortedStates.length; i++) {
         const state = sortedStates[i];
-        const statusCode = state.status?.code;
-        const timestamp = new Date(state.timestamp);
+        // Skip invalid states
+        if (!state.status || typeof state.status.code !== 'number') {
+            continue;
+        }
 
+        const statusCode = state.status.code;
+        const timestamp = new Date(state.timestamp);
+        
         if (statusCode === 1) {
+            // Start a new cycle when code is 1
             if (!currentCycle) {
                 currentCycle = {
                     start: timestamp,
-                    end: null,
-                    duration: 0,
+                    startState: state,
                     states: [state]
                 };
             } else {
                 currentCycle.states.push(state);
             }
-        }
-        else if (statusCode === 0 || statusCode > 1) {
+        } else if (statusCode === 0 || statusCode > 1) {
+            // Close the current cycle if we're in one
             if (currentCycle) {
                 currentCycle.end = timestamp;
+                currentCycle.endState = state;
                 currentCycle.duration = currentCycle.end - currentCycle.start;
-                
-                if (currentCycle.duration > 0) {
+                currentCycle.finalStatus = statusCode;
+
+                // Only push if duration is valid and <= 24 hours
+                if (
+                    currentCycle.duration > 0 &&
+                    currentCycle.duration <= MAX_CYCLE_DURATION
+                ) {
                     completedCycles.push(currentCycle);
                 }
                 currentCycle = null;
@@ -472,9 +488,23 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
         }
     }
 
+    // Final check: if machine never paused/faulted after last Run
+    if (currentCycle) {
+        const lastState = sortedStates[sortedStates.length - 1];
+        currentCycle.end = new Date(lastState.timestamp);
+        currentCycle.endState = lastState;
+        currentCycle.duration = currentCycle.end - currentCycle.start;
+
+        if (
+            currentCycle.duration > 0 &&
+            currentCycle.duration <= MAX_CYCLE_DURATION
+        ) {
+            completedCycles.push(currentCycle);
+        }
+    }
+
     return completedCycles;
-  };
-  
+};
   
 
 
