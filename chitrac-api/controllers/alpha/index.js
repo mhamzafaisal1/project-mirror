@@ -1589,49 +1589,51 @@ function constructor(server) {
       // Group the counts by operator and machine for easier processing
       const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
 
-      // Step 6: Process each group in parallel
-      const results = await Promise.all(
-        Object.entries(completedCyclesByGroup).map(async ([key, group]) => {
-        const [operatorId, machineSerial] = key.split("-");
-        const states = group.states;
-          if (!states.length) return null;
+     // Step 6: Process each group and its completed cycles individually
+const results = await Promise.all(
+  Object.entries(completedCyclesByGroup).flatMap(([key, group]) => {
+    const [operatorId, machineSerial] = key.split("-");
+    const countGroup = groupedCounts[`${operatorId}-${machineSerial}`];
+    if (!countGroup) return []; // No counts = skip
 
-        // Get the first and last completed cycles for this operator-machine pair
-        const firstCycle = group.completedCycles[0];
-        const lastCycle = group.completedCycles[group.completedCycles.length - 1];
-        
-        // Use the actual cycle timestamps
-        const cycleStart = firstCycle.start;
-        const cycleEnd = lastCycle.end;
+    // Process each completed cycle individually
+    return group.completedCycles.map(async (cycle) => {
+      const cycleStart = new Date(cycle.start);
+      const cycleEnd = new Date(cycle.end);
 
-          // Get counts for this operator-machine pair
-          const countGroup = groupedCounts[`${operatorId}-${machineSerial}`];
-          if (!countGroup) return null;
+      // Filter counts that fall within the cycle time
+      const cycleCounts = countGroup.counts.filter(count => {
+        const ts = new Date(count.timestamp);
+        return ts >= cycleStart && ts <= cycleEnd;
+      });
 
-          // Process count statistics using the new utility function
-          const stats = processCountStatistics(countGroup.counts);
+      if (!cycleCounts.length) return null;
 
-        const { runtime: runtimeMs } = calculateOperatorTimes(states, cycleStart, cycleEnd);
-          const piecesPerHour = calculatePiecesPerHour(stats.total, runtimeMs);
-          const efficiency = calculateEfficiency(runtimeMs, stats.total, countGroup.validCounts);
+      // Process stats for counts during this cycle
+      const stats = processCountStatistics(cycleCounts);
+      const { runtime: runtimeMs } = calculateOperatorTimes(cycle.states, cycleStart, cycleEnd);
+      const piecesPerHour = calculatePiecesPerHour(stats.total, runtimeMs);
+      const efficiency = calculateEfficiency(runtimeMs, stats.total, countGroup.validCounts);
 
-          // Get item names using the existing utility function
-          const itemNames = extractItemNamesFromCounts(countGroup.counts);
+      const itemNames = extractItemNamesFromCounts(cycleCounts);
 
-          return {
-          operatorId: parseInt(operatorId),
-          machineSerial: parseInt(machineSerial),
-          startTimestamp: cycleStart.toISOString(),
-          endTimestamp: cycleEnd.toISOString(),
-            totalCount: stats.total,
-          task: itemNames,
-            standard: Math.round(piecesPerHour * efficiency),      
-          };
-        })
-      );
+      return {
+        operatorId: parseInt(operatorId),
+        machineSerial: parseInt(machineSerial),
+        startTimestamp: cycleStart.toISOString(),
+        endTimestamp: cycleEnd.toISOString(),
+        totalCount: stats.total,
+        task: itemNames,
+        standard: Math.round(piecesPerHour * efficiency),
+      };
+    });
+  })
+);
 
-      // Filter out null results and send response
-      res.json(results.filter(result => result !== null));
+// Filter and flatten results
+const flattenedResults = (await Promise.all(results.flat())).filter(r => r !== null);
+res.json(flattenedResults);
+
     } catch (error) {
       logger.error("Error in softrol data processing:", error);
       res.status(500).json({ error: "Failed to process softrol data" });
