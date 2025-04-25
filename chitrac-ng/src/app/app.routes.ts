@@ -14,6 +14,7 @@ import { LeveloneLineChartComponent } from './levelone-line-chart/levelone-line-
 import { MachineAnalyticsDashboardComponent } from './machine-analytics-dashboard/machine-analytics-dashboard.component';
 import { MachineAnalyticsChartComponent } from './machine-analytics-chart/machine-analytics-chart.component';
 import { OperatorAnalyticsDashboardComponent } from './operator-analytics-dashboard/operator-analytics-dashboard.component';
+import { OperatorPerformanceChartComponent } from './operator-performance-chart/operator-performance-chart.component';
 
 import { AuthGuard } from './guards/auth.guard';
 
@@ -32,5 +33,6 @@ export const routes: Routes = [
 	{ path: 'ng/machineAnalytics', component: MachineAnalyticsDashboardComponent },
 	{ path: 'ng/machineAnalytics/chart', component: MachineAnalyticsChartComponent },
 	{ path: 'ng/operatorAnalytics', component: OperatorAnalyticsDashboardComponent },
+	{ path: 'ng/operator-performance-chart', component: OperatorPerformanceChartComponent },
 	{ path: 'ng/*', redirectTo: 'ng/home' }
 	];
