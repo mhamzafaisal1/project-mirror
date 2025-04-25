@@ -148,7 +148,145 @@ async function getCountRecords(db, serial, start, end) {
     }
     return Array.from(itemNames).join(', ');
   }
+
+  //Module functions for accessing count collection
     
+  /**
+   * Gets counts for multiple operator-machine pairs in a single query
+   * @param {Object} db - MongoDB database instance
+   * @param {Array} pairs - Array of {operatorId, machineSerial} objects
+   * @param {Date} start - Start date
+   * @param {Date} end - End date
+   * @returns {Promise<Array>} Array of count records
+   */
+  async function getCountsForOperatorMachinePairs(db, pairs, start, end) {
+    if (!pairs.length) return [];
+    
+    const query = {
+      $or: pairs.map(pair => ({
+        'operator.id': pair.operatorId,
+        'machine.serial': pair.machineSerial
+      })),
+      timestamp: { $gte: new Date(start), $lte: new Date(end) }
+    };
+
+    return db.collection('count')
+      .find(query)
+      .sort({ timestamp: 1 })
+      .toArray();
+  }
+
+  /**
+   * Gets counts for a specific machine with optional operator filter
+   * @param {Object} db - MongoDB database instance
+   * @param {number} machineSerial - Machine serial number
+   * @param {Date} start - Start date
+   * @param {Date} end - End date
+   * @param {number} [operatorId] - Optional operator ID
+   * @returns {Promise<Array>} Array of count records
+   */
+  async function getCountsForMachine(db, machineSerial, start, end, operatorId = null) {
+    const query = {
+      'machine.serial': machineSerial,
+      timestamp: { $gte: new Date(start), $lte: new Date(end) }
+    };
+
+    if (operatorId) {
+      query['operator.id'] = operatorId;
+    }
+
+    return db.collection('count')
+      .find(query)
+      .sort({ timestamp: 1 })
+      .toArray();
+  }
+
+  /**
+   * Processes counts to calculate totals and statistics
+   * @param {Array} counts - Array of count records
+   * @returns {Object} Processed count statistics
+   */
+  function processCountStatistics(counts) {
+    const validCounts = counts.filter(count => !count.misfeed);
+    const misfeedCounts = counts.filter(count => count.misfeed);
+    
+    const itemMap = {};
+    const operatorMap = {};
+    
+    for (const count of counts) {
+      // Process items
+      if (count.item) {
+        const itemKey = `${count.item.id}-${count.item.name}`;
+        if (!itemMap[itemKey]) {
+          itemMap[itemKey] = {
+            id: count.item.id,
+            name: count.item.name,
+            standard: count.item.standard,
+            count: 0
+          };
+        }
+        itemMap[itemKey].count++;
+      }
+      
+      // Process operators
+      if (count.operator) {
+        const opId = count.operator.id;
+        if (!operatorMap[opId]) {
+          operatorMap[opId] = {
+            id: opId,
+            name: count.operator.name,
+            count: 0
+          };
+        }
+        operatorMap[opId].count++;
+      }
+    }
+
+    return {
+      total: counts.length,
+      valid: validCounts.length,
+      misfeeds: misfeedCounts.length,
+      items: Object.values(itemMap),
+      operators: Object.values(operatorMap)
+    };
+  }
+
+  /**
+   * Gets counts grouped by operator and machine
+   * @param {Array} counts - Array of count records
+   * @returns {Object} Counts grouped by operator and machine
+   */
+  function groupCountsByOperatorAndMachine(counts) {
+    const grouped = {};
+    
+    for (const count of counts) {
+      const opId = count.operator?.id;
+      const machineSerial = count.machine?.serial;
+      
+      if (!opId || !machineSerial) continue;
+      
+      const key = `${opId}-${machineSerial}`;
+      if (!grouped[key]) {
+        grouped[key] = {
+          operator: count.operator,
+          machine: count.machine,
+          counts: [],
+          validCounts: [],
+          misfeedCounts: []
+        };
+      }
+      
+      grouped[key].counts.push(count);
+      if (count.misfeed) {
+        grouped[key].misfeedCounts.push(count);
+      } else {
+        grouped[key].validCounts.push(count);
+      }
+    }
+    
+    return grouped;
+  }
+
   module.exports = {
     getCountRecords,
     getValidCounts,
@@ -158,6 +296,10 @@ async function getCountRecords(db, serial, start, end) {
     getMisfeedCountsForOperator,
     getOperatorNameFromCount,
     getCountsForOperator,
-    extractItemNamesFromCounts
+    extractItemNamesFromCounts,
+    getCountsForOperatorMachinePairs,
+    getCountsForMachine,
+    processCountStatistics,
+    groupCountsByOperatorAndMachine
   };
   

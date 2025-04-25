@@ -39,6 +39,9 @@ const {
   getOperatorNameFromCount,
   extractItemNamesFromCounts,
   getCountsForOperator,
+  getCountsForOperatorMachinePairs,
+  groupCountsByOperatorAndMachine,
+  processCountStatistics,
 } = require("../../utils/count");
 const {
   calculateRuntime,
@@ -1496,23 +1499,25 @@ function constructor(server) {
         return res.status(400).json({ error: "Invalid start time format. Please use ISO date string" });
       }
 
-      // Get the latest state record to use as end date if needed
-      const latestState = await db.collection('state')
-        .find()
-        .sort({ timestamp: -1 })
-        .limit(1)
-        .toArray();
+      // Step 2: Get latest state and create time range in parallel
+      const [latestState] = await Promise.all([
+        db.collection('state')
+          .find()
+          .sort({ timestamp: -1 })
+          .limit(1)
+          .toArray(),
+        // Add any other independent operations here
+      ]);
       
-      const end = latestState.length > 0 ? latestState[0].timestamp : new Date().toISOString();
+      const end = latestState?.timestamp || new Date().toISOString();
       const { paddedStart, paddedEnd } = createPaddedTimeRange(startDate, new Date(end));
 
-      // Step 2: Fetch all states and group by operatorId + machineSerial
-      const allStates = await fetchStatesForOperator(
-        db,
-        null,
-        paddedStart,
-        paddedEnd
-      );
+      // Step 3: Fetch states and process cycles in parallel
+      const [allStates] = await Promise.all([
+        fetchStatesForOperator(db, null, paddedStart, paddedEnd),
+        // Add any other independent operations here
+      ]);
+
       const groupedStates = groupStatesByOperatorAndSerial(allStates);
 
       // Process completed cycles for each operator-machine group
@@ -1536,73 +1541,61 @@ function constructor(server) {
         };
       });
 
-  // Prevent MongoDB $or error if operatorMachinePairs is empty
-if (operatorMachinePairs.length === 0) {
-  return res.json([]); // No valid sessions
-}
+      // Step 4: Get counts and process results in parallel
+      const [allCounts] = await Promise.all([
+        getCountsForOperatorMachinePairs(db, operatorMachinePairs, start, end),
+        // Add any other independent operations here
+      ]);
 
-// Build query safely
-const countQuery = {
-  $or: operatorMachinePairs.map(pair => ({
-    'operator.id': pair.operatorId,
-    'machine.serial': pair.machineSerial
-  })),
-  timestamp: { $gte: new Date(start), $lte: new Date(end) }
-};
+      // Group the counts by operator and machine for easier processing
+      const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
 
-const allCounts = await db.collection('count')
-  .find(countQuery)
-  .sort({ timestamp: 1 })
-  .toArray();
+      // Step 5: Process each group in parallel
+      const results = await Promise.all(
+        Object.entries(completedCyclesByGroup).map(async ([key, group]) => {
+          const [operatorId, machineSerial] = key.split("-");
+          const states = group.states;
+          if (!states.length) return null;
 
-      const results = [];
+          // Get the first and last completed cycles for this operator-machine pair
+          const firstCycle = group.completedCycles[0];
+          const lastCycle = group.completedCycles[group.completedCycles.length - 1];
+          
+          // Use the actual cycle timestamps
+          const cycleStart = firstCycle.start;
+          const cycleEnd = lastCycle.end;
 
-      for (const [key, group] of Object.entries(completedCyclesByGroup)) {
-        const [operatorId, machineSerial] = key.split("-");
-        const states = group.states;
-        if (!states.length) continue;
+          // Get counts for this operator-machine pair
+          const countGroup = groupedCounts[`${operatorId}-${machineSerial}`];
+          if (!countGroup) return null;
 
-        // Get the first and last completed cycles for this operator-machine pair
-        const firstCycle = group.completedCycles[0];
-        const lastCycle = group.completedCycles[group.completedCycles.length - 1];
-        
-        // Use the actual cycle timestamps
-        const cycleStart = firstCycle.start;
-        const cycleEnd = lastCycle.end;
+          // Process count statistics using the new utility function
+          const stats = processCountStatistics(countGroup.counts);
 
-        // Filter counts for this operator-machine pair within the cycle time range
-        const counts = allCounts.filter(count => 
-          count.operator.id === parseInt(operatorId) && 
-          count.machine.serial === parseInt(machineSerial) &&
-          new Date(count.timestamp) >= cycleStart &&
-          new Date(count.timestamp) <= cycleEnd
-        );
+          const { runtime: runtimeMs } = calculateOperatorTimes(states, cycleStart, cycleEnd);
+          const piecesPerHour = calculatePiecesPerHour(stats.total, runtimeMs);
+          const efficiency = calculateEfficiency(runtimeMs, stats.total, countGroup.validCounts);
 
-        const validCounts = counts.filter(count => !count.misfeed);
-        const misfeedCounts = counts.filter(count => count.misfeed);
+          // Get item names using the existing utility function
+          const itemNames = extractItemNamesFromCounts(countGroup.counts);
 
-        const { runtime: runtimeMs } = calculateOperatorTimes(states, cycleStart, cycleEnd);
-        const totalCount = validCounts.length + misfeedCounts.length;
-        const piecesPerHour = calculatePiecesPerHour(totalCount, runtimeMs);
-        const efficiency = calculateEfficiency(runtimeMs, totalCount, validCounts);
+          return {
+            operatorId: parseInt(operatorId),
+            machineSerial: parseInt(machineSerial),
+            startTimestamp: cycleStart.toISOString(),
+            endTimestamp: cycleEnd.toISOString(),
+            totalCount: stats.total,
+            task: itemNames,
+            standard: Math.round(piecesPerHour * efficiency),      
+          };
+        })
+      );
 
-        const itemNames = extractItemNamesFromCounts(counts);
-
-        results.push({
-          operatorId: parseInt(operatorId),
-          machineSerial: parseInt(machineSerial),
-          startTimestamp: cycleStart.toISOString(),
-          endTimestamp: cycleEnd.toISOString(),
-          totalCount,
-          task: itemNames,
-          standard: Math.round(piecesPerHour * (efficiency)),      
-        });
-      }
-
-      res.json(results);
+      // Filter out null results and send response
+      res.json(results.filter(result => result !== null));
     } catch (error) {
-      logger.error("Error fetching Softrol operator session data:", error);
-      res.status(500).json({ error: "Failed to fetch Softrol session data" });
+      logger.error("Error in softrol data processing:", error);
+      res.status(500).json({ error: "Failed to process softrol data" });
     }
   });
   // Softrol Route end
