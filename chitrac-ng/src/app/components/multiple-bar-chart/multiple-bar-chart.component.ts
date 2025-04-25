@@ -57,13 +57,13 @@ export class MultipleBarChartComponent implements OnChanges, OnDestroy, AfterVie
     const element = this.chartContainer.nativeElement;
     element.innerHTML = ''; // Clear existing chart
 
-    const margin = { top: 40, right: 120, bottom: 50, left: 50 };
+    const margin = { top: 40, right: 120, bottom: 50, left: 80 };
     const width = 900 - margin.left - margin.right;
     const height = 400 - margin.top - margin.bottom;
 
     const isDarkTheme = document.body.classList.contains('dark-theme');
     const textColor = isDarkTheme ? 'white' : 'black';
-    const seriesColors = ['#4c2c92', '#2c7d92', '#922c7d']; // Different colors for each series
+    const seriesColors = ['#28a745', '#ffc107', '#dc3545']; // green, yellow, red
 
     const svg = d3.select(element)
       .append('svg')

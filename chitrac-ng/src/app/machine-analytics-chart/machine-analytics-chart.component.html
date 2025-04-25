@@ -1,0 +1,25 @@
+<div class="chart-container">
+  <div class="controls">
+    <div class="date-controls">
+      <label for="endDate">Date:</label>
+      <input type="date" id="endDate" [(ngModel)]="endDate" (change)="onDateChange()">
+    </div>
+
+    <div class="machine-control">
+      <label for="machineSelect">Machine:</label>
+      <select id="machineSelect" [(ngModel)]="selectedMachine" (change)="onMachineChange()">
+        <option value="">All Machines</option>
+        <option *ngFor="let machine of machines" [value]="machine.serial">
+          {{ machine.name }} ({{ machine.serial }})
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <div class="charts">
+    <div *ngFor="let chart of charts" class="chart-wrapper">
+      <h3>{{ chart.title }}</h3>
+      <app-multiple-bar-chart [data]="chart"></app-multiple-bar-chart>
+    </div>
+  </div>
+</div>

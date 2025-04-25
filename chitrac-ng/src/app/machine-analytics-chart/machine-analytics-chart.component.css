@@ -1,0 +1,99 @@
+.chart-container {
+  padding: 20px;
+  max-width: 100%; /* was 1200px */
+  margin: 0 auto;
+  background-color: var(--theme-color-surface);
+  color: var(--theme-color-on-surface-variant);
+}
+
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: var(--theme-color-surface-container);
+  border-radius: 5px;
+}
+
+.date-controls {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.machine-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+label {
+  font-weight: 500;
+  color: var(--theme-color-on-surface-variant);
+}
+
+input[type="date"],
+select {
+  padding: 8px;
+  border: 1px solid var(--theme-color-primary-darkest);
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: var(--theme-color-surface);
+  color: var(--theme-color-on-surface-variant);
+}
+
+input[type="date"]::placeholder,
+select::placeholder {
+  color: var(--theme-color-on-surface-variant);
+  opacity: 0.7;
+}
+
+input[type="date"] {
+  padding: 8px;
+  border: 1px solid var(--theme-color-primary-darkest);
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: var(--theme-color-surface);
+  color: var(--theme-color-on-surface-variant);
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) saturate(100%) invert(var(--theme-icon-invert, 0.8));
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-datetime-edit {
+  color: var(--theme-color-on-surface-variant);
+}
+
+input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  color: var(--theme-color-on-surface-variant);
+}
+
+.charts {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.chart-wrapper {
+  background-color: var(--theme-color-surface-container);
+  padding: 20px 20px 20px 40px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chart-wrapper canvas {
+  margin-left: 10px;
+}
+
+.chart-wrapper h3 {
+  margin: 0 0 15px 0;
+  color: var(--theme-color-on-surface-variant);
+  font-size: 16px;
+}
