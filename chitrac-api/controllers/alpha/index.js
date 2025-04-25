@@ -1590,49 +1590,65 @@ function constructor(server) {
       const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
 
      // Step 6: Process each group and its completed cycles individually
-const results = await Promise.all(
-  Object.entries(completedCyclesByGroup).flatMap(([key, group]) => {
-    const [operatorId, machineSerial] = key.split("-");
-    const countGroup = groupedCounts[`${operatorId}-${machineSerial}`];
-    if (!countGroup) return []; // No counts = skip
+     const results = [];
 
-    // Process each completed cycle individually
-    return group.completedCycles.map(async (cycle) => {
-      const cycleStart = new Date(cycle.start);
-      const cycleEnd = new Date(cycle.end);
-
-      // Filter counts that fall within the cycle time
-      const cycleCounts = countGroup.counts.filter(count => {
-        const ts = new Date(count.timestamp);
-        return ts >= cycleStart && ts <= cycleEnd;
-      });
-
-      if (!cycleCounts.length) return null;
-
-      // Process stats for counts during this cycle
-      const stats = processCountStatistics(cycleCounts);
-      const { runtime: runtimeMs } = calculateOperatorTimes(cycle.states, cycleStart, cycleEnd);
-      const piecesPerHour = calculatePiecesPerHour(stats.total, runtimeMs);
-      const efficiency = calculateEfficiency(runtimeMs, stats.total, countGroup.validCounts);
-
-      const itemNames = extractItemNamesFromCounts(cycleCounts);
-
-      return {
-        operatorId: parseInt(operatorId),
-        machineSerial: parseInt(machineSerial),
-        startTimestamp: cycleStart.toISOString(),
-        endTimestamp: cycleEnd.toISOString(),
-        totalCount: stats.total,
-        task: itemNames,
-        standard: Math.round(piecesPerHour * efficiency),
-      };
-    });
-  })
-);
-
-// Filter and flatten results
-const flattenedResults = (await Promise.all(results.flat())).filter(r => r !== null);
-res.json(flattenedResults);
+     for (const [key, group] of Object.entries(completedCyclesByGroup)) {
+       const [operatorId, machineSerial] = key.split("-");
+       const countGroup = groupedCounts[`${operatorId}-${machineSerial}`];
+       if (!countGroup) continue;
+     
+       // Pre-sort counts by timestamp ASCENDING (important)
+       const sortedCounts = countGroup.counts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+       
+       let countIndex = 0; // pointer for counts
+     
+       for (const cycle of group.completedCycles) {
+         const cycleStart = new Date(cycle.start);
+         const cycleEnd = new Date(cycle.end);
+     
+         const cycleCounts = [];
+     
+         // Move countIndex forward while counts are within cycle window
+         while (countIndex < sortedCounts.length) {
+           const currentCount = sortedCounts[countIndex];
+           const countTimestamp = new Date(currentCount.timestamp);
+     
+           if (countTimestamp < cycleStart) {
+             countIndex++;
+             continue;
+           }
+           if (countTimestamp > cycleEnd) {
+             break; // current count is after this cycle
+           }
+     
+           // count is inside this cycle
+           cycleCounts.push(currentCount);
+           countIndex++;
+         }
+     
+         if (!cycleCounts.length) continue; // no counts in this cycle, skip
+     
+         // Process stats for this cycle
+         const stats = processCountStatistics(cycleCounts);
+         const { runtime: runtimeMs } = calculateOperatorTimes(cycle.states, cycleStart, cycleEnd);
+         const piecesPerHour = calculatePiecesPerHour(stats.total, runtimeMs);
+         const efficiency = calculateEfficiency(runtimeMs, stats.total, countGroup.validCounts);
+         const itemNames = extractItemNamesFromCounts(cycleCounts);
+     
+         results.push({
+           operatorId: parseInt(operatorId),
+           machineSerial: parseInt(machineSerial),
+           startTimestamp: cycleStart.toISOString(),
+           endTimestamp: cycleEnd.toISOString(),
+           totalCount: stats.total,
+           task: itemNames,
+           standard: Math.round(piecesPerHour * efficiency),
+         });
+       }
+     }
+     
+     res.json(results);
+     
 
     } catch (error) {
       logger.error("Error in softrol data processing:", error);
