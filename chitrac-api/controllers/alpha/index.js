@@ -1527,7 +1527,17 @@ function constructor(server) {
         return res.status(400).json({ error: "Invalid start time format. Please use ISO date string" });
       }
 
-      // Step 2: Get latest state and create time range in parallel
+      // Step 2: Handle end parameter
+      let endDate;
+      if (req.query.end) {
+        // If end parameter is provided, validate it
+        endDate = new Date(req.query.end);
+        if (isNaN(endDate.getTime())) {
+          return res.status(400).json({ error: "Invalid end time format. Please use ISO date string" });
+        }
+      }
+
+      // Step 3: Get latest state and create time range in parallel
       const [latestState] = await Promise.all([
         db.collection('state')
         .find()
@@ -1537,10 +1547,11 @@ function constructor(server) {
         // Add any other independent operations here
       ]);
       
-      const end = latestState?.timestamp || new Date().toISOString();
+      // Use provided end date or default to latest state/current time
+      const end = endDate ? endDate.toISOString() : (latestState?.timestamp || new Date().toISOString());
       const { paddedStart, paddedEnd } = createPaddedTimeRange(startDate, new Date(end));
 
-      // Step 3: Fetch states and process cycles in parallel
+      // Step 4: Fetch states and process cycles in parallel
       const [allStates] = await Promise.all([
         fetchStatesForOperator(db, null, paddedStart, paddedEnd),
         // Add any other independent operations here
@@ -1569,7 +1580,7 @@ function constructor(server) {
         };
       });
 
-      // Step 4: Get counts and process results in parallel
+      // Step 5: Get counts and process results in parallel
       const [allCounts] = await Promise.all([
         getCountsForOperatorMachinePairs(db, operatorMachinePairs, start, end),
         // Add any other independent operations here
@@ -1578,7 +1589,7 @@ function constructor(server) {
       // Group the counts by operator and machine for easier processing
       const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
 
-      // Step 5: Process each group in parallel
+      // Step 6: Process each group in parallel
       const results = await Promise.all(
         Object.entries(completedCyclesByGroup).map(async ([key, group]) => {
         const [operatorId, machineSerial] = key.split("-");

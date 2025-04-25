@@ -437,38 +437,45 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
   const getCompletedCyclesForOperator = (states) => {
     const completedCycles = [];
     let currentCycle = null;
+    
+    const sortedStates = states.sort((a, b) => 
+        new Date(a.timestamp) - new Date(b.timestamp)
+    );
 
-    for (let i = 0; i < states.length; i++) {
-      const state = states[i];
-      const statusCode = state.status?.code;
+    for (let i = 0; i < sortedStates.length; i++) {
+        const state = sortedStates[i];
+        const statusCode = state.status?.code;
+        const timestamp = new Date(state.timestamp);
 
-      // Start of a new running cycle
-      if (statusCode === 1 && !currentCycle) {
-        currentCycle = {
-          start: new Date(state.timestamp),
-          states: [state]
-        };
-      }
-      // Continue an existing running cycle
-      else if (statusCode === 1 && currentCycle) {
-        currentCycle.states.push(state);
-      }
-      // End of a running cycle (paused or faulted)
-      else if (statusCode !== 1 && currentCycle) {
-        currentCycle.end = new Date(state.timestamp);
-        currentCycle.duration = currentCycle.end - currentCycle.start;
-        completedCycles.push(currentCycle);
-        currentCycle = null;
-      }
-    }
-
-    // If we have an open cycle at the end, it's not completed
-    if (currentCycle) {
-      currentCycle = null;
+        if (statusCode === 1) {
+            if (!currentCycle) {
+                currentCycle = {
+                    start: timestamp,
+                    end: null,
+                    duration: 0,
+                    states: [state]
+                };
+            } else {
+                currentCycle.states.push(state);
+            }
+        }
+        else if (statusCode === 0 || statusCode > 1) {
+            if (currentCycle) {
+                currentCycle.end = timestamp;
+                currentCycle.duration = currentCycle.end - currentCycle.start;
+                
+                if (currentCycle.duration > 0) {
+                    completedCycles.push(currentCycle);
+                }
+                currentCycle = null;
+            }
+        }
     }
 
     return completedCycles;
-  }
+  };
+  
+  
 
 
 
