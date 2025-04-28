@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, Renderer2, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MultipleLineChartComponent } from '../components/multiple-line-chart/multiple-line-chart.component';
 import { OeeDataService } from '../services/oee-data.service';
@@ -9,9 +9,9 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule, FormsModule, MultipleLineChartComponent],
   templateUrl: './operator-performance-chart.component.html',
-  styleUrl: './operator-performance-chart.component.scss'
+  styleUrls: ['./operator-performance-chart.component.scss']
 })
-export class OperatorPerformanceChartComponent implements OnInit {
+export class OperatorPerformanceChartComponent implements OnInit, OnDestroy {
   startTime: string = '';
   endTime: string = '';
   machineSerial: string = '';
@@ -19,7 +19,14 @@ export class OperatorPerformanceChartComponent implements OnInit {
   loading: boolean = false;
   error: string | null = null;
 
-  constructor(private oeeDataService: OeeDataService) {}
+  isDarkTheme: boolean = false;
+  private observer!: MutationObserver;
+
+  constructor(
+    private oeeDataService: OeeDataService,
+    private renderer: Renderer2,
+    private elRef: ElementRef
+  ) {}
 
   ngOnInit() {
     // Set default time range to last 24 hours
@@ -29,6 +36,36 @@ export class OperatorPerformanceChartComponent implements OnInit {
     
     this.endTime = end.toISOString();
     this.startTime = start.toISOString();
+
+    // Detect initial theme
+    this.detectTheme();
+
+    // Observe theme switching dynamically
+    this.observer = new MutationObserver(() => {
+      this.detectTheme();
+    });
+    this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  ngOnDestroy() {
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+  }
+
+  detectTheme() {
+    const isDark = document.body.classList.contains('dark-theme');
+    this.isDarkTheme = isDark;
+
+    // Optional: Update custom styles dynamically here if needed
+    const element = this.elRef.nativeElement;
+    if (isDark) {
+      this.renderer.setStyle(element, 'background-color', '#121212');
+      this.renderer.setStyle(element, 'color', '#e0e0e0');
+    } else {
+      this.renderer.setStyle(element, 'background-color', '#ffffff');
+      this.renderer.setStyle(element, 'color', '#000000');
+    }
   }
 
   fetchData() {

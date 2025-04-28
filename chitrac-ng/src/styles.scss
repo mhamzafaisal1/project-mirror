@@ -106,3 +106,11 @@ input::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* Custom modal styling */
+.custom-modal-panel .mat-dialog-container {
+  border-radius: 12px;
+  padding: 0;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}

@@ -57,8 +57,11 @@ export class MultipleLineChartComponent implements AfterViewInit {
   }
 
   private createChart() {
-    // Clear previous chart if exists
-    d3.select(this.chartContainer.nativeElement).selectAll('*').remove();
+     // Clear previous chart if exists
+  d3.select(this.chartContainer.nativeElement).selectAll('*').remove();
+
+  const isDarkTheme = document.body.classList.contains('dark-theme'); // ✅ Detect theme
+  const textColor = isDarkTheme ? '#e0e0e0' : '#000000';
 
     // Transform data for D3
     const transformedData = this.transformData(this.data);
@@ -153,6 +156,7 @@ export class MultipleLineChartComponent implements AfterViewInit {
     legend.append('text')
       .attr('x', 24) // Increased spacing between rectangle and text
       .attr('y', 12)
+      .style('fill', textColor)
       .text(d => d);
   }
 

@@ -15,6 +15,7 @@ import { MachineAnalyticsDashboardComponent } from './machine-analytics-dashboar
 import { MachineAnalyticsChartComponent } from './machine-analytics-chart/machine-analytics-chart.component';
 import { OperatorAnalyticsDashboardComponent } from './operator-analytics-dashboard/operator-analytics-dashboard.component';
 import { OperatorPerformanceChartComponent } from './operator-performance-chart/operator-performance-chart.component';
+import { UseModalComponent } from './use-modal/use-modal.component';
 
 import { AuthGuard } from './guards/auth.guard';
 
@@ -34,5 +35,6 @@ export const routes: Routes = [
 	{ path: 'ng/machineAnalytics/chart', component: MachineAnalyticsChartComponent },
 	{ path: 'ng/operatorAnalytics', component: OperatorAnalyticsDashboardComponent },
 	{ path: 'ng/operator-performance-chart', component: OperatorPerformanceChartComponent },
+	{ path: 'ng/use-modal', component: UseModalComponent },
 	{ path: 'ng/*', redirectTo: 'ng/home' }
 	];

@@ -1,4 +1,4 @@
-<div class="container">
+<div class="container" [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }">
   <div class="controls">
     <div class="form-group">
       <label for="machineSerial">Machine Serial:</label>
@@ -37,7 +37,13 @@
     {{ error }}
   </div>
 
-  <div class="chart-container" *ngIf="chartData">
-    <app-multiple-line-chart [data]="chartData"></app-multiple-line-chart>
+  <div class="chart-wrapper">
+    <div class="chart-container" *ngIf="chartData">
+      <app-multiple-line-chart [data]="chartData"></app-multiple-line-chart>
+    </div>
+
+    <div class="chart-placeholder" *ngIf="!chartData">
+      <p>Please fetch data to display chart.</p>
+    </div>
   </div>
 </div>
