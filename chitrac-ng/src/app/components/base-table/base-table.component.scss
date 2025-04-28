@@ -1,53 +1,28 @@
-.base-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: 'Segoe UI', sans-serif;
-    margin: 20px 0;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    background-color: var(--theme-color-surface);
-    color: var(--theme-color-on-surface-variant); // 🌗 auto switch text color
-  
-    thead {
-      background-color: #4c2c92;
-      color: #ffffff;
-  
-      th {
-        padding: 12px;
-        text-align: left;
-        font-weight: 600;
-        font-size: 0.95rem;
-      }
-    }
-  
-    tbody {
-      tr:hover {
-        background-color: #f1f5ff;
-      }
-  
-      td {
-        padding: 12px;
-        font-size: 0.92rem;
-        color: var(--theme-color-on-surface-variant); // 🌗 text color auto-switch
-        border-bottom: 1px solid #eee;
-  
-        &.efficiency {
-          font-weight: bold;
-        }
-  
-        &.green {
-          color: #2e7d32;
-        }
-  
-        &.yellow {
-          color: #f9a825;
-        }
-  
-        &.red {
-          color: #c62828;
-        }
-      }
-    }
-  }
-  
+mat-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+mat-header-cell, mat-cell {
+  padding: 12px;
+  font-size: 14px;
+}
+
+mat-row.selected {
+  background-color: rgba(0, 123, 255, 0.2) !important;
+}
+
+.green {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.yellow {
+  color: #ff9800;
+  font-weight: bold;
+}
+
+.red {
+  color: #f44336;
+  font-weight: bold;
+}

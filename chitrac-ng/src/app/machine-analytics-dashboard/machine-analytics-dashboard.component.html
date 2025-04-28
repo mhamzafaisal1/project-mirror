@@ -1,23 +1,26 @@
-<div class="analytics-container">
-  <div class="analytics-inputs">
-    <label>
-      Start Time:
-      <input type="datetime-local" [(ngModel)]="startTime" />
-    </label>
-  
-    <label>
-      End Time:
-      <input type="datetime-local" [(ngModel)]="endTime" />
-    </label>
-  
-    <label>
-      Machine Serial:
-      <input type="text" [(ngModel)]="machineSerial" />
-    </label>
-  
-    <button (click)="fetchAnalyticsData()">Fetch Analytics</button>
-  </div>
-  
-  <base-table *ngIf="rows.length" [columns]="columns" [rows]="rows"></base-table>
+<div class="controls">
+  <mat-form-field appearance="outline">
+    <mat-label>Start Date</mat-label>
+    <input matInput [matDatepicker]="startPicker" [(ngModel)]="startTime">
+    <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+    <mat-datepicker #startPicker></mat-datepicker>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>End Date</mat-label>
+    <input matInput [matDatepicker]="endPicker" [(ngModel)]="endTime">
+    <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+    <mat-datepicker #endPicker></mat-datepicker>
+  </mat-form-field>
+
+  <button mat-flat-button color="primary" (click)="fetchAnalyticsData()" [disabled]="!startTime || !endTime">
+    Fetch Data
+  </button>
 </div>
-  
+
+<!-- ✅ BaseTable is cleanly used -->
+<base-table 
+  [columns]="columns" 
+  [rows]="rows" 
+  (rowClicked)="onRowClick($event)">
+</base-table>

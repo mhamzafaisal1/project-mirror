@@ -1,31 +1,31 @@
 <div class="container" [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }">
   <div class="controls">
 
-    <!-- Material Input -->
-    <mat-form-field appearance="outline" class="form-group">
-      <mat-label>Machine Serial</mat-label>
-      <input matInput type="text" [(ngModel)]="machineSerial" placeholder="Enter machine serial">
-    </mat-form-field>
-  
-    <!-- Native Start Time -->
-    <div class="form-group">
-      <label for="startTime">Start Time</label>
-      <input type="datetime-local" id="startTime" [(ngModel)]="startTime">
-    </div>
-  
-    <!-- Native End Time -->
-    <div class="form-group">
-      <label for="endTime">End Time</label>
-      <input type="datetime-local" id="endTime" [(ngModel)]="endTime">
-    </div>
-  
-    <!-- Button -->
-    <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="loading">
-      {{ loading ? 'Loading...' : 'Fetch Data' }}
-    </button>
-  
+  <!-- Material Input -->
+  <mat-form-field appearance="outline" class="form-group">
+    <mat-label>Machine Serial</mat-label>
+    <input matInput type="text" [(ngModel)]="machineSerial" placeholder="Enter machine serial">
+  </mat-form-field>
+
+  <!-- Native Start Time -->
+  <div class="form-group">
+    <label for="startTime">Start Time</label>
+    <input type="datetime-local" id="startTime" [(ngModel)]="startTime">
   </div>
-  
+
+  <!-- Native End Time -->
+  <div class="form-group">
+    <label for="endTime">End Time</label>
+    <input type="datetime-local" id="endTime" [(ngModel)]="endTime">
+  </div>
+
+  <!-- Button -->
+  <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="loading">
+    {{ loading ? 'Loading...' : 'Fetch Data' }}
+  </button>
+
+</div>
+
 
   <div class="error" *ngIf="error">{{ error }}</div>
 

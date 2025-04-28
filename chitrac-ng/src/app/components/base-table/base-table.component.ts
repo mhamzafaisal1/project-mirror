@@ -1,16 +1,44 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatSort, MatSortModule } from '@angular/material/sort';
 
 @Component({
   selector: 'base-table',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatTableModule, MatSortModule],
   templateUrl: './base-table.component.html',
   styleUrls: ['./base-table.component.scss']
 })
-export class BaseTableComponent {
+export class BaseTableComponent implements AfterViewInit {
   @Input() columns: string[] = [];
   @Input() rows: any[] = [];
+  @Output() rowClicked = new EventEmitter<any>(); // Event emitter for row clicks
+
+  dataSource = new MatTableDataSource<any>();
+  selectedRow: any | null = null;
+
+  @ViewChild(MatSort) sort: MatSort;
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+  }
+
+  ngOnChanges() {
+    this.dataSource = new MatTableDataSource(this.rows || []);
+    if (this.sort) {
+      this.dataSource.sort = this.sort;
+    }
+  }
+
+  onRowClick(row: any) {
+    if (this.selectedRow === row) {
+      this.selectedRow = null;
+    } else {
+      this.selectedRow = row;
+      this.rowClicked.emit(row);
+    }
+  }
 
   getEfficiencyClass(value: any): string {
     if (typeof value !== 'string' || !value.includes('%')) return '';
@@ -19,10 +47,9 @@ export class BaseTableComponent {
 
     if (isNaN(num)) return '';
 
-    if (num >=90) return 'green';
+    if (num >= 90) return 'green';
     if (num >= 70) return 'yellow';
     if (num >= 40) return 'red';
     return 'red';
   }
 }
-// This component is a reusable table component that takes in columns and rows as inputs. It also has a method to determine the CSS class for efficiency values based on their percentage.
