@@ -10,7 +10,7 @@ import { OperatorPerformanceChartComponent } from '../operator-performance-chart
   standalone: true,
   templateUrl: './use-modal.component.html',
   styleUrls: ['./use-modal.component.scss'],
-  imports: [MatDialogModule, MatButtonModule, MatIconModule] // ✅
+  imports: [MatDialogModule, MatButtonModule, MatIconModule] 
 })
 
 export class UseModalComponent {

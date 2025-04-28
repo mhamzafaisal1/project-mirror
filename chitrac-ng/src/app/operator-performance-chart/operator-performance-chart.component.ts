@@ -1,13 +1,25 @@
 import { Component, OnInit, OnDestroy, ElementRef, Renderer2, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MultipleLineChartComponent } from '../components/multiple-line-chart/multiple-line-chart.component';
-import { OeeDataService } from '../services/oee-data.service';
 import { CommonModule } from '@angular/common';
+import { MultipleLineChartComponent } from '../components/multiple-line-chart/multiple-line-chart.component';
+
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+
+import { OeeDataService } from '../services/oee-data.service';
 
 @Component({
   selector: 'app-operator-performance-chart',
   standalone: true,
-  imports: [CommonModule, FormsModule, MultipleLineChartComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MultipleLineChartComponent
+  ],
   templateUrl: './operator-performance-chart.component.html',
   styleUrls: ['./operator-performance-chart.component.scss']
 })
@@ -29,18 +41,14 @@ export class OperatorPerformanceChartComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    // Set default time range to last 24 hours
     const end = new Date();
     const start = new Date();
     start.setHours(start.getHours() - 24);
-    
+
     this.endTime = end.toISOString();
     this.startTime = start.toISOString();
 
-    // Detect initial theme
     this.detectTheme();
-
-    // Observe theme switching dynamically
     this.observer = new MutationObserver(() => {
       this.detectTheme();
     });
@@ -57,7 +65,6 @@ export class OperatorPerformanceChartComponent implements OnInit, OnDestroy {
     const isDark = document.body.classList.contains('dark-theme');
     this.isDarkTheme = isDark;
 
-    // Optional: Update custom styles dynamically here if needed
     const element = this.elRef.nativeElement;
     if (isDark) {
       this.renderer.setStyle(element, 'background-color', '#121212');
