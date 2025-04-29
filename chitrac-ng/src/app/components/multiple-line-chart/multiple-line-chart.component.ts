@@ -46,10 +46,10 @@ export class MultipleLineChartComponent implements AfterViewInit {
   @Input() data!: ChartData;
   @Input() isDarkTheme: boolean = false;
 
-  // Adjusted margins to accommodate legend
-  private margin = { top: 20, right: 150, bottom: 30, left: 60 };
-  private width = 1100; // Increased width
-  private height = 600;
+  // Adjusted margins and dimensions for better visual appeal
+  private margin = { top: 20, right: 180, bottom: 30, left: 60 };
+  private width = 1400; // Increased width
+  private height = 700; // Increased height
 
   ngAfterViewInit() {
     if (this.data) {

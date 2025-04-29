@@ -114,3 +114,26 @@ input[type=number] {
   background-color: var(--background-color);
   color: var(--text-color);
 }
+
+.cdk-overlay-container {
+  overflow-y: hidden !important;
+}
+
+body.cdk-global-scrollblock {
+  overflow: hidden !important;
+}
+
+/* Performance Chart Dialog Styles */
+.performance-chart-dialog {
+  .mat-mdc-dialog-container {
+    padding: 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .mat-mdc-dialog-surface {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+}
+

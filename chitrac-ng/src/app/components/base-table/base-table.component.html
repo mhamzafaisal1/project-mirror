@@ -4,9 +4,10 @@
   <ng-container *ngFor="let column of columns" [matColumnDef]="column">
     <mat-header-cell *matHeaderCellDef mat-sort-header> {{ column }} </mat-header-cell>
 
-    <mat-cell *matCellDef="let row">
+    <mat-cell *matCellDef="let row" [class]="column.toLowerCase().includes('efficiency') ? getEfficiencyClass(row[column]) : ''">
       {{ row[column] }}
     </mat-cell>
+
   </ng-container>
 
   <!-- Header and Row Definitions -->

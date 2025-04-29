@@ -78,11 +78,11 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
 
   fetchAnalyticsData(): void {
     if (!this.startTime || !this.endTime) return;
-
+  
     this.analyticsService.getMachinePerformance(this.startTime, this.endTime, undefined)
       .subscribe((data: any) => {
         const responses = Array.isArray(data) ? data : [data];
-
+  
         const formattedData = responses.map(response => ({
           'Machine Name': response.machine.name,
           'Serial Number': response.machine.serial,
@@ -97,11 +97,16 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
           'OEE': `${response.metrics.performance.oee.percentage}%`,
           'Time Range': `${response.timeRange.start} to ${response.timeRange.end}`
         }));
-
-        this.columns = Object.keys(formattedData[0]);
+  
+        // ✅ store all columns, but only display selected ones
+        const allColumns = Object.keys(formattedData[0]);
+        const columnsToHide = ['Serial Number', 'Time Range'];
+        this.columns = allColumns.filter(col => !columnsToHide.includes(col));
+  
         this.rows = formattedData;
       });
   }
+  
 
   onRowClick(row: any): void {
     if (this.selectedRow === row) {
@@ -119,8 +124,10 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
 
     const dialogRef = this.dialog.open(ModalWrapperComponent, {
       width: '90vw',
-      height: '85vh',
-      maxWidth: 'none',
+      height: '80vh',
+      maxHeight: '90vh',
+      maxWidth: '95vw',
+      panelClass: 'performance-chart-dialog',
       data: {
         component: OperatorPerformanceChartComponent,
         machineSerial: row['Serial Number'],

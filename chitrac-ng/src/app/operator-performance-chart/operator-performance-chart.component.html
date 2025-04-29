@@ -5,10 +5,10 @@
 
   <div class="chart-wrapper">
     <div class="chart-container" *ngIf="chartData">
-      <h2>Operator Performance Chart</h2>
-      <div *ngIf="machineSerial" class="machine-info">
-        Machine Serial: {{machineSerial}}
-      </div>
+      <h2 class="modal-title">
+        Operator Performance Chart
+        <span class="machine-tag">Machine Serial: {{ machineSerial }}</span>
+      </h2>
 
       <div class="time-controls">
         <mat-form-field>
