@@ -46,10 +46,12 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const end = new Date();
     const start = new Date();
-    start.setHours(start.getHours() - 24);
+    // Set start time to beginning of today (12:00 AM)
+    start.setHours(0, 0, 0, 0);
 
-    this.endTime = end.toISOString().slice(0, 16); // ✅ trim for datetime-local
-    this.startTime = start.toISOString().slice(0, 16);
+    // Format dates in local timezone
+    this.endTime = this.formatDateForInput(end);
+    this.startTime = this.formatDateForInput(start);
 
     this.detectTheme();
 
@@ -141,5 +143,16 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
         this.selectedRow = null;
       }
     });
+  }
+
+  // Helper function to format date for datetime-local input
+  private formatDateForInput(date: Date): string {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 }
