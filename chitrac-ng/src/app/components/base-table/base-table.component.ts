@@ -1,55 +1,67 @@
-import { Component, Input, Output, EventEmitter, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 
 @Component({
   selector: 'base-table',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatSortModule],
+  imports: [
+    CommonModule,
+    MatTableModule,
+    MatSortModule
+  ],
   templateUrl: './base-table.component.html',
   styleUrls: ['./base-table.component.scss']
 })
-export class BaseTableComponent implements AfterViewInit {
+export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit {
   @Input() columns: string[] = [];
   @Input() rows: any[] = [];
-  @Output() rowClicked = new EventEmitter<any>(); // Event emitter for row clicks
+  @Input() selectedRow: any | null = null;
+  @Output() rowClicked = new EventEmitter<any>();
 
+  @ViewChild(MatSort) sort!: MatSort;
   dataSource = new MatTableDataSource<any>();
-  selectedRow: any | null = null;
 
-  @ViewChild(MatSort) sort: MatSort;
+  ngOnInit() {
+    this.updateData();
+  }
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
   }
 
   ngOnChanges() {
-    this.dataSource = new MatTableDataSource(this.rows || []);
+    this.updateData();
+  }
+
+  private updateData() {
+    this.dataSource.data = this.rows;
     if (this.sort) {
       this.dataSource.sort = this.sort;
     }
   }
 
   onRowClick(row: any) {
-    if (this.selectedRow === row) {
-      this.selectedRow = null;
-    } else {
-      this.selectedRow = row;
+    if (this.selectedRow !== row) {
       this.rowClicked.emit(row);
+    } else {
+      this.rowClicked.emit(null);
     }
+  }
+
+  isRowSelected(row: any): boolean {
+    return this.selectedRow === row;
   }
 
   getEfficiencyClass(value: any): string {
     if (typeof value !== 'string' || !value.includes('%')) return '';
 
     const num = parseInt(value.replace('%', ''));
-
     if (isNaN(num)) return '';
 
     if (num >= 90) return 'green';
     if (num >= 70) return 'yellow';
-    if (num >= 40) return 'red';
     return 'red';
   }
 }

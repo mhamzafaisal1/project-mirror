@@ -44,6 +44,7 @@ interface DataPoint {
 export class MultipleLineChartComponent implements AfterViewInit {
   @ViewChild('chartContainer') private chartContainer!: ElementRef;
   @Input() data!: ChartData;
+  @Input() isDarkTheme: boolean = false;
 
   // Adjusted margins to accommodate legend
   private margin = { top: 20, right: 150, bottom: 30, left: 60 };
@@ -60,8 +61,7 @@ export class MultipleLineChartComponent implements AfterViewInit {
      // Clear previous chart if exists
   d3.select(this.chartContainer.nativeElement).selectAll('*').remove();
 
-  const isDarkTheme = document.body.classList.contains('dark-theme'); // ✅ Detect theme
-  const textColor = isDarkTheme ? '#e0e0e0' : '#000000';
+  const textColor = this.isDarkTheme ? '#e0e0e0' : '#000000';
 
     // Transform data for D3
     const transformedData = this.transformData(this.data);

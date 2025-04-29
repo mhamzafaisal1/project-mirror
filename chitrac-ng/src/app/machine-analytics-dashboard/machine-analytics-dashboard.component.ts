@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, Renderer2 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -6,9 +6,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core'; // ✅ REQUIRED!
-import { DateTime } from 'luxon'; // ✅ Using Luxon for proper time control
 
 import { BaseTableComponent } from '../components/base-table/base-table.component';
 import { MachineAnalyticsService } from '../services/machine-analytics.service';
@@ -25,39 +22,64 @@ import { OperatorPerformanceChartComponent } from '../operator-performance-chart
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatDatepickerModule,
-    MatNativeDateModule, // ✅ NEEDED here
-    BaseTableComponent
+    BaseTableComponent,
   ],
   templateUrl: './machine-analytics-dashboard.component.html',
   styleUrls: ['./machine-analytics-dashboard.component.scss']
 })
-export class MachineAnalyticsDashboardComponent implements OnInit {
-  startTime: Date = new Date();
-  endTime: Date = new Date();
+export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
+  startTime: string = '';
+  endTime: string = '';
   columns: string[] = [];
   rows: any[] = [];
   selectedRow: any | null = null;
+  isDarkTheme: boolean = false;
+  private observer!: MutationObserver;
 
   constructor(
     private analyticsService: MachineAnalyticsService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private renderer: Renderer2,
+    private elRef: ElementRef
   ) {}
 
   ngOnInit(): void {
-    const now = DateTime.now();
-    this.startTime = now.startOf('day').toJSDate(); // Start of today
-    this.endTime = now.toJSDate(); // Current moment
+    const end = new Date();
+    const start = new Date();
+    start.setHours(start.getHours() - 24);
+
+    this.endTime = end.toISOString().slice(0, 16); // ✅ trim for datetime-local
+    this.startTime = start.toISOString().slice(0, 16);
+
+    this.detectTheme();
+
+    this.observer = new MutationObserver(() => {
+      this.detectTheme();
+    });
+    this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
     this.fetchAnalyticsData();
+  }
+
+  ngOnDestroy() {
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+  }
+
+  detectTheme() {
+    const isDark = document.body.classList.contains('dark-theme');
+    this.isDarkTheme = isDark;
+
+    const element = this.elRef.nativeElement;
+    this.renderer.setStyle(element, 'background-color', isDark ? '#121212' : '#ffffff');
+    this.renderer.setStyle(element, 'color', isDark ? '#e0e0e0' : '#000000');
   }
 
   fetchAnalyticsData(): void {
     if (!this.startTime || !this.endTime) return;
 
-    const startISO = DateTime.fromJSDate(this.startTime).toISO();
-    const endISO = DateTime.fromJSDate(this.endTime).toISO();
-
-    this.analyticsService.getMachinePerformance(startISO, endISO, undefined)
+    this.analyticsService.getMachinePerformance(this.startTime, this.endTime, undefined)
       .subscribe((data: any) => {
         const responses = Array.isArray(data) ? data : [data];
 
@@ -89,18 +111,28 @@ export class MachineAnalyticsDashboardComponent implements OnInit {
 
     this.selectedRow = row;
 
+    // Scroll selected row into view
+    setTimeout(() => {
+      const element = document.querySelector('.mat-row.selected');
+      element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 0);
+
     const dialogRef = this.dialog.open(ModalWrapperComponent, {
       width: '90vw',
       height: '85vh',
       maxWidth: 'none',
       data: {
         component: OperatorPerformanceChartComponent,
-        machineSerial: row['Serial Number']
+        machineSerial: row['Serial Number'],
+        startTime: this.startTime,
+        endTime: this.endTime
       }
     });
 
     dialogRef.afterClosed().subscribe(() => {
-      this.selectedRow = null;
+      if (this.selectedRow === row) {
+        this.selectedRow = null;
+      }
     });
   }
 }

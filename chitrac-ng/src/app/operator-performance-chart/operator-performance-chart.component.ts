@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy, ElementRef, Renderer2, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, Renderer2, ViewChild, Inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MultipleLineChartComponent } from '../components/multiple-line-chart/multiple-line-chart.component';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -37,22 +38,37 @@ export class OperatorPerformanceChartComponent implements OnInit, OnDestroy {
   constructor(
     private oeeDataService: OeeDataService,
     private renderer: Renderer2,
-    private elRef: ElementRef
-  ) {}
+    private elRef: ElementRef,
+    @Inject(MAT_DIALOG_DATA) private data: any
+  ) {
+    if (data) {
+      this.startTime = data.startTime || '';
+      this.endTime = data.endTime || '';
+      this.machineSerial = data.machineSerial || '';
+    }
+  }
 
   ngOnInit() {
-    const end = new Date();
-    const start = new Date();
-    start.setHours(start.getHours() - 24);
+    // Only set default times if no times were passed
+    if (!this.startTime || !this.endTime) {
+      const end = new Date();
+      const start = new Date();
+      start.setHours(start.getHours() - 24);
 
-    this.endTime = end.toISOString();
-    this.startTime = start.toISOString();
+      this.endTime = end.toISOString();
+      this.startTime = start.toISOString();
+    }
 
     this.detectTheme();
     this.observer = new MutationObserver(() => {
       this.detectTheme();
     });
     this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    // Fetch data immediately if we have all required values
+    if (this.startTime && this.endTime && this.machineSerial) {
+      this.fetchData();
+    }
   }
 
   ngOnDestroy() {

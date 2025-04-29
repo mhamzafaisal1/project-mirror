@@ -1,23 +1,153 @@
-.controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    margin-bottom: 20px;
-    align-items: center;
-  
-    mat-form-field {
-      width: 250px;
-    }
-  
-    button {
-      height: 56px;
-      font-weight: 600;
-      padding: 0 24px;
-      font-size: 14px;
-    }
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.container {
+  padding: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 100%;
+  overflow-x: auto;
+}
+
+/* Theme-specific styles */
+:host-context(.dark-theme) {
+  background-color: #121212;
+  color: #e0e0e0;
+
+  .error {
+    background-color: #5c1a1a;
+    color: #ffbaba;
+    border: 1px solid #b71c1c;
   }
-  
+
   base-table {
-    width: 100%;
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
   }
-  
+
+  input[type="datetime-local"] {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    border: 1px solid #555;
+
+    &:focus {
+      border-color: #90caf9;
+      box-shadow: 0 0 0 2px rgba(144, 202, 249, 0.25);
+    }
+  }
+}
+
+:host-context(.light-theme) {
+  background-color: #ffffff;
+  color: #000000;
+
+  .error {
+    background-color: #f8d7da;
+    color: #dc3545;
+    border: 1px solid #f5c6cb;
+  }
+
+  base-table {
+    background-color: #ffffff;
+    color: #000000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  input[type="datetime-local"] {
+    background-color: #ffffff;
+    color: #000000;
+    border: 1px solid #ddd;
+
+    &:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+  }
+}
+
+/* Controls Layout */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 20px;
+  align-items: center;
+  min-width: 1100px;
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 250px;
+  }
+
+  mat-form-field {
+    margin-bottom: -50px;
+  }
+
+  button {
+    height: 56px;
+    min-width: 200px;
+    font-weight: 600;
+    padding: 0 24px;
+    font-size: 14px;
+    margin-top: 25px;
+    transition: background-color 0.3s, color 0.3s;
+  }
+}
+
+/* Error Styling */
+.error {
+  padding: 10px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+  min-width: 1100px;
+}
+
+/* Input Styles for Native datetime-local */
+input[type="datetime-local"] {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--mat-form-field-outline-color, #ccc);
+  border-radius: 4px;
+  background-color: transparent;
+  color: inherit;
+  font-size: 16px;
+  padding: 16px 12px;
+  height: 56px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 24px 24px;
+  padding-right: 48px; /* space for calendar icon */
+  position: relative;
+}
+
+/* Light Theme Calendar Icon */
+.container.light-mode input[type="datetime-local"] {
+  background-image: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>');
+}
+
+/* Dark Theme Calendar Icon */
+.container.dark-mode input[type="datetime-local"] {
+  background-image: url('data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>');
+}
+
+/* Make native calendar picker still clickable */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+}

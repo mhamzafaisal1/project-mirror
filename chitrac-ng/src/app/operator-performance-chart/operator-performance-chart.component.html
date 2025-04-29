@@ -1,37 +1,37 @@
 <div class="container" [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }">
-  <div class="controls">
-
-  <!-- Material Input -->
-  <mat-form-field appearance="outline" class="form-group">
-    <mat-label>Machine Serial</mat-label>
-    <input matInput type="text" [(ngModel)]="machineSerial" placeholder="Enter machine serial">
-  </mat-form-field>
-
-  <!-- Native Start Time -->
-  <div class="form-group">
-    <label for="startTime">Start Time</label>
-    <input type="datetime-local" id="startTime" [(ngModel)]="startTime">
-  </div>
-
-  <!-- Native End Time -->
-  <div class="form-group">
-    <label for="endTime">End Time</label>
-    <input type="datetime-local" id="endTime" [(ngModel)]="endTime">
-  </div>
-
-  <!-- Button -->
-  <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="loading">
-    {{ loading ? 'Loading...' : 'Fetch Data' }}
-  </button>
-
-</div>
 
 
   <div class="error" *ngIf="error">{{ error }}</div>
 
   <div class="chart-wrapper">
     <div class="chart-container" *ngIf="chartData">
-      <app-multiple-line-chart [data]="chartData"></app-multiple-line-chart>
+      <h2>Operator Performance Chart</h2>
+      <div *ngIf="machineSerial" class="machine-info">
+        Machine Serial: {{machineSerial}}
+      </div>
+
+      <div class="time-controls">
+        <mat-form-field>
+          <mat-label>Start Time</mat-label>
+          <input matInput type="datetime-local" [(ngModel)]="startTime" (change)="fetchData()">
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>End Time</mat-label>
+          <input matInput type="datetime-local" [(ngModel)]="endTime" (change)="fetchData()">
+        </mat-form-field>
+      </div>
+
+      <div *ngIf="loading" class="loading">
+        Loading data...
+      </div>
+
+      <div *ngIf="chartData && !loading" class="chart">
+        <app-multiple-line-chart
+          [data]="chartData"
+          [isDarkTheme]="isDarkTheme">
+        </app-multiple-line-chart>
+      </div>
     </div>
 
     <div class="chart-placeholder" *ngIf="!chartData">

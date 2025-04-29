@@ -3,15 +3,21 @@
   <!-- Dynamic columns -->
   <ng-container *ngFor="let column of columns" [matColumnDef]="column">
     <mat-header-cell *matHeaderCellDef mat-sort-header> {{ column }} </mat-header-cell>
-    <mat-cell *matCellDef="let row" 
-              (click)="onRowClick(row)"
-              [class.selected]="selectedRow === row"
-              [class]="column.toLowerCase().includes('efficiency') || column.toLowerCase().includes('oee') ? getEfficiencyClass(row[column]) : ''">
+
+    <mat-cell *matCellDef="let row">
       {{ row[column] }}
     </mat-cell>
   </ng-container>
 
-  <mat-header-row *matHeaderRowDef="columns"></mat-header-row>
-  <mat-row *matRowDef="let row; columns: columns;"></mat-row>
+  <!-- Header and Row Definitions -->
+  <mat-header-row *matHeaderRowDef="columns; sticky: true"></mat-header-row>
+
+  <mat-row
+    *matRowDef="let row; columns: columns"
+    (click)="onRowClick(row)"
+    [ngClass]="{
+      'selected': selectedRow === row
+    }">
+  </mat-row>
 
 </mat-table>
