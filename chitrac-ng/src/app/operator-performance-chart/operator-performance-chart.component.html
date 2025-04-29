@@ -11,15 +11,20 @@
       </h2>
 
       <div class="time-controls">
-        <mat-form-field>
-          <mat-label>Start Time</mat-label>
-          <input matInput type="datetime-local" [(ngModel)]="startTime" (change)="fetchData()">
-        </mat-form-field>
+        <div class="input-group">
+          <label for="startTime">Start Time</label>
+          <input id="startTime" type="datetime-local" [(ngModel)]="startTime" (change)="fetchData()">
+        </div>
 
-        <mat-form-field>
-          <mat-label>End Time</mat-label>
-          <input matInput type="datetime-local" [(ngModel)]="endTime" (change)="fetchData()">
-        </mat-form-field>
+        <div class="input-group">
+          <label for="endTime">End Time</label>
+          <input id="endTime" type="datetime-local" [(ngModel)]="endTime" (change)="fetchData()">
+        </div>
+        
+        <!-- ✅ NEW BUTTON: Refresh Chart -->
+        <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="loading || !startTime || !endTime">
+          {{ loading ? 'Refreshing...' : 'Update Chart' }}
+        </button>
       </div>
 
       <div *ngIf="loading" class="loading">
