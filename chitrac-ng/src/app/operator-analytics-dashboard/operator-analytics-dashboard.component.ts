@@ -2,13 +2,26 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
+import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';
 import { BaseTableComponent } from '../components/base-table/base-table.component';
 import { OperatorAnalyticsService } from '../services/operator-analytics.service';
+import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
+import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
 
 @Component({
   selector: 'app-operator-analytics-dashboard',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FormsModule, BaseTableComponent],
+  imports: [
+    CommonModule, 
+    HttpClientModule, 
+    FormsModule, 
+    BaseTableComponent, 
+    DateTimePickerComponent,
+    MatTableModule,
+    MatSortModule
+  ],
   templateUrl: './operator-analytics-dashboard.component.html',
   styleUrl: './operator-analytics-dashboard.component.scss'
 })
@@ -18,8 +31,12 @@ export class OperatorAnalyticsDashboardComponent {
   operatorId?: number;
   columns: string[] = [];
   rows: any[] = [];
+  selectedRow: any = null;
 
-  constructor(private analyticsService: OperatorAnalyticsService) {}
+  constructor(
+    private analyticsService: OperatorAnalyticsService,
+    private dialog: MatDialog
+  ) {}
 
   fetchAnalyticsData(): void {
     if (!this.startTime || !this.endTime) return;
@@ -45,8 +62,41 @@ export class OperatorAnalyticsDashboardComponent {
           'Time Range': `${response.timeRange.start} to ${response.timeRange.end}`
         }));
         
-        this.columns = Object.keys(formattedData[0]);
+        const allColumns = Object.keys(formattedData[0]);
+        const columnsToHide = ['Time Range'];
+        this.columns = allColumns.filter(col => !columnsToHide.includes(col));
         this.rows = formattedData;
       });
+  }
+
+  onRowSelected(row: any): void {
+    if (this.selectedRow === row) {
+      this.selectedRow = null;
+      return;
+    }
+
+    this.selectedRow = row;
+
+    setTimeout(() => {
+      const element = document.querySelector('.mat-row.selected');
+      element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 0);
+
+    const dialogRef = this.dialog.open(ModalWrapperComponent, {
+      width: '90vw',
+      height: '80vh',
+      maxHeight: '90vh',
+      maxWidth: '95vw',
+      panelClass: 'performance-chart-dialog',
+      data: {
+        // For now, we're not passing any component to render
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(() => {
+      if (this.selectedRow === row) {
+        this.selectedRow = null;
+      }
+    });
   }
 }
