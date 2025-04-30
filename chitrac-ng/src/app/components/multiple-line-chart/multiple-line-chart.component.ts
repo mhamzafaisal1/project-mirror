@@ -58,40 +58,31 @@ export class MultipleLineChartComponent implements AfterViewInit {
   }
 
   private createChart() {
-     // Clear previous chart if exists
-  d3.select(this.chartContainer.nativeElement).selectAll('*').remove();
-
-  const textColor = this.isDarkTheme ? '#e0e0e0' : '#000000';
-
-    // Transform data for D3
+    d3.select(this.chartContainer.nativeElement).selectAll('*').remove();
+    const textColor = this.isDarkTheme ? '#e0e0e0' : '#000000';
     const transformedData = this.transformData(this.data);
-
-    // Create SVG container with adjusted dimensions
-    const svg = d3.select(this.chartContainer.nativeElement)
-    .append('svg')
-    .attr('viewBox', `0 0 ${this.width} ${this.height}`)
-    .attr('preserveAspectRatio', 'xMidYMid meet')
-    .style('width', '100%')
-    .attr('style', 'max-width: 100%; height: auto;')
-    .style('font-size', '13px')
-    .style('font-family', 'sans-serif');
   
-
-    // Create scales
+    const svg = d3.select(this.chartContainer.nativeElement)
+      .append('svg')
+      .attr('viewBox', `0 0 ${this.width} ${this.height}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet')
+      .style('width', '100%')
+      .style('max-width', '100%')
+      .style('height', 'auto')
+      .style('font-family', 'sans-serif');
+  
     const x = d3.scaleTime()
       .domain(d3.extent(transformedData, d => d.date) as [Date, Date])
       .range([this.margin.left, this.width - this.margin.right]);
-
+  
     const y = d3.scaleLinear()
-      .domain([0, 100]) // Assuming percentages (0-100)
+      .domain([0, 100])
       .range([this.height - this.margin.bottom, this.margin.top]);
-
-    // Add X axis
+  
     svg.append('g')
       .attr('transform', `translate(0,${this.height - this.margin.bottom})`)
       .call(d3.axisBottom(x).ticks(this.width / 80).tickSizeOuter(0));
-
-    // Add Y axis
+  
     svg.append('g')
       .attr('transform', `translate(${this.margin.left},0)`)
       .call(d3.axisLeft(y))
@@ -102,74 +93,88 @@ export class MultipleLineChartComponent implements AfterViewInit {
       .call(g => g.append('text')
         .attr('x', -this.margin.left)
         .attr('y', 10)
-        .attr('fill', 'currentColor')
+        .attr('fill', textColor)
         .attr('text-anchor', 'start')
         .text('↑ Efficiency (%)'));
-
-        svg.selectAll('.tick text')
-  .style('font-size', '12px')
-  .style('fill', textColor);
-
-svg.selectAll('.tick line')
-  .style('stroke', textColor)
-  .style('stroke-opacity', 0.2);
-
-
-    // Create color scale for lines
+  
+    svg.selectAll('.tick text').style('fill', textColor);
+    svg.selectAll('.tick line').style('stroke', textColor).style('stroke-opacity', 0.2);
+  
     const color = d3.scaleOrdinal<string, string>()
       .domain(['OEE', ...new Set(transformedData.flatMap(d => d.operators.map(op => op.name)))])
       .range(d3.schemeCategory10);
-
-    // Draw lines
+  
     const line = d3.line<DataPoint>()
       .x(d => x(d.date))
       .y(d => y(d.value));
+  
+    const drawLineWithPeak = (label: string, points: DataPoint[]) => {
+      svg.append('path')
+        .datum(points)
+        .attr('fill', 'none')
+        .attr('stroke', color(label))
+        .attr('stroke-width', 1.8)
+        .attr('d', line);
+  
+      const peak = points.reduce((max, p) => (p.value > max.value ? p : max), points[0]);
+  
+      svg.append('circle')
+        .attr('cx', x(peak.date))
+        .attr('cy', y(peak.value))
+        .attr('r', 3)
+        .attr('fill', color(label));
+  
+      const labelText = `${Math.round(peak.value)}%`;
+  
+      const text = svg.append('text')
+  .attr('x', x(peak.date) + 6)
+  .attr('y', y(peak.value) - 4)
+  .text(labelText)
+  .attr('text-anchor', 'start')
+  .style('font-size', '11px')
+  .style('font-weight', 'bold')
+  .style('fill', '#ffffff'); // ← White text
 
-    // Draw OEE line
-    svg.append('path')
-      .datum(transformedData.map(d => ({ date: d.date, value: d.oee })))
-      .attr('fill', 'none')
-      .attr('stroke', () => color('OEE'))
-      .attr('stroke-width', 2)
-      .attr('d', line);
-
-    // Draw operator lines
+  
+      text.clone(true)
+        .lower()
+        .attr('fill', 'none')
+        .attr('stroke', this.isDarkTheme ? '#121212' : '#ffffff')
+        .attr('stroke-width', 4);
+    };
+  
+    const oeePoints = transformedData.map(d => ({ date: d.date, value: d.oee }));
+    drawLineWithPeak('OEE', oeePoints);
+  
     const operators = new Set(transformedData.flatMap(d => d.operators.map(op => op.name)));
     operators.forEach(operator => {
-      svg.append('path')
-        .datum(transformedData.map(d => ({
-          date: d.date,
-          value: d.operators.find(op => op.name === operator)?.efficiency || 0
-        })))
-        .attr('fill', 'none')
-        .attr('stroke', () => color(operator))
-        .attr('stroke-width', 1.5)
-        .attr('d', line);
+      const points = transformedData.map(d => ({
+        date: d.date,
+        value: d.operators.find(op => op.name === operator)?.efficiency ?? 0
+      }));
+      drawLineWithPeak(operator, points);
     });
-
-    // Add legend with adjusted positioning
+  
     const legend = svg.append('g')
-    .attr('font-family', 'sans-serif')
-    .attr('font-size', 10)
-    .attr('text-anchor', 'start')
-    .selectAll('g')
-    .data(['OEE', ...operators])
-    .join('g')
-    .attr('transform', (d, i) => `translate(${this.width - this.margin.right + 10},${this.margin.top + i * 20})`);
+      .attr('font-size', 10)
+      .attr('text-anchor', 'start')
+      .selectAll('g')
+      .data(['OEE', ...operators])
+      .join('g')
+      .attr('transform', (d, i) => `translate(${this.width - this.margin.right + 10},${this.margin.top + i * 20})`);
   
-  legend.append('rect')
-    .attr('width', 14)
-    .attr('height', 14)
-    .attr('fill', d => color(d));
+    legend.append('rect')
+      .attr('width', 14)
+      .attr('height', 14)
+      .attr('fill', d => color(d));
   
-  legend.append('text')
-    .attr('x', 20)
-    .attr('y', 11)
-    .style('fill', textColor)
-    .text(d => d);
-  
+    legend.append('text')
+      .attr('x', 20)
+      .attr('y', 11)
+      .style('fill', textColor)
+      .text(d => d);
   }
-
+  
   private transformData(data: ChartData): TransformedData[] {
     return data.hourlyData.map(hour => ({
       date: new Date(hour.hour),
