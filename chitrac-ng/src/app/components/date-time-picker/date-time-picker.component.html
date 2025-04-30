@@ -1,0 +1,10 @@
+<div class="date-time-picker">
+  <label [for]="inputId">{{ label }}</label>
+  <input
+    type="datetime-local"
+    [id]="inputId"
+    [(ngModel)]="value"
+    (ngModelChange)="valueChange.emit($event)"
+    [ngClass]="{ 'dark': isDarkTheme }"
+  />
+</div>

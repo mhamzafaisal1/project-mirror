@@ -11,6 +11,7 @@ import { BaseTableComponent } from '../components/base-table/base-table.componen
 import { MachineAnalyticsService } from '../services/machine-analytics.service';
 import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
 import { OperatorPerformanceChartComponent } from '../operator-performance-chart/operator-performance-chart.component';
+import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
 
 @Component({
   selector: 'app-machine-analytics-dashboard',
@@ -23,6 +24,7 @@ import { OperatorPerformanceChartComponent } from '../operator-performance-chart
     MatInputModule,
     MatButtonModule,
     BaseTableComponent,
+    DateTimePickerComponent
   ],
   templateUrl: './machine-analytics-dashboard.component.html',
   styleUrls: ['./machine-analytics-dashboard.component.scss']
@@ -46,10 +48,8 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const end = new Date();
     const start = new Date();
-    // Set start time to beginning of today (12:00 AM)
     start.setHours(0, 0, 0, 0);
 
-    // Format dates in local timezone
     this.endTime = this.formatDateForInput(end);
     this.startTime = this.formatDateForInput(start);
 
@@ -80,11 +80,11 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
 
   fetchAnalyticsData(): void {
     if (!this.startTime || !this.endTime) return;
-  
+
     this.analyticsService.getMachinePerformance(this.startTime, this.endTime, undefined)
       .subscribe((data: any) => {
         const responses = Array.isArray(data) ? data : [data];
-  
+
         const formattedData = responses.map(response => ({
           'Machine Name': response.machine.name,
           'Serial Number': response.machine.serial,
@@ -99,16 +99,14 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
           'OEE': `${response.metrics.performance.oee.percentage}%`,
           'Time Range': `${response.timeRange.start} to ${response.timeRange.end}`
         }));
-  
-        // ✅ store all columns, but only display selected ones
+
         const allColumns = Object.keys(formattedData[0]);
         const columnsToHide = ['Serial Number', 'Time Range'];
         this.columns = allColumns.filter(col => !columnsToHide.includes(col));
-  
+
         this.rows = formattedData;
       });
   }
-  
 
   onRowClick(row: any): void {
     if (this.selectedRow === row) {
@@ -118,7 +116,6 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
 
     this.selectedRow = row;
 
-    // Scroll selected row into view
     setTimeout(() => {
       const element = document.querySelector('.mat-row.selected');
       element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -145,14 +142,12 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Helper function to format date for datetime-local input
   private formatDateForInput(date: Date): string {
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 }

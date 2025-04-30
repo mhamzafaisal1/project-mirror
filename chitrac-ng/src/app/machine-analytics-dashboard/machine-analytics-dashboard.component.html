@@ -1,36 +1,35 @@
-<div class="container" [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }">
-<div class="controls">
-  <!-- Start Time -->
-  <div class="form-group">
-    <label for="startTime">Start Time</label>
-    <input 
-      matInput
-      type="datetime-local" 
-      id="startTime" 
-      [(ngModel)]="startTime">
+<div
+  class="container"
+  [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }"
+>
+  <div class="controls">
+    <!-- Start Time -->
+    <app-date-time-picker
+    label="Start Time"
+    [(value)]="startTime">
+  </app-date-time-picker>
+
+  <app-date-time-picker
+    label="End Time"
+    [(value)]="endTime">
+  </app-date-time-picker>
+
+    <!-- Fetch Button -->
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="fetchAnalyticsData()"
+      [disabled]="!startTime || !endTime"
+    >
+      Fetch Data
+    </button>
   </div>
-
-  <!-- End Time -->
-  <div class="form-group">
-    <label for="endTime">End Time</label>
-    <input 
-      matInput
-      type="datetime-local" 
-      id="endTime" 
-      [(ngModel)]="endTime">
-  </div>
-
-  <!-- Fetch Button -->
-  <button mat-flat-button color="primary" (click)="fetchAnalyticsData()" [disabled]="!startTime || !endTime">
-    Fetch Data
-  </button>
-</div>
 </div>
 
-
-<base-table 
-  [columns]="columns" 
-  [rows]="rows" 
+<base-table
+  [columns]="columns"
+  [rows]="rows"
   [selectedRow]="selectedRow"
-  (rowClicked)="onRowClick($event)">
+  (rowClicked)="onRowClick($event)"
+>
 </base-table>

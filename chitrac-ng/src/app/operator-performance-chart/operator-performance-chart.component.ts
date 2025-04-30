@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MultipleLineChartComponent } from '../components/multiple-line-chart/multiple-line-chart.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-
+import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -19,7 +19,8 @@ import { OeeDataService } from '../services/oee-data.service';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MultipleLineChartComponent
+    MultipleLineChartComponent,
+    DateTimePickerComponent
   ],
   templateUrl: './operator-performance-chart.component.html',
   styleUrls: ['./operator-performance-chart.component.scss']

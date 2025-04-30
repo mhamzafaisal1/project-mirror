@@ -11,15 +11,17 @@
       </h2>
 
       <div class="time-controls">
-        <div class="input-group">
-          <label for="startTime">Start Time</label>
-          <input id="startTime" type="datetime-local" [(ngModel)]="startTime" (change)="fetchData()">
-        </div>
 
-        <div class="input-group">
-          <label for="endTime">End Time</label>
-          <input id="endTime" type="datetime-local" [(ngModel)]="endTime" (change)="fetchData()">
-        </div>
+         <!-- Start Time -->
+    <app-date-time-picker
+    label="Start Time"
+    [(value)]="startTime">
+  </app-date-time-picker>
+
+  <app-date-time-picker
+    label="End Time"
+    [(value)]="endTime">
+  </app-date-time-picker>
         
         <!-- ✅ NEW BUTTON: Refresh Chart -->
         <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="loading || !startTime || !endTime">

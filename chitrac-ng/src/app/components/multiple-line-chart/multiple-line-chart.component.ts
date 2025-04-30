@@ -46,10 +46,10 @@ export class MultipleLineChartComponent implements AfterViewInit {
   @Input() data!: ChartData;
   @Input() isDarkTheme: boolean = false;
 
-  // Adjusted margins and dimensions for better visual appeal
-  private margin = { top: 20, right: 180, bottom: 30, left: 60 };
-  private width = 1400; // Increased width
-  private height = 700; // Increased height
+  private margin = { top: 40, right: 100, bottom: 50, left: 60 };
+  private width = 900;
+  private height = 400;
+  
 
   ngAfterViewInit() {
     if (this.data) {
@@ -68,11 +68,14 @@ export class MultipleLineChartComponent implements AfterViewInit {
 
     // Create SVG container with adjusted dimensions
     const svg = d3.select(this.chartContainer.nativeElement)
-      .append('svg')
-      .attr('width', this.width)
-      .attr('height', this.height)
-      .attr('viewBox', [0, 0, this.width, this.height])
-      .attr('style', 'max-width: 100%; height: auto;');
+    .append('svg')
+    .attr('viewBox', `0 0 ${this.width} ${this.height}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet')
+    .style('width', '100%')
+    .attr('style', 'max-width: 100%; height: auto;')
+    .style('font-size', '13px')
+    .style('font-family', 'sans-serif');
+  
 
     // Create scales
     const x = d3.scaleTime()
@@ -102,6 +105,15 @@ export class MultipleLineChartComponent implements AfterViewInit {
         .attr('fill', 'currentColor')
         .attr('text-anchor', 'start')
         .text('↑ Efficiency (%)'));
+
+        svg.selectAll('.tick text')
+  .style('font-size', '12px')
+  .style('fill', textColor);
+
+svg.selectAll('.tick line')
+  .style('stroke', textColor)
+  .style('stroke-opacity', 0.2);
+
 
     // Create color scale for lines
     const color = d3.scaleOrdinal<string, string>()
@@ -136,28 +148,26 @@ export class MultipleLineChartComponent implements AfterViewInit {
     });
 
     // Add legend with adjusted positioning
-    const legendX = this.width - this.margin.right + 40; // Move legend more to the right
     const legend = svg.append('g')
-      .attr('font-family', 'sans-serif')
-      .attr('font-size', 10)
-      .attr('text-anchor', 'start')
-      .selectAll('g')
-      .data(['OEE', ...operators])
-      .join('g')
-      .attr('transform', (d, i) => `translate(${legendX},${this.margin.top + i * 25})`); // Increased spacing between items
-
-    // Add colored rectangles to legend
-    legend.append('rect')
-      .attr('width', 15)
-      .attr('height', 15)
-      .attr('fill', d => color(d));
-
-    // Add text to legend with more spacing
-    legend.append('text')
-      .attr('x', 24) // Increased spacing between rectangle and text
-      .attr('y', 12)
-      .style('fill', textColor)
-      .text(d => d);
+    .attr('font-family', 'sans-serif')
+    .attr('font-size', 10)
+    .attr('text-anchor', 'start')
+    .selectAll('g')
+    .data(['OEE', ...operators])
+    .join('g')
+    .attr('transform', (d, i) => `translate(${this.width - this.margin.right + 10},${this.margin.top + i * 20})`);
+  
+  legend.append('rect')
+    .attr('width', 14)
+    .attr('height', 14)
+    .attr('fill', d => color(d));
+  
+  legend.append('text')
+    .attr('x', 20)
+    .attr('y', 11)
+    .style('fill', textColor)
+    .text(d => d);
+  
   }
 
   private transformData(data: ChartData): TransformedData[] {
