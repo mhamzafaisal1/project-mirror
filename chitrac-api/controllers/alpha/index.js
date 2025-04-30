@@ -1796,5 +1796,124 @@ router.get("/analytics/machine/operator-efficiency", async (req, res) => {
   // API Route for line chart data for OEE% and individual operator efficiency% by hour end
 
 
+  //API Route for operator count by item start
+  router.get("/analytics/operator-countbyitem", async (req, res) => {
+    try {
+      const { start, end, operatorId } = req.query;
+  
+      // Validate start
+      if (!start) return res.status(400).json({ error: "Start time parameter is required" });
+      const startDate = new Date(start);
+      if (isNaN(startDate.getTime())) {
+        return res.status(400).json({ error: "Invalid start time format. Use ISO string" });
+      }
+  
+      // Validate operatorId
+      if (!operatorId || isNaN(parseInt(operatorId))) {
+        return res.status(400).json({ error: "Valid operatorId is required" });
+      }
+  
+      // Validate end
+      let endDate;
+      if (end) {
+        endDate = new Date(end);
+        if (isNaN(endDate.getTime())) {
+          return res.status(400).json({ error: "Invalid end time format. Use ISO string" });
+        }
+      }
+  
+      const [latestState] = await Promise.all([
+        db.collection('state').find().sort({ timestamp: -1 }).limit(1).toArray(),
+      ]);
+  
+      const finalEnd = endDate ? endDate.toISOString() : (latestState?.timestamp || new Date().toISOString());
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(startDate, new Date(finalEnd));
+  
+      // Fetch states for specific operator
+      const allStates = await fetchStatesForOperator(db, parseInt(operatorId), paddedStart, paddedEnd);
+      const groupedStates = groupStatesByOperatorAndSerial(allStates);
+  
+      const completedCyclesByGroup = {};
+      for (const [key, group] of Object.entries(groupedStates)) {
+        const completedCycles = getCompletedCyclesForOperator(group.states);
+        if (completedCycles.length > 0) {
+          completedCyclesByGroup[key] = {
+            ...group,
+            completedCycles
+          };
+        }
+      }
+  
+      const operatorMachinePairs = Object.keys(completedCyclesByGroup).map(key => {
+        const [operatorId, machineSerial] = key.split("-");
+        return {
+          operatorId: parseInt(operatorId),
+          machineSerial: parseInt(machineSerial)
+        };
+      });
+  
+      const allCounts = await getCountsForOperatorMachinePairs(db, operatorMachinePairs, start, finalEnd);
+      const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
+  
+      const results = [];
+  
+      for (const [key, group] of Object.entries(completedCyclesByGroup)) {
+        const [opId, machineSerial] = key.split("-");
+        const countGroup = groupedCounts[`${opId}-${machineSerial}`];
+        if (!countGroup) continue;
+  
+        const sortedCounts = countGroup.counts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        let countIndex = 0;
+  
+        for (const cycle of group.completedCycles) {
+          const cycleStart = new Date(cycle.start);
+          const cycleEnd = new Date(cycle.end);
+          const cycleCounts = [];
+  
+          while (countIndex < sortedCounts.length) {
+            const currentCount = sortedCounts[countIndex];
+            const countTimestamp = new Date(currentCount.timestamp);
+  
+            if (countTimestamp < cycleStart) {
+              countIndex++;
+              continue;
+            }
+            if (countTimestamp > cycleEnd) break;
+  
+            cycleCounts.push(currentCount);
+            countIndex++;
+          }
+  
+          if (!cycleCounts.length) continue;
+  
+          const stats = processCountStatistics(cycleCounts);
+          const { runtime: runtimeMs } = calculateOperatorTimes(cycle.states, cycleStart, cycleEnd);
+          const piecesPerHour = calculatePiecesPerHour(stats.total, runtimeMs);
+          const efficiency = calculateEfficiency(runtimeMs, stats.total, countGroup.validCounts);
+          const itemNames = extractItemNamesFromCounts(cycleCounts);
+  
+          results.push({
+            operatorId: parseInt(opId),
+            machineSerial: parseInt(machineSerial),
+            startTimestamp: cycleStart.toISOString(),
+            endTimestamp: cycleEnd.toISOString(),
+            totalCount: stats.total,
+            task: itemNames,
+            standard: Math.round(piecesPerHour * efficiency),
+          });
+        }
+      }
+  
+      res.json(results);
+    } catch (error) {
+      logger.error("Error in operator-countbyitem route:", error);
+      res.status(500).json({ error: "Failed to process data for operator" });
+    }
+  });
+
+  
+  //API Route for operator count by item end
+
+
   return router;
 }

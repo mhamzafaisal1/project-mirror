@@ -9,6 +9,7 @@ import { BaseTableComponent } from '../components/base-table/base-table.componen
 import { OperatorAnalyticsService } from '../services/operator-analytics.service';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
 import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
+import { OperatorCountbyitemChartComponent } from '../operator-countbyitem-chart/operator-countbyitem-chart.component';
 
 @Component({
   selector: 'app-operator-analytics-dashboard',
@@ -89,7 +90,10 @@ export class OperatorAnalyticsDashboardComponent {
       maxWidth: '95vw',
       panelClass: 'performance-chart-dialog',
       data: {
-        // For now, we're not passing any component to render
+        component: OperatorCountbyitemChartComponent,
+        operatorId: row['Operator ID'],
+        startTime: this.startTime,
+        endTime: this.endTime
       }
     });
 
