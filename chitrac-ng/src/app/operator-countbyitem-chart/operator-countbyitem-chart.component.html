@@ -17,9 +17,8 @@
         Operator ID:
         <input type="number" [(ngModel)]="operatorId" placeholder="Enter Operator ID" />
       </label>
+      <button (click)="fetchData()" [disabled]="!isValidInput()">Fetch Data</button>
     </div>
-
-    <button (click)="fetchData()" [disabled]="!isValidInput()">Fetch Data</button>
   </div>
 
   <div class="chart-content">

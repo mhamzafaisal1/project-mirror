@@ -1,8 +1,9 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Inject } from '@angular/core';
+import { Inject, Optional } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialogModule } from '@angular/material/dialog';
 
 import { OperatorCountbyitemService } from '../services/operator-countbyitem.service';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
@@ -28,7 +29,13 @@ interface StackedBarChartData {
 @Component({
   selector: 'app-operator-countbyitem-chart',
   standalone: true,
-  imports: [CommonModule, FormsModule, DateTimePickerComponent, StackedBarChartComponent],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    DateTimePickerComponent, 
+    StackedBarChartComponent,
+    MatDialogModule
+  ],
   templateUrl: './operator-countbyitem-chart.component.html',
   styleUrl: './operator-countbyitem-chart.component.scss'
 })
@@ -43,10 +50,8 @@ export class OperatorCountbyitemChartComponent implements OnInit {
 
   constructor(
     private countByItemService: OperatorCountbyitemService,
-    @Inject(MAT_DIALOG_DATA) public dialogData: any
-  ) {
-    
-  }
+    @Optional() @Inject(MAT_DIALOG_DATA) public dialogData: any
+  ) {}
 
   ngOnInit() {
     if (this.dialogData) {
