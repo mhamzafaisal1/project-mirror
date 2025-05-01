@@ -507,6 +507,84 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
 };
   
 
+// Fault history start
+/**
+ * Extracts fault cycles from machine states.
+ * Groups each cycle by fault type (status.name) and returns detailed cycle data.
+ * 
+ * @param {Array} states - Array of state documents from the DB.
+ * @param {string|Date} queryStart - The original start timestamp.
+ * @param {string|Date} queryEnd - The original end timestamp.
+ * @returns {Object} { faultCycles: Array, faultSummaries: Map }
+ */
+function extractFaultCycles(states, queryStart, queryEnd) {
+  const faultCycles = [];
+  const faultSummaryMap = new Map();
+
+  const startTime = new Date(queryStart);
+  const endTime = new Date(queryEnd);
+
+  let currentCycle = null;
+
+  const sortedStates = states
+    .filter(s => s.status?.code !== undefined && s.timestamp)
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  for (const state of sortedStates) {
+    const code = state.status.code;
+    const faultName = state.status.name || 'Unknown';
+    const timestamp = new Date(state.timestamp);
+
+    if (code > 1) {
+      if (!currentCycle) {
+        currentCycle = {
+          faultType: faultName,
+          start: timestamp,
+          states: [state],
+        };
+      } else {
+        currentCycle.states.push(state);
+      }
+    } else if (code <= 1 && currentCycle) {
+      currentCycle.end = timestamp;
+      currentCycle.duration = timestamp - currentCycle.start;
+
+      if (currentCycle.start >= startTime && currentCycle.end <= endTime) {
+        faultCycles.push(currentCycle);
+
+        // Update summary
+        const summary = faultSummaryMap.get(currentCycle.faultType) || { totalDuration: 0, count: 0 };
+        summary.totalDuration += currentCycle.duration;
+        summary.count += 1;
+        faultSummaryMap.set(currentCycle.faultType, summary);
+      }
+
+      currentCycle = null;
+    }
+  }
+
+  // If still faulting at end of range
+  if (currentCycle && currentCycle.start >= startTime) {
+    currentCycle.end = endTime;
+    currentCycle.duration = endTime - currentCycle.start;
+    faultCycles.push(currentCycle);
+
+    const summary = faultSummaryMap.get(currentCycle.faultType) || { totalDuration: 0, count: 0 };
+    summary.totalDuration += currentCycle.duration;
+    summary.count += 1;
+    faultSummaryMap.set(currentCycle.faultType, summary);
+  }
+
+  const faultSummaries = Array.from(faultSummaryMap.entries()).map(([faultType, { totalDuration, count }]) => ({
+    faultType,
+    totalDuration,
+    count,
+  }));
+
+  return { faultCycles, faultSummaries };
+}
+
+
 
 
   
@@ -522,6 +600,7 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     fetchStatesForOperator,
     groupStatesByOperator,
     groupStatesByOperatorAndSerial,
-    getCompletedCyclesForOperator
+    getCompletedCyclesForOperator,
+    extractFaultCycles
   };
   
