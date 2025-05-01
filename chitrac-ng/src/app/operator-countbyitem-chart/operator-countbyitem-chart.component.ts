@@ -1,6 +1,9 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Inject } from '@angular/core';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+
 import { OperatorCountbyitemService } from '../services/operator-countbyitem.service';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
 import { StackedBarChartComponent } from '../components/stacked-bar-chart/stacked-bar-chart.component';
@@ -38,10 +41,20 @@ export class OperatorCountbyitemChartComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
-  constructor(private countByItemService: OperatorCountbyitemService) {}
+  constructor(
+    private countByItemService: OperatorCountbyitemService,
+    @Inject(MAT_DIALOG_DATA) public dialogData: any
+  ) {
+    
+  }
 
   ngOnInit() {
-    // No longer automatically fetch data on init
+    if (this.dialogData) {
+      this.operatorId = this.dialogData.operatorId;
+      this.startTime = this.dialogData.startTime;
+      this.endTime = this.dialogData.endTime;
+      this.fetchData();
+    }
   }
 
   isValidInput(): boolean {
@@ -82,7 +95,7 @@ export class OperatorCountbyitemChartComponent implements OnInit {
     this.countByItemService.getOperatorCountByItem(this.startTime, this.endTime, this.operatorId)
       .subscribe({
         next: (data) => {
-          this.chartData = this.transformData(data);
+          this.chartData = data;
           this.loading = false;
         },
         error: (err) => {
