@@ -24,16 +24,23 @@ export interface FaultSummary {
   providedIn: 'root'
 })
 export class FaultHistoryService {
-  private readonly API_URL = '/api/analytics/fault-history';
+  private readonly API_URL = 'http://localhost:9090/api/alpha/analytics/fault-history';
 
   constructor(private http: HttpClient) {}
 
-  getFaultHistory(start: string, end: string, serial: number): Observable<{ faultCycles: FaultCycle[], faultSummary: FaultSummary[] }> {
+  getFaultHistory(
+    start: string,
+    end: string,
+    serial: number
+  ): Observable<{ faultCycles: FaultCycle[]; faultSummaries: FaultSummary[] }> {
     const params = new HttpParams()
       .set('start', start)
       .set('end', end)
       .set('serial', serial.toString());
 
-    return this.http.get<{ faultCycles: FaultCycle[], faultSummary: FaultSummary[] }>(this.API_URL, { params });
+    return this.http.get<{ faultCycles: FaultCycle[]; faultSummaries: FaultSummary[] }>(
+      this.API_URL,
+      { params }
+    );
   }
 }

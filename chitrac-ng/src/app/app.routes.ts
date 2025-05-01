@@ -17,6 +17,7 @@ import { OperatorAnalyticsDashboardComponent } from './operator-analytics-dashbo
 import { OperatorPerformanceChartComponent } from './operator-performance-chart/operator-performance-chart.component';
 import { UseModalComponent } from './use-modal/use-modal.component';
 import { OperatorCountbyitemChartComponent } from './operator-countbyitem-chart/operator-countbyitem-chart.component';
+import { MachineFaultHistoryComponent } from './machine-fault-history/machine-fault-history.component';
 import { AuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -37,5 +38,6 @@ export const routes: Routes = [
 	{ path: 'ng/operator-performance-chart', component: OperatorPerformanceChartComponent },
 	{ path: 'ng/use-modal', component: UseModalComponent },
 	{ path: 'ng/operator-countbyitem', component: OperatorCountbyitemChartComponent },
+	{ path: 'ng/machine-fault-history', component: MachineFaultHistoryComponent },
 	{ path: 'ng/*', redirectTo: 'ng/home' }
 	];
