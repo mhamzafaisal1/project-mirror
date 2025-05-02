@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatSort, MatSortModule, Sort } from '@angular/material/sort';
 
 @Component({
   selector: 'base-table',
@@ -30,21 +30,35 @@ export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    if (!this.disableSorting && this.sort) {
-      this.dataSource.sort = this.sort;
-    }
+    this.setupSorting();
   }
   
 
   ngOnChanges() {
     this.updateData();
+    this.setupSorting();
+  }
+
+  private setupSorting() {
+    if (this.sort && !this.disableSorting) {
+      this.dataSource.sort = this.sort;
+      this.dataSource.sortingDataAccessor = (data: any, sortHeaderId: string) => {
+        if (sortHeaderId === 'Start Time') {
+          return new Date(data[sortHeaderId]).getTime();
+        }
+        if (sortHeaderId === 'Duration' || sortHeaderId === 'Total Duration') {
+          const [hours, minutes] = data[sortHeaderId].split(' ');
+          const h = parseInt(hours);
+          const m = parseInt(minutes);
+          return (h * 60) + m;
+        }
+        return data[sortHeaderId];
+      };
+    }
   }
 
   private updateData() {
     this.dataSource.data = this.rows;
-    if (this.sort && !this.disableSorting) {
-      this.dataSource.sort = this.sort;
-    }
   }
   
 

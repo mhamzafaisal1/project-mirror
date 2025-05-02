@@ -117,9 +117,6 @@ disableSorting = false;
   updateTable(): void {
     if (!this.lastFetchedData) return;
   
-    // 🔽 Set sorting based on view type
-    this.disableSorting = this.viewType === 'cycles';
-  
     if (this.viewType === 'summary') {
       const summaries = this.lastFetchedData.faultSummaries;
       if (!summaries || summaries.length === 0) {
@@ -152,13 +149,11 @@ disableSorting = false;
         return;
       }
   
-      const formatted = cycles
-        .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime())
-        .map(cycle => ({
-          'Fault Type': cycle.faultType,
-          'Start Time': new Date(cycle.start).toLocaleString(),
-          'Duration': `${Math.floor(cycle.duration / 3600000)}h ${Math.floor((cycle.duration % 3600000) / 60000)}m`
-        }));
+      const formatted = cycles.map(cycle => ({
+        'Fault Type': cycle.faultType,
+        'Start Time': new Date(cycle.start).toLocaleString(),
+        'Duration': `${Math.floor(cycle.duration / 3600000)}h ${Math.floor((cycle.duration % 3600000) / 60000)}m`
+      }));
   
       this.columns = Object.keys(formatted[0]);
       this.rows = formatted;
