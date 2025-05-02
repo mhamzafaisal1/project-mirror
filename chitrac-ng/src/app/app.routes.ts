@@ -19,6 +19,7 @@ import { UseModalComponent } from './use-modal/use-modal.component';
 import { OperatorCountbyitemChartComponent } from './operator-countbyitem-chart/operator-countbyitem-chart.component';
 import { MachineFaultHistoryComponent } from './machine-fault-history/machine-fault-history.component';
 import { AuthGuard } from './guards/auth.guard';
+import { TestComponent } from './test/test.component';
 
 export const routes: Routes = [
 	{ path: 'ng/configGridTest', component: ConfigGridTestComponent },
@@ -39,5 +40,6 @@ export const routes: Routes = [
 	{ path: 'ng/use-modal', component: UseModalComponent },
 	{ path: 'ng/operator-countbyitem', component: OperatorCountbyitemChartComponent },
 	{ path: 'ng/machine-fault-history', component: MachineFaultHistoryComponent },
+	{ path: 'ng/test', component: TestComponent },
 	{ path: 'ng/*', redirectTo: 'ng/home' }
 	];
