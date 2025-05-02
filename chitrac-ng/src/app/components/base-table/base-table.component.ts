@@ -18,6 +18,8 @@ export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit {
   @Input() columns: string[] = [];
   @Input() rows: any[] = [];
   @Input() selectedRow: any | null = null;
+  @Input() disableSorting: boolean = false;
+
   @Output() rowClicked = new EventEmitter<any>();
 
   @ViewChild(MatSort) sort!: MatSort;
@@ -28,8 +30,11 @@ export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    this.dataSource.sort = this.sort;
+    if (!this.disableSorting && this.sort) {
+      this.dataSource.sort = this.sort;
+    }
   }
+  
 
   ngOnChanges() {
     this.updateData();
@@ -37,10 +42,11 @@ export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit {
 
   private updateData() {
     this.dataSource.data = this.rows;
-    if (this.sort) {
+    if (this.sort && !this.disableSorting) {
       this.dataSource.sort = this.sort;
     }
   }
+  
 
   onRowClick(row: any) {
     if (this.selectedRow !== row) {

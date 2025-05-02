@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
 
 import { BaseTableComponent } from '../components/base-table/base-table.component';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
@@ -20,6 +21,7 @@ import { FaultHistoryService } from '../services/fault-history.service';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
+    MatSelectModule,
     BaseTableComponent,
     DateTimePickerComponent
   ],
@@ -35,6 +37,21 @@ export class MachineFaultHistoryComponent implements OnInit, OnDestroy {
   selectedRow: any | null = null;
   isDarkTheme: boolean = false;
   private observer!: MutationObserver;
+
+disableSorting = false;
+  hasFetchedOnce = false;
+  lastFetchedData: { faultCycles: any[]; faultSummaries: any[] } | null = null;
+
+  private _viewType: 'summary' | 'cycles' = 'summary';
+  get viewType() {
+    return this._viewType;
+  }
+  set viewType(val: 'summary' | 'cycles') {
+    this._viewType = val;
+    if (this.hasFetchedOnce) {
+      this.updateTable();
+    }
+  }
 
   constructor(
     private faultHistoryService: FaultHistoryService,
@@ -73,77 +90,21 @@ export class MachineFaultHistoryComponent implements OnInit, OnDestroy {
     this.renderer.setStyle(element, 'color', isDark ? '#e0e0e0' : '#000000');
   }
 
-  // fetchData(): void {
-  //   if (!this.startTime || !this.endTime || !this.serial) return;
-
-  //   const serialNumber = parseInt(this.serial, 10);
-  //   if (isNaN(serialNumber)) {
-  //     console.error('Invalid serial number');
-  //     return;
-  //   }
-
-  //   this.faultHistoryService.getFaultHistory(this.startTime, this.endTime, serialNumber)
-  //     .subscribe({
-  //       next: (data) => {
-  //         if (data.faultCycles.length === 0) {
-  //           this.rows = [];
-  //           this.columns = [];
-  //           return;
-  //         } 
-
-  //         console.log(data, 'data');
-
-  //         const formattedData = data.faultCycles.map(cycle => ({
-  //           'Fault Type': cycle.faultType,
-  //           'Start Time': new Date(cycle.start).toLocaleString(),
-  //           'End Time': new Date(cycle.end).toLocaleString(),
-  //           'Duration': `${Math.floor(cycle.duration / 3600000)}h ${Math.floor((cycle.duration % 3600000) / 60000)}m`
-  //         }));
-
-  //         this.columns = Object.keys(formattedData[0]);
-  //         this.rows = formattedData;
-  //       },
-  //       error: (error) => {
-  //         console.error('Error fetching fault history:', error);
-  //         this.rows = [];
-  //         this.columns = [];
-  //       }
-  //     });
-  // }
-
   fetchData(): void {
     if (!this.startTime || !this.endTime || !this.serial) return;
-  
+
     const serialNumber = parseInt(this.serial, 10);
     if (isNaN(serialNumber)) {
       console.error('Invalid serial number');
       return;
     }
-  
+
     this.faultHistoryService.getFaultHistory(this.startTime, this.endTime, serialNumber)
       .subscribe({
         next: (data) => {
-          if (!data.faultSummaries || data.faultSummaries.length === 0) {
-            this.rows = [];
-            this.columns = [];
-            return;
-          }
-
-          const formattedData = data.faultSummaries.map(summary => {
-            const totalSeconds = Math.floor(summary.totalDuration / 1000);
-            const hours = Math.floor(totalSeconds / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
-            const seconds = totalSeconds % 60;
-
-            return {
-              'Fault Type': summary.faultType,
-              'Count': summary.count,
-              'Total Duration': `${hours}h ${minutes}m ${seconds}s`
-            };
-          });
-  
-          this.columns = Object.keys(formattedData[0]);
-          this.rows = formattedData;
+          this.hasFetchedOnce = true;
+          this.lastFetchedData = data;
+          this.updateTable();
         },
         error: (error) => {
           console.error('Error fetching fault history:', error);
@@ -152,8 +113,58 @@ export class MachineFaultHistoryComponent implements OnInit, OnDestroy {
         }
       });
   }
-  
 
+  updateTable(): void {
+    if (!this.lastFetchedData) return;
+  
+    // 🔽 Set sorting based on view type
+    this.disableSorting = this.viewType === 'cycles';
+  
+    if (this.viewType === 'summary') {
+      const summaries = this.lastFetchedData.faultSummaries;
+      if (!summaries || summaries.length === 0) {
+        this.rows = [];
+        this.columns = [];
+        return;
+      }
+  
+      const formatted = summaries.map(summary => {
+        const totalSeconds = Math.floor(summary.totalDuration / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+  
+        return {
+          'Fault Type': summary.faultType,
+          'Count': summary.count,
+          'Total Duration': `${hours}h ${minutes}m ${seconds}s`
+        };
+      });
+  
+      this.columns = Object.keys(formatted[0]);
+      this.rows = formatted;
+  
+    } else {
+      const cycles = this.lastFetchedData.faultCycles;
+      if (!cycles || cycles.length === 0) {
+        this.rows = [];
+        this.columns = [];
+        return;
+      }
+  
+      const formatted = cycles
+        .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime())
+        .map(cycle => ({
+          'Fault Type': cycle.faultType,
+          'Start Time': new Date(cycle.start).toLocaleString(),
+          'Duration': `${Math.floor(cycle.duration / 3600000)}h ${Math.floor((cycle.duration % 3600000) / 60000)}m`
+        }));
+  
+      this.columns = Object.keys(formatted[0]);
+      this.rows = formatted;
+    }
+  }
+  
   onRowSelected(row: any): void {
     if (this.selectedRow === row) {
       this.selectedRow = null;

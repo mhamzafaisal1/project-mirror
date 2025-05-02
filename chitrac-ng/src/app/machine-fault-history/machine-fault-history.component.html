@@ -3,6 +3,18 @@
   [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }"
 >
   <div class="controls">
+<!-- View Type Toggle -->
+ <div class="view-type-toggle">
+     <mat-form-field appearance="fill">
+         <mat-label>View Type</mat-label>
+         <mat-select [(ngModel)]="viewType">
+             <mat-option value="summary">Fault Summaries</mat-option>
+             <mat-option value="cycles">Fault Cycles</mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+  
+
     <!-- Start Time -->
     <app-date-time-picker
       label="Start Time"
@@ -41,6 +53,7 @@
     [columns]="columns"
     [rows]="rows"
     [selectedRow]="selectedRow"
+    [disableSorting]="viewType === 'cycles'"
     (rowClicked)="onRowSelected($event)"
   ></base-table>
 </div>
