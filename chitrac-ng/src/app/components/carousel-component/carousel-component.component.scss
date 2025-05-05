@@ -1,17 +1,37 @@
 .carousel-container {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    position: relative;
+    height: 500px;
+    width: 80%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 48px;
   
     .carousel-tabs {
       flex-grow: 1;
       min-width: 300px;
+      height: 100%;
+      
+      ::ng-deep .mat-mdc-tab-body-wrapper {
+        height: 100%;
+      }
     }
   
     button[mat-icon-button] {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
       height: 48px;
       width: 48px;
+      z-index: 1;
+  
+      &:first-child {
+        left: 0;
+      }
+  
+      &:last-child {
+        right: 0;
+      }
     }
   }
   

@@ -10,7 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { BaseTableComponent } from '../components/base-table/base-table.component';
 import { MachineAnalyticsService } from '../services/machine-analytics.service';
 import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
-import { OperatorPerformanceChartComponent } from '../operator-performance-chart/operator-performance-chart.component';
+import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
 
 @Component({
@@ -128,7 +128,7 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
       maxWidth: '95vw',
       panelClass: 'performance-chart-dialog',
       data: {
-        component: OperatorPerformanceChartComponent,
+        component: UseCarouselComponent,
         machineSerial: row['Serial Number'],
         startTime: this.startTime,
         endTime: this.endTime
