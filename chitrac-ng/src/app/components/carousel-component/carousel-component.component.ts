@@ -12,7 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
   styleUrls: ['./carousel-component.component.scss']
 })
 export class CarouselComponent {
-  @Input() tabs: { label: string; component: any }[] = [];
+  @Input() tabs: { label: string; component: any; componentInputs?: any }[] = [];
   selectedIndex = 0;
 
   get tabLabels(): string[] {
@@ -21,6 +21,10 @@ export class CarouselComponent {
 
   get tabComponents(): any[] {
     return this.tabs.map(tab => tab.component);
+  }
+
+  get tabInputs(): any[] {
+    return this.tabs.map(tab => tab.componentInputs || {});
   }
 
   goToPrevious() {

@@ -6,13 +6,17 @@
   box-sizing: border-box;
   border-radius: 12px;
   transition: background-color 0.3s;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: auto;
   background-color: #1e1e1e !important;
   padding: 24px;
+  min-width: 0;
+  max-width: 100vw;
 
   ng-container {
     flex: 1;
     width: 100%;
+    height: 100%;
     min-height: 0;
     display: flex;
     overflow: hidden;
@@ -36,10 +40,13 @@
   bottom: 0;
   background-color: #1e1e1e;
   z-index: 10;
+  width: fit-content;
+  margin-left: auto;
 
   button {
+    min-width: 80px;
     height: 36px;
-    padding: 0 24px;
+    padding: 0 16px;
     font-size: 14px;
     font-weight: 500;
     border-radius: 4px;
@@ -49,6 +56,7 @@
     color: #ffffff;
     border: none;
     transition: background-color 0.3s ease;
+    white-space: nowrap;
   
     &:hover {
       background-color: #3700b3;
@@ -73,3 +81,5 @@
     margin-left: 12px;
   }
 }
+
+

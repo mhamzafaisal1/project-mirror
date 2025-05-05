@@ -160,25 +160,6 @@ export class MultipleLineChartComponent implements AfterViewInit {
         .attr("cy", y(peak.value))
         .attr("r", 3)
         .attr("fill", color(label));
-
-      const labelText = `${Math.round(peak.value)}%`;
-
-      const text = svg
-        .append("text")
-        .attr("x", x(peak.date) + 6)
-        .attr("y", y(peak.value) - 4)
-        .text(labelText)
-        .attr("text-anchor", "start")
-        .style("font-size", "11px")
-        .style("font-weight", "bold")
-        .style("fill", "#ffffff"); // ← White text
-
-      text
-        .clone(true)
-        .lower()
-        .attr("fill", "none")
-        .attr("stroke", this.isDarkTheme ? "#121212" : "#ffffff")
-        .attr("stroke-width", 4);
     };
 
     const oeePoints = transformedData.map((d) => ({

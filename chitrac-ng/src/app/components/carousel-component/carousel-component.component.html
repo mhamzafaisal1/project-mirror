@@ -1,19 +1,23 @@
-<div class="carousel-container">
+<div class="carousel-outer">
+  <div class="carousel-arrow">
     <button mat-icon-button (click)="goToPrevious()">
       <mat-icon>chevron_left</mat-icon>
     </button>
-  
+  </div>
+  <div class="carousel-container">
     <mat-tab-group class="carousel-tabs" [(selectedIndex)]="selectedIndex">
       <mat-tab *ngFor="let label of tabLabels; let i = index">
         <ng-template mat-tab-label>
           {{ label }}
         </ng-template>
-        <ng-container *ngComponentOutlet="tabComponents[i]"></ng-container>
+        <ng-container *ngComponentOutlet="tabComponents[i]; inputs: tabInputs[i]"></ng-container>
       </mat-tab>
     </mat-tab-group>
-  
+  </div>
+  <div class="carousel-arrow">
     <button mat-icon-button (click)="goToNext()">
       <mat-icon>chevron_right</mat-icon>
     </button>
   </div>
+</div>
   

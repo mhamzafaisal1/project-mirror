@@ -1,46 +1,35 @@
-<div class="container" [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }">
-
+<div class="container" [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }" style="height: 100%; display: flex; flex-direction: column;">
 
   <div class="error" *ngIf="error">{{ error }}</div>
 
-  <div class="chart-wrapper">
-    <div class="chart-container" *ngIf="chartData">
-      <h2 class="modal-title">
-        Operator Performance Chart
-        <span class="machine-tag">Machine Serial: {{ machineSerial }}</span>
-      </h2>
-
+  <div class="chart-wrapper" style="flex: 1 1 auto; display: flex; flex-direction: column; height: 100%;">
+    <div class="chart-container" *ngIf="chartData" style="flex: 1 1 auto; display: flex; flex-direction: column; height: 100%;">
       <div class="time-controls">
-
-         <!-- Start Time -->
-    <app-date-time-picker
-    label="Start Time"
-    [(value)]="startTime">
-  </app-date-time-picker>
-
-  <app-date-time-picker
-    label="End Time"
-    [(value)]="endTime">
-  </app-date-time-picker>
-        
+        <span class="machine-tag">Machine Serial: {{ machineSerial }}</span>
+        <!-- Start Time -->
+        <app-date-time-picker
+          label="Start Time"
+          [(value)]="startTime">
+        </app-date-time-picker>
+        <app-date-time-picker
+          label="End Time"
+          [(value)]="endTime">
+        </app-date-time-picker>
         <!-- ✅ NEW BUTTON: Refresh Chart -->
         <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="loading || !startTime || !endTime">
           {{ loading ? 'Refreshing...' : 'Update Chart' }}
         </button>
       </div>
-
       <div *ngIf="loading" class="loading">
         Loading data...
       </div>
-
-      <div *ngIf="chartData && !loading" class="chart">
+      <div *ngIf="chartData && !loading" class="chart" style="flex: 1 1 auto; display: flex; flex-direction: column; height: 100%;">
         <app-multiple-line-chart
           [data]="chartData"
           [isDarkTheme]="isDarkTheme">
         </app-multiple-line-chart>
       </div>
     </div>
-
     <div class="chart-placeholder" *ngIf="!chartData">
       <p>Please fetch data to display chart.</p>
     </div>

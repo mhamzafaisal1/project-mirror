@@ -11,6 +11,8 @@ import { BaseTableComponent } from '../components/base-table/base-table.componen
 import { MachineAnalyticsService } from '../services/machine-analytics.service';
 import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
 import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
+import { MachineFaultHistoryComponent } from '../machine-fault-history/machine-fault-history.component';
+import { OperatorPerformanceChartComponent } from '../operator-performance-chart/operator-performance-chart.component';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
 
 @Component({
@@ -121,6 +123,27 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
       element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 0);
 
+    const carouselTabs = [
+      { 
+        label: 'Fault Summaries', 
+        component: MachineFaultHistoryComponent,
+        componentInputs: {
+          viewType: 'summary'
+        }
+      },
+      { 
+        label: 'Fault Cycles', 
+        component: MachineFaultHistoryComponent,
+        componentInputs: {
+          viewType: 'cycles'
+        }
+      },
+      { 
+        label: 'Performance Chart', 
+        component: OperatorPerformanceChartComponent 
+      }
+    ];
+
     const dialogRef = this.dialog.open(ModalWrapperComponent, {
       width: '90vw',
       height: '80vh',
@@ -129,6 +152,9 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
       panelClass: 'performance-chart-dialog',
       data: {
         component: UseCarouselComponent,
+        componentInputs: {
+          tabData: carouselTabs
+        },
         machineSerial: row['Serial Number'],
         startTime: this.startTime,
         endTime: this.endTime

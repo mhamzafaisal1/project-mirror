@@ -17,7 +17,7 @@
   </div>
 
   <div class="charts">
-    <div *ngFor="let chart of charts" class="chart-wrapper">
+    <div *ngFor="let chart of charts" class="chart-wrapper" (click)="onChartClick(chart)" style="cursor: pointer;">
       <h3>{{ chart.title }}</h3>
       <app-multiple-bar-chart [data]="chart"></app-multiple-bar-chart>
     </div>

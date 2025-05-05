@@ -137,3 +137,37 @@ body.cdk-global-scrollblock {
   }
 }
 
+/* DEBUG: Outline all modal and fault history containers */
+// .modal-wrapper,
+// .container,
+// .scroll-wrapper,
+// .cdk-overlay-pane,
+// .mat-dialog-container {
+//   outline: 2px solid red !important;
+//   overflow-x: visible !important;
+//   min-width: 0 !important;
+//   max-width: 100vw !important;
+//   box-sizing: border-box !important;
+// }
+
+/* Hide vertical scrollbar for modal and carousel */
+.modal-wrapper,
+.carousel-container,
+.cdk-overlay-pane,
+.mat-dialog-container,
+body,
+html {
+  overflow-y: hidden !important;
+}
+
+.modal-wrapper::-webkit-scrollbar,
+.carousel-container::-webkit-scrollbar,
+.cdk-overlay-pane::-webkit-scrollbar,
+.mat-dialog-container::-webkit-scrollbar,
+body::-webkit-scrollbar,
+html::-webkit-scrollbar {
+  display: none !important;
+}
+
+
+

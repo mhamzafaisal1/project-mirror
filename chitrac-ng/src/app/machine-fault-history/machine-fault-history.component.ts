@@ -1,4 +1,12 @@
-import { Component, OnInit, OnDestroy, ElementRef, Renderer2 } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  ElementRef,
+  Renderer2,
+  Inject,
+  Input
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -6,6 +14,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { BaseTableComponent } from '../components/base-table/base-table.component';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
@@ -29,23 +38,13 @@ import { FaultHistoryService } from '../services/fault-history.service';
   styleUrls: ['./machine-fault-history.component.scss']
 })
 export class MachineFaultHistoryComponent implements OnInit, OnDestroy {
-  startTime: string = '';
-  endTime: string = '';
-  serial: string = '';
-  columns: string[] = [];
-  rows: any[] = [];
-  selectedRow: any | null = null;
-  isDarkTheme: boolean = false;
-  private observer!: MutationObserver;
-
-disableSorting = false;
-  hasFetchedOnce = false;
-  lastFetchedData: { faultCycles: any[]; faultSummaries: any[] } | null = null;
+  @Input() startTime: string = '';
+  @Input() endTime: string = '';
+  @Input() serial: string = '';
 
   private _viewType: 'summary' | 'cycles' = 'summary';
-  get viewType() {
-    return this._viewType;
-  }
+
+  @Input()
   set viewType(val: 'summary' | 'cycles') {
     this._viewType = val;
     if (this.hasFetchedOnce) {
@@ -53,19 +52,41 @@ disableSorting = false;
     }
   }
 
+  get viewType() {
+    return this._viewType;
+  }
+
+  columns: string[] = [];
+  rows: any[] = [];
+  selectedRow: any | null = null;
+  isDarkTheme: boolean = false;
+  private observer!: MutationObserver;
+  disableSorting = false;
+  hasFetchedOnce = false;
+  lastFetchedData: { faultCycles: any[]; faultSummaries: any[] } | null = null;
+
   constructor(
     private faultHistoryService: FaultHistoryService,
     private renderer: Renderer2,
-    private elRef: ElementRef
-  ) {}
+    private elRef: ElementRef,
+    @Inject(MAT_DIALOG_DATA) private data: any
+  ) {
+    // Optional fallback for dialog usage
+    if (data) {
+      this.startTime = this.startTime || data.startTime || '';
+      this.endTime = this.endTime || data.endTime || '';
+      this.serial = this.serial || data.machineSerial || '';
+    }
+  }
 
   ngOnInit(): void {
-    const end = new Date();
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-
-    this.endTime = this.formatDateForInput(end);
-    this.startTime = this.formatDateForInput(start);
+    if (!this.startTime || !this.endTime) {
+      const end = new Date();
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      this.endTime = this.formatDateForInput(end);
+      this.startTime = this.formatDateForInput(start);
+    }
 
     this.detectTheme();
 
@@ -73,6 +94,10 @@ disableSorting = false;
       this.detectTheme();
     });
     this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    if (this.startTime && this.endTime && this.serial) {
+      this.fetchData();
+    }
   }
 
   ngOnDestroy() {
@@ -91,8 +116,6 @@ disableSorting = false;
   }
 
   fetchData(): void {
-    if (!this.startTime || !this.endTime || !this.serial) return;
-
     const serialNumber = parseInt(this.serial, 10);
     if (isNaN(serialNumber)) {
       console.error('Invalid serial number');
@@ -116,57 +139,35 @@ disableSorting = false;
 
   updateTable(): void {
     if (!this.lastFetchedData) return;
-  
+
     if (this.viewType === 'summary') {
-      const summaries = this.lastFetchedData.faultSummaries;
-      if (!summaries || summaries.length === 0) {
-        this.rows = [];
-        this.columns = [];
-        return;
-      }
-  
-      const formatted = summaries.map(summary => {
+      const summaries = this.lastFetchedData.faultSummaries || [];
+      this.rows = summaries.map(summary => {
         const totalSeconds = Math.floor(summary.totalDuration / 1000);
         const hours = Math.floor(totalSeconds / 3600);
         const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
-  
+
         return {
           'Fault Type': summary.faultType,
           'Count': summary.count,
           'Total Duration': `${hours}h ${minutes}m ${seconds}s`
         };
       });
-  
-      this.columns = Object.keys(formatted[0]);
-      this.rows = formatted;
-  
     } else {
-      const cycles = this.lastFetchedData.faultCycles;
-      if (!cycles || cycles.length === 0) {
-        this.rows = [];
-        this.columns = [];
-        return;
-      }
-  
-      const formatted = cycles.map(cycle => ({
+      const cycles = this.lastFetchedData.faultCycles || [];
+      this.rows = cycles.map(cycle => ({
         'Fault Type': cycle.faultType,
         'Start Time': new Date(cycle.start).toLocaleString(),
         'Duration': `${Math.floor(cycle.duration / 3600000)}h ${Math.floor((cycle.duration % 3600000) / 60000)}m`
       }));
-  
-      this.columns = Object.keys(formatted[0]);
-      this.rows = formatted;
     }
-  }
-  
-  onRowSelected(row: any): void {
-    if (this.selectedRow === row) {
-      this.selectedRow = null;
-      return;
-    }
-    this.selectedRow = row;
 
+    this.columns = this.rows.length > 0 ? Object.keys(this.rows[0]) : [];
+  }
+
+  onRowSelected(row: any): void {
+    this.selectedRow = this.selectedRow === row ? null : row;
     setTimeout(() => {
       const element = document.querySelector('.mat-row.selected');
       element?.scrollIntoView({ behavior: 'smooth', block: 'center' });

@@ -1,8 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CarouselComponent } from '../components/carousel-component/carousel-component.component';
-import { LeveloneTableV2Component } from '../levelone-table-v2/levelone-table-v2.component';
-import { LeveloneLineChartComponent } from '../levelone-line-chart/levelone-line-chart.component';
-import { LevelonePieChartComponent } from '../levelone-pie-chart/levelone-pie-chart.component';
 import { CommonModule } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,18 +13,30 @@ import { MatButtonModule } from '@angular/material/button';
     MatTabsModule,
     MatIconModule,
     MatButtonModule,
-    CarouselComponent,
-    LeveloneTableV2Component,
-    LeveloneLineChartComponent,
-    LevelonePieChartComponent
+    CarouselComponent
   ],
   templateUrl: './use-carousel.component.html',
   styleUrl: './use-carousel.component.scss'
 })
 export class UseCarouselComponent {
-  tabData = [
-    { label: 'Table View', component: LeveloneTableV2Component },
-    { label: 'Line Chart', component: LeveloneLineChartComponent },
-    { label: 'Pie Chart', component: LevelonePieChartComponent }
-  ];
+  @Input() tabData: { label: string; component: any; componentInputs?: any }[] = [];
+  @Input() machineSerial: string = '';
+  @Input() startTime: string = '';
+  @Input() endTime: string = '';
+
+  get enhancedTabData() {
+    return this.tabData.map(tab => {
+      const inputs: any = {
+        machineSerial: this.machineSerial,
+        startTime: this.startTime,
+        endTime: this.endTime,
+        ...(tab.componentInputs || {})
+      };
+
+      return {
+        ...tab,
+        componentInputs: inputs
+      };
+    });
+  }
 }

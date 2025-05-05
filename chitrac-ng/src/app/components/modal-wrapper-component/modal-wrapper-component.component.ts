@@ -21,7 +21,21 @@ export class ModalWrapperComponent implements AfterViewInit, OnDestroy {
     // Dynamically load the component
     if (this.dialogData?.component) {
       const componentType = this.dialogData.component;
-      this.container.createComponent(componentType);
+      const componentRef = this.container.createComponent(componentType);
+      
+      // Pass inputs to the component if provided
+      if (this.dialogData.componentInputs) {
+        Object.keys(this.dialogData.componentInputs).forEach(key => {
+          componentRef.setInput(key, this.dialogData.componentInputs[key]);
+        });
+      }
+
+      // Pass other data properties as inputs
+      Object.keys(this.dialogData).forEach(key => {
+        if (key !== 'component' && key !== 'componentInputs') {
+          componentRef.setInput(key, this.dialogData[key]);
+        }
+      });
     }
 
     // Set initial theme styles
@@ -40,6 +54,7 @@ export class ModalWrapperComponent implements AfterViewInit, OnDestroy {
       this.observer.disconnect();
     }
   }
+
   applyThemeStyles() {
     const element = this.modalWrapperRef.nativeElement;
     const isDarkTheme = document.body.classList.contains('dark-theme');
@@ -56,7 +71,6 @@ export class ModalWrapperComponent implements AfterViewInit, OnDestroy {
       this.renderer.setStyle(element, 'box-shadow', '0 8px 24px rgba(0, 0, 0, 0.3)');
     }
   }
-  
 
   close() {
     this.dialogRef.close();
