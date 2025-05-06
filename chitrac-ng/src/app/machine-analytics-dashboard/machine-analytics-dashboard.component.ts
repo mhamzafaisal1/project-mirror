@@ -6,6 +6,9 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 
 import { BaseTableComponent } from '../components/base-table/base-table.component';
 import { MachineAnalyticsService } from '../services/machine-analytics.service';
@@ -109,6 +112,48 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
         this.rows = formattedData;
       });
   }
+
+  //Orignal downloadPdf function with no omition.
+
+  // downloadPdf(): void {
+  //   const doc = new jsPDF();
+  
+  //   const tableColumnTitles = this.columns;
+  //   const tableRows = this.rows.map(row =>
+  //     this.columns.map(col => row[col] ?? '')
+  //   );
+  
+  //   doc.text('Machine Analytics Report', 14, 16);
+  //   autoTable(doc, {
+  //     startY: 20,
+  //     head: [tableColumnTitles],
+  //     body: tableRows,
+  //     styles: { fontSize: 8 }
+  //   });
+  
+  //   doc.save('machine_analytics_report.pdf');
+  // }
+
+  downloadPdf(): void {
+    const doc = new jsPDF();
+  
+    const tableColumnTitles = this.columns.map(col => col === 'Status' ? '' : col); // keep column name blank
+  
+    const tableRows = this.rows.map(row =>
+      this.columns.map(col => col === 'Status' ? '' : row[col] ?? '')
+    );
+  
+    doc.text('Machine Analytics Report', 14, 16);
+    autoTable(doc, {
+      startY: 20,
+      head: [tableColumnTitles],
+      body: tableRows,
+      styles: { fontSize: 8 }
+    });
+  
+    doc.save('machine_analytics_report.pdf');
+  }
+  
 
   onRowClick(row: any): void {
     if (this.selectedRow === row) {

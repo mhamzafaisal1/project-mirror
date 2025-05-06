@@ -4,15 +4,11 @@
 >
   <div class="controls">
     <!-- Start Time -->
-    <app-date-time-picker
-    label="Start Time"
-    [(value)]="startTime">
-  </app-date-time-picker>
+    <app-date-time-picker label="Start Time" [(value)]="startTime">
+    </app-date-time-picker>
 
-  <app-date-time-picker
-    label="End Time"
-    [(value)]="endTime">
-  </app-date-time-picker>
+    <app-date-time-picker label="End Time" [(value)]="endTime">
+    </app-date-time-picker>
 
     <!-- Fetch Button -->
     <button
@@ -23,6 +19,9 @@
     >
       Fetch Data
     </button>
+      <button mat-flat-button color="primary" (click)="downloadPdf()" [disabled]="!startTime || !endTime">
+        Download PDF
+      </button>
   </div>
 </div>
 
