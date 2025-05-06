@@ -6,12 +6,14 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { Canvg } from 'canvg';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 
 import { BaseTableComponent } from '../components/base-table/base-table.component';
 import { MachineAnalyticsService } from '../services/machine-analytics.service';
+import { MachineItemSummaryService } from '../services/machine-item-summary.service';
 import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
 import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
 import { MachineFaultHistoryComponent } from '../machine-fault-history/machine-fault-history.component';
@@ -47,7 +49,8 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
     private analyticsService: MachineAnalyticsService,
     private dialog: MatDialog,
     private renderer: Renderer2,
-    private elRef: ElementRef
+    private elRef: ElementRef,
+    private machineItemSummaryService: MachineItemSummaryService
   ) {}
 
   ngOnInit(): void {
@@ -134,24 +137,74 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
   //   doc.save('machine_analytics_report.pdf');
   // }
 
-  downloadPdf(): void {
-    const doc = new jsPDF();
+  downloadPdf(start: string, end: string): void {
+    const formattedStart = new Date(start).toISOString();
+    const formattedEnd = new Date(end).toISOString();
   
-    const tableColumnTitles = this.columns.map(col => col === 'Status' ? '' : col); // keep column name blank
+    this.machineItemSummaryService.getMachineItemSummary(formattedStart, formattedEnd).subscribe({
+      next: (data) => {
+        const doc = new jsPDF();
   
-    const tableRows = this.rows.map(row =>
-      this.columns.map(col => col === 'Status' ? '' : row[col] ?? '')
-    );
+        doc.setFontSize(14);
+        doc.text('MACHINE ITEM SUMMARY REPORT', 14, 15);
+        doc.setFontSize(11);
+        doc.text(`Date Range: ${start} to ${end}`, 14, 23);
   
-    doc.text('Machine Analytics Report', 14, 16);
-    autoTable(doc, {
-      startY: 20,
-      head: [tableColumnTitles],
-      body: tableRows,
-      styles: { fontSize: 8 }
+        const head = [['Machine/Item', 'Worked Time', 'Total Count', 'PPH', 'Standard', 'Efficiency']];
+        const body: any[] = [];
+  
+        const formatTime = (t: any) =>
+          t && typeof t === 'object' ? `${t.hours}h ${t.minutes}m` : '0h 0m';
+  
+        data.forEach((machine: any) => {
+          const summary = machine.machineSummary;
+  
+          body.push([
+            { content: machine.machine.name, styles: { fillColor: [200, 230, 255], textColor: 0, fontStyle: 'bold' } },
+            formatTime(summary.workedTimeFormatted),
+            summary.totalCount,
+            summary.pph,
+            summary.proratedStandard,
+            summary.efficiency + '%',
+          ]);
+  
+          machine.sessions.forEach((session: any) => {
+            session.items.forEach((item: any) => {
+              body.push([
+                '  ' + item.name,
+                formatTime(session.workedTimeFormatted),
+                item.countTotal,
+                item.pph,
+                item.standard,
+                item.efficiency + '%',
+              ]);
+            });
+          });
+        });
+  
+        autoTable(doc, {
+          head: head,
+          body: body,
+          startY: 30,
+          styles: {
+            fontSize: 8,
+          },
+          theme: 'striped',
+          headStyles: {
+            fillColor: [22, 160, 133],
+            textColor: 255,
+          },
+          columnStyles: {
+            0: { cellWidth: 50 },
+          },
+        });
+  
+        doc.save('machine_item_summary_report.pdf');
+      },
+      error: (err) => {
+        console.error('Error fetching summary data:', err);
+      }
     });
-  
-    doc.save('machine_analytics_report.pdf');
   }
   
 

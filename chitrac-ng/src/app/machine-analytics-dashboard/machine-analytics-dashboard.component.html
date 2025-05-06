@@ -8,7 +8,7 @@
         Fetch Data
       </button>
 
-      <button mat-flat-button color="primary" (click)="downloadPdf()" [disabled]="!startTime || !endTime">
+      <button mat-flat-button color="primary"  (click)="downloadPdf(startTime, endTime)" [disabled]="!startTime || !endTime">
         Download PDF
       </button>
     </div>
