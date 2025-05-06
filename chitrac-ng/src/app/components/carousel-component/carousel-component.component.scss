@@ -1,75 +1,153 @@
-.carousel-outer {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-.carousel-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 2;
-}
-
-.carousel-arrow:first-of-type {
-  left: 0;
-}
-
-.carousel-arrow:last-of-type {
-  right: 0;
-}
-
-.carousel-container {
-  flex: 1 1 85%;
-  min-height: 0;
-  height: 100%;
-  display: flex;
-  position: relative;
-  max-width: 100%;
-  margin: 0 auto;
-  padding: 0 56px;
-  overflow-y: hidden;
-  overflow-x: auto;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-}
-
-.carousel-container::-webkit-scrollbar {
-    display: none !important; /* Chrome, Safari, Opera */
-}
-  
-.carousel-tabs {
-  flex-grow: 1;
-  min-width: 300px;
-  height: 100%;
-  
-  ::ng-deep .mat-mdc-tab-body-wrapper {
+:host {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
     height: 100%;
   }
-
-  ::ng-deep .mat-mdc-tab-body {
+  
+  .carousel-wrapper {
+    display: flex;
+    flex: 1 1 auto;
+    width: 100%;
     height: 100%;
+    align-items: stretch;
+    gap: 12px;
+    padding: 0 12px;
+    box-sizing: border-box;
   }
-
-  ::ng-deep .mat-mdc-tab-body-content {
+  
+  .tabs-container {
+    flex: 1;
     height: 100%;
     display: flex;
     flex-direction: column;
+  
+    mat-tab-group {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+  
+      ::ng-deep .mat-mdc-tab-body-wrapper,
+      ::ng-deep .mat-mdc-tab-body,
+      ::ng-deep .mat-mdc-tab-body-content {
+        flex: 1;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+      }
+    }
   }
-}
+  
+  .nav-button {
+    align-self: center;
+    height: 48px;
+    width: 48px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+  
+    &.left {
+      margin-right: 8px;
+    }
+  
+    &.right {
+      margin-left: 8px;
+    }
+  }
+  
+  
+  /* Dark Theme */
+  :host-context(.dark-theme) {
+    .carousel-wrapper {
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+  
+    .nav-button {
+      background-color: #2a2a2a;
+      color: #e0e0e0;
+  
+      &:hover {
+        background-color: #3a3a3a;
+      }
+    }
+  }
+  
+  /* Light Theme */
+  :host-context(.light-theme) {
+    .carousel-wrapper {
+      background-color: #ffffff;
+      color: #000000;
+    }
+  
+    .nav-button {
+      background-color: #e0e0e0;
+      color: #000000;
+  
+      &:hover {
+        background-color: #d0d0d0;
+      }
+    }
+  }
 
-button[mat-icon-button] {
-  height: 48px;
-  width: 48px;
-  z-index: 1;
-}
-
-.carousel-tabs,
-::ng-deep .mat-mdc-tab-body-wrapper,
-::ng-deep .mat-mdc-tab-body,
+ /* === Themed Scrollbars for Carousel === */
+.carousel-wrapper,
+.tabs-container,
 ::ng-deep .mat-mdc-tab-body-content {
-  height: 100%;
-  min-height: 0;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: transparent transparent;
 }
+
+.carousel-wrapper::-webkit-scrollbar,
+.tabs-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.carousel-wrapper::-webkit-scrollbar-track,
+.tabs-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.carousel-wrapper::-webkit-scrollbar-thumb,
+.tabs-container::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background-color: rgba(128, 128, 128, 0.3); /* fallback */
+  transition: background-color 0.3s;
+}
+
+.carousel-wrapper::-webkit-scrollbar-thumb:hover,
+.tabs-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(128, 128, 128, 0.5);
+}
+
+:host-context(.dark-theme) {
+    .carousel-wrapper::-webkit-scrollbar-thumb,
+    .tabs-container::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+  
+    .carousel-wrapper::-webkit-scrollbar-thumb:hover,
+    .tabs-container::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+  }
+  
+  :host-context(.light-theme) {
+    .carousel-wrapper::-webkit-scrollbar-thumb,
+    .tabs-container::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+  
+    .carousel-wrapper::-webkit-scrollbar-thumb:hover,
+    .tabs-container::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+  }
+  
   

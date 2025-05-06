@@ -125,17 +125,26 @@ body.cdk-global-scrollblock {
 
 /* Performance Chart Dialog Styles */
 .performance-chart-dialog {
+  height: 100%;
+
   .mat-mdc-dialog-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     padding: 0;
     border-radius: 8px;
     overflow: hidden;
   }
 
   .mat-mdc-dialog-surface {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     border-radius: 8px;
     overflow: hidden;
   }
 }
+
 
 /* DEBUG: Outline all modal and fault history containers */
 // .modal-wrapper,

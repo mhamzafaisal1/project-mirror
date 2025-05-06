@@ -1,34 +1,25 @@
-<div
-  class="container"
-  [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }"
->
+<div class="dashboard-container" [class.dark-mode]="isDarkTheme">
   <div class="controls">
-    <!-- Start Time -->
-    <app-date-time-picker label="Start Time" [(value)]="startTime">
-    </app-date-time-picker>
+    <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
+    <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
 
-    <app-date-time-picker label="End Time" [(value)]="endTime">
-    </app-date-time-picker>
+    <div class="button-group">
+      <button mat-flat-button color="primary" (click)="fetchAnalyticsData()" [disabled]="!startTime || !endTime">
+        Fetch Data
+      </button>
 
-    <!-- Fetch Button -->
-    <button
-      mat-flat-button
-      color="primary"
-      (click)="fetchAnalyticsData()"
-      [disabled]="!startTime || !endTime"
-    >
-      Fetch Data
-    </button>
       <button mat-flat-button color="primary" (click)="downloadPdf()" [disabled]="!startTime || !endTime">
         Download PDF
       </button>
+    </div>
   </div>
-</div>
-
-<base-table
+  <base-table
+  [class.dark]="isDarkTheme"
+  [class.light]="!isDarkTheme"
   [columns]="columns"
   [rows]="rows"
   [selectedRow]="selectedRow"
   (rowClicked)="onRowClick($event)"
->
-</base-table>
+></base-table>
+
+</div>

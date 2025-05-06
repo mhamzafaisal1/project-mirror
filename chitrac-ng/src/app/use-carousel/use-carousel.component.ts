@@ -1,9 +1,9 @@
-import { Component, Input } from '@angular/core';
-import { CarouselComponent } from '../components/carousel-component/carousel-component.component';
+import { Component, Input, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { CarouselComponent } from '../components/carousel-component/carousel-component.component';
 
 @Component({
   selector: 'app-use-carousel',
@@ -16,27 +16,29 @@ import { MatButtonModule } from '@angular/material/button';
     CarouselComponent
   ],
   templateUrl: './use-carousel.component.html',
-  styleUrl: './use-carousel.component.scss'
+  styleUrls: ['./use-carousel.component.scss']
 })
-export class UseCarouselComponent {
+export class UseCarouselComponent implements OnChanges {
   @Input() tabData: { label: string; component: any; componentInputs?: any }[] = [];
   @Input() machineSerial: string = '';
   @Input() startTime: string = '';
   @Input() endTime: string = '';
 
-  get enhancedTabData() {
-    return this.tabData.map(tab => {
-      const inputs: any = {
+  enhancedTabData: any[] = [];
+
+  ngOnChanges(): void {
+    this.enhancedTabData = this.tabData.map(tab => ({
+      ...tab,
+      componentInputs: {
         machineSerial: this.machineSerial,
         startTime: this.startTime,
         endTime: this.endTime,
         ...(tab.componentInputs || {})
-      };
+      }
+    }));
+  }
 
-      return {
-        ...tab,
-        componentInputs: inputs
-      };
-    });
+  get isDarkTheme(): boolean {
+    return document.body.classList.contains('dark-theme');
   }
 }

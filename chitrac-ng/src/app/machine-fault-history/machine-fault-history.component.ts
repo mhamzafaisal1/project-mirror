@@ -5,7 +5,9 @@ import {
   ElementRef,
   Renderer2,
   Inject,
-  Input
+  Input,
+  SimpleChanges,
+  OnChanges
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
@@ -37,21 +39,17 @@ import { FaultHistoryService } from '../services/fault-history.service';
   templateUrl: './machine-fault-history.component.html',
   styleUrls: ['./machine-fault-history.component.scss']
 })
-export class MachineFaultHistoryComponent implements OnInit, OnDestroy {
+export class MachineFaultHistoryComponent implements OnInit, OnChanges, OnDestroy {
   @Input() startTime: string = '';
   @Input() endTime: string = '';
   @Input() serial: string = '';
 
   private _viewType: 'summary' | 'cycles' = 'summary';
-
   @Input()
   set viewType(val: 'summary' | 'cycles') {
     this._viewType = val;
-    if (this.hasFetchedOnce) {
-      this.updateTable();
-    }
+    if (this.hasFetchedOnce) this.updateTable();
   }
-
   get viewType() {
     return this._viewType;
   }
@@ -60,10 +58,12 @@ export class MachineFaultHistoryComponent implements OnInit, OnDestroy {
   rows: any[] = [];
   selectedRow: any | null = null;
   isDarkTheme: boolean = false;
-  private observer!: MutationObserver;
   disableSorting = false;
   hasFetchedOnce = false;
+
   lastFetchedData: { faultCycles: any[]; faultSummaries: any[] } | null = null;
+  lastParams: { startTime: string; endTime: string; serial: string } | null = null;
+  private observer!: MutationObserver;
 
   constructor(
     private faultHistoryService: FaultHistoryService,
@@ -71,7 +71,6 @@ export class MachineFaultHistoryComponent implements OnInit, OnDestroy {
     private elRef: ElementRef,
     @Inject(MAT_DIALOG_DATA) private data: any
   ) {
-    // Optional fallback for dialog usage
     if (data) {
       this.startTime = this.startTime || data.startTime || '';
       this.endTime = this.endTime || data.endTime || '';
@@ -80,47 +79,62 @@ export class MachineFaultHistoryComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    if (!this.startTime || !this.endTime) {
-      const end = new Date();
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-      this.endTime = this.formatDateForInput(end);
-      this.startTime = this.formatDateForInput(start);
-    }
-
     this.detectTheme();
+    this.observeTheme();
+    this.checkAndFetch();
+  }
 
-    this.observer = new MutationObserver(() => {
-      this.detectTheme();
-    });
-    this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-
-    if (this.startTime && this.endTime && this.serial) {
-      this.fetchData();
+  ngOnChanges(changes: SimpleChanges): void {
+    if (
+      changes['startTime'] ||
+      changes['endTime'] ||
+      changes['serial'] ||
+      changes['viewType']
+    ) {
+      this.checkAndFetch();
     }
   }
 
   ngOnDestroy() {
-    if (this.observer) {
-      this.observer.disconnect();
-    }
+    if (this.observer) this.observer.disconnect();
   }
 
-  detectTheme() {
+  private observeTheme() {
+    this.observer = new MutationObserver(() => this.detectTheme());
+    this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  private detectTheme() {
     const isDark = document.body.classList.contains('dark-theme');
     this.isDarkTheme = isDark;
+    const el = this.elRef.nativeElement;
+    this.renderer.setStyle(el, 'background-color', isDark ? '#121212' : '#ffffff');
+    this.renderer.setStyle(el, 'color', isDark ? '#e0e0e0' : '#000000');
+  }
 
-    const element = this.elRef.nativeElement;
-    this.renderer.setStyle(element, 'background-color', isDark ? '#121212' : '#ffffff');
-    this.renderer.setStyle(element, 'color', isDark ? '#e0e0e0' : '#000000');
+  private checkAndFetch() {
+    const currentParams = {
+      startTime: this.startTime,
+      endTime: this.endTime,
+      serial: this.serial
+    };
+
+    if (
+      this.lastParams &&
+      this.lastParams.startTime === currentParams.startTime &&
+      this.lastParams.endTime === currentParams.endTime &&
+      this.lastParams.serial === currentParams.serial
+    ) {
+      return; // prevent duplicate fetch
+    }
+
+    this.lastParams = currentParams;
+    this.fetchData();
   }
 
   fetchData(): void {
-    const serialNumber = parseInt(this.serial, 10);
-    if (isNaN(serialNumber)) {
-      console.error('Invalid serial number');
-      return;
-    }
+    const serialNumber = parseInt(this.serial);
+    if (isNaN(serialNumber)) return;
 
     this.faultHistoryService.getFaultHistory(this.startTime, this.endTime, serialNumber)
       .subscribe({
@@ -141,8 +155,7 @@ export class MachineFaultHistoryComponent implements OnInit, OnDestroy {
     if (!this.lastFetchedData) return;
 
     if (this.viewType === 'summary') {
-      const summaries = this.lastFetchedData.faultSummaries || [];
-      this.rows = summaries.map(summary => {
+      this.rows = (this.lastFetchedData.faultSummaries || []).map(summary => {
         const totalSeconds = Math.floor(summary.totalDuration / 1000);
         const hours = Math.floor(totalSeconds / 3600);
         const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -155,8 +168,7 @@ export class MachineFaultHistoryComponent implements OnInit, OnDestroy {
         };
       });
     } else {
-      const cycles = this.lastFetchedData.faultCycles || [];
-      this.rows = cycles.map(cycle => ({
+      this.rows = (this.lastFetchedData.faultCycles || []).map(cycle => ({
         'Fault Type': cycle.faultType,
         'Start Time': new Date(cycle.start).toLocaleString(),
         'Duration': `${Math.floor(cycle.duration / 3600000)}h ${Math.floor((cycle.duration % 3600000) / 60000)}m`

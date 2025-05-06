@@ -190,8 +190,8 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
     ];
 
     const dialogRef = this.dialog.open(ModalWrapperComponent, {
-      width: '90vw',
-      height: '80vh',
+      width: '95vw',
+      height: '90vh',
       maxHeight: '90vh',
       maxWidth: '95vw',
       panelClass: 'performance-chart-dialog',
