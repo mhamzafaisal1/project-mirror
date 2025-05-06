@@ -287,6 +287,18 @@ async function getCountRecords(db, serial, start, end) {
     return grouped;
   }
 
+  function groupCountsByItem(counts) {
+    const grouped = {};
+    for (const count of counts) {
+      const itemId = count.item?.id;
+      if (itemId == null) continue;
+      if (!grouped[itemId]) grouped[itemId] = [];
+      grouped[itemId].push(count);
+    }
+    return grouped;
+  }
+  
+
   module.exports = {
     getCountRecords,
     getValidCounts,
@@ -300,6 +312,7 @@ async function getCountRecords(db, serial, start, end) {
     getCountsForOperatorMachinePairs,
     getCountsForMachine,
     processCountStatistics,
-    groupCountsByOperatorAndMachine
+    groupCountsByOperatorAndMachine,
+    groupCountsByItem
   };
   
