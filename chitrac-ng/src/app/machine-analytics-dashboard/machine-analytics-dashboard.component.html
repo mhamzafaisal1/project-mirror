@@ -13,6 +13,9 @@
       <button mat-flat-button color="primary"  (click)="downloadOperatorSummaryPdf(startTime, endTime)" [disabled]="!startTime || !endTime">
         Download Operator Item Summary PDF
       </button>
+      <button mat-flat-button color="primary"  (click)="downloadItemSummaryPdf(startTime, endTime)" [disabled]="!startTime || !endTime">
+        Download Item Summary PDF
+      </button>
     </div>
   </div>
   <base-table

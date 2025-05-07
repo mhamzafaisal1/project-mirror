@@ -2441,11 +2441,89 @@ res.json(Object.values(consolidated));
     res.status(500).json({ error: "Failed to generate operator item summary report" });
   }
 });
-
-
-  
-
   //API route for operator item summary end 
+  
+  //API route for item summary start
+  router.get("/analytics/item-summary", async (req, res) => {
+    try {
+      const { start, end } = parseAndValidateQueryParams(req);
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+  
+      const allStates = await fetchStatesForMachine(db, null, paddedStart, paddedEnd);
+      const groupedStates = groupStatesByMachine(allStates);
+  
+      const resultsMap = new Map();
+  
+      for (const [machineSerial, group] of Object.entries(groupedStates)) {
+        const machineStates = group.states;
+        const machineName = group.machine?.name || "Unknown";
+        const cycles = extractAllCyclesFromStates(machineStates, start, end).running;
+  
+        const counts = await getValidCounts(db, parseInt(machineSerial), start, end);
+        if (!counts.length || !cycles.length) continue;
+  
+        for (const cycle of cycles) {
+          const cycleStart = new Date(cycle.start);
+          const cycleEnd = new Date(cycle.end);
+          const cycleMs = cycleEnd - cycleStart;
+  
+          const cycleCounts = counts.filter(c => {
+            const ts = new Date(c.timestamp);
+            return ts >= cycleStart && ts <= cycleEnd;
+          });
+  
+          if (!cycleCounts.length) continue;
+  
+          const operators = new Set(cycleCounts.map(c => c.operator?.id).filter(Boolean));
+          const workedTimeMs = cycleMs * Math.max(1, operators.size);
+  
+          const grouped = groupCountsByItem(cycleCounts);
+  
+          for (const [itemId, group] of Object.entries(grouped)) {
+            const name = group[0].item?.name || "Unknown";
+            const standard = group[0].item?.standard > 0 ? group[0].item.standard : 666;
+            const countTotal = group.length;
+  
+            if (!resultsMap.has(itemId)) {
+              resultsMap.set(itemId, {
+                itemId: parseInt(itemId),
+                name,
+                standard,
+                count: 0,
+                workedTimeMs: 0,
+              });
+            }
+  
+            const entry = resultsMap.get(itemId);
+            entry.count += countTotal;
+            entry.workedTimeMs += workedTimeMs;
+          }
+        }
+      }
+  
+      const results = Array.from(resultsMap.values()).map(entry => {
+        const totalHours = entry.workedTimeMs / 3600000;
+        const pph = totalHours > 0 ? entry.count / totalHours : 0;
+        const efficiency = entry.standard > 0 ? pph / entry.standard : 0;
+  
+        return {
+          itemName: entry.name,
+          workedTimeFormatted: formatDuration(entry.workedTimeMs),
+          count: entry.count,
+          pph: Math.round(pph * 100) / 100,
+          standard: entry.standard,
+          efficiency: Math.round(efficiency * 10000) / 100
+        };
+      });
+  
+      res.json(results);
+    } catch (err) {
+      logger.error("Error in /analytics/item-summary:", err);
+      res.status(500).json({ error: "Failed to generate item summary report" });
+    }
+  });
+  
+  //API route for item summary end
 
   return router;
 }

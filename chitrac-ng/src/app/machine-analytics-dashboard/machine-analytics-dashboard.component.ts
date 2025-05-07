@@ -33,6 +33,15 @@ interface OperatorSummaryRow {
   efficiency: number;
 }
 
+interface ItemSummary {
+  itemName: string;
+  workedTimeFormatted: { hours: number; minutes: number };
+  count: number;
+  pph: number;
+  standard: number;
+  efficiency: number;
+}
+
 @Component({
   selector: 'app-machine-analytics-dashboard',
   standalone: true,
@@ -351,8 +360,51 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
     });
   }
   
+  downloadItemSummaryPdf(start: string, end: string): void {
+    const formattedStart = new Date(start).toISOString();
+    const formattedEnd = new Date(end).toISOString();
   
+    this.analyticsService.getItemSummary(formattedStart, formattedEnd).subscribe({
+      next: (data: ItemSummary[]) => {
+        const doc = new jsPDF();
+        doc.setFontSize(14);
+        doc.text('ITEM SUMMARY REPORT', 14, 15);
+        doc.setFontSize(11);
+        doc.text(`Date Range: ${start} to ${end}`, 14, 23);
   
+        const head = [['Item Name', 'Worked Time', 'Count Total', 'PPH', 'Standard', 'Efficiency']];
+        const body = data.map((item: ItemSummary) => [
+          item.itemName,
+          `${item.workedTimeFormatted.hours}h ${item.workedTimeFormatted.minutes}m`,
+          item.count,
+          item.pph,
+          item.standard,
+          `${item.efficiency}%`
+        ]);
+  
+        autoTable(doc, {
+          head,
+          body,
+          startY: 30,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [52, 73, 94], textColor: 255 },
+          columnStyles: {
+            0: { cellWidth: 50 }, // Item Name column wider
+            1: { cellWidth: 25 }, // Worked Time
+            2: { cellWidth: 20 }, // Count Total
+            3: { cellWidth: 20 }, // PPH
+            4: { cellWidth: 20 }, // Standard
+            5: { cellWidth: 20 }  // Efficiency
+          }
+        });
+  
+        doc.save('item_summary_report.pdf');
+      },
+      error: (err) => {
+        console.error("Failed to fetch item summary:", err);
+      }
+    });
+  }
 
   onRowClick(row: any): void {
     if (this.selectedRow === row) {
