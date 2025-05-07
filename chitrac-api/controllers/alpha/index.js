@@ -2107,6 +2107,121 @@ function constructor(server) {
   // API route for fault history end
 
   //API route for machine item summary start
+//Orignal route for machine item summary with all the items (not aggregated)
+  // router.get("/analytics/machine-item-summary", async (req, res) => {
+  //   try {
+  //     const { start, end, serial } = parseAndValidateQueryParams(req);
+  //     const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+  
+  //     const allStates = await fetchStatesForMachine(db, serial || null, paddedStart, paddedEnd);
+  //     if (!allStates.length) return res.json([]);
+  
+  //     const groupedStates = groupStatesByMachine(allStates);
+  //     const results = [];
+  
+  //     for (const [machineSerial, group] of Object.entries(groupedStates)) {
+  //       const machineName = group.machine?.name || "Unknown";
+  //       const machineStates = group.states;
+  //       const cycles = extractAllCyclesFromStates(machineStates, start, end).running;
+  
+  //       const allCounts = await getValidCounts(db, parseInt(machineSerial), start, end);
+  
+  //       const machineSummary = {
+  //         totalCount: 0,
+  //         totalWorkedMs: 0,
+  //         itemSummaries: {},
+  //       };
+  
+  //       const sessions = [];
+  
+  //       for (const cycle of cycles) {
+  //         const cycleStart = new Date(cycle.start);
+  //         const cycleEnd = new Date(cycle.end);
+  //         const cycleMs = cycleEnd - cycleStart;
+  
+  //         const cycleCounts = allCounts.filter((c) => {
+  //           const ts = new Date(c.timestamp);
+  //           return ts >= cycleStart && ts <= cycleEnd;
+  //         });
+  
+  //         if (!cycleCounts.length) continue;
+  
+  //         const operators = new Set(cycleCounts.map((c) => c.operator?.id).filter(Boolean));
+  //         const workedTimeMs = cycleMs * Math.max(1, operators.size);
+  
+  //         const grouped = groupCountsByItem(cycleCounts);
+  
+  //         const items = Object.entries(grouped).map(([itemId, group]) => {
+  //           const countTotal = group.length;
+  //           const standard = group[0].item?.standard > 0 ? group[0].item.standard : 666;
+  //           const name = group[0].item?.name || "Unknown";
+  
+  //           const pph = countTotal / (workedTimeMs / 3600000);
+  //           const efficiency = pph / standard;
+  
+  //           // Add to machine summary
+  //           if (!machineSummary.itemSummaries[itemId]) {
+  //             machineSummary.itemSummaries[itemId] = {
+  //               count: 0,
+  //               standard,
+  //             };
+  //           }
+  //           machineSummary.itemSummaries[itemId].count += countTotal;
+  //           machineSummary.totalCount += countTotal;
+  //           machineSummary.totalWorkedMs += workedTimeMs;
+  
+  //           return {
+  //             itemId: parseInt(itemId),
+  //             name,
+  //             countTotal,
+  //             standard,
+  //             pph: Math.round(pph * 100) / 100,
+  //             efficiency: Math.round(efficiency * 10000) / 100,
+  //           };
+  //         });
+  
+  //         sessions.push({
+  //           start: cycleStart.toISOString(),
+  //           end: cycleEnd.toISOString(),
+  //           workedTimeMs,
+  //           workedTimeFormatted: formatDuration(workedTimeMs),
+  //           items,
+  //         });
+  //       }
+  
+  //       const totalHours = machineSummary.totalWorkedMs / 3600000;
+  //       const machinePph = totalHours > 0 ? machineSummary.totalCount / totalHours : 0;
+  
+  //       const proratedStandard = Object.values(machineSummary.itemSummaries).reduce((acc, item) => {
+  //         const weight = machineSummary.totalCount > 0 ? item.count / machineSummary.totalCount : 0;
+  //         return acc + weight * item.standard;
+  //       }, 0);
+  
+  //       const machineEff = proratedStandard > 0 ? machinePph / proratedStandard : 0;
+  
+  //       results.push({
+  //         machine: {
+  //           name: machineName,
+  //           serial: parseInt(machineSerial),
+  //         },
+  //         sessions,
+  //         machineSummary: {
+  //           totalCount: machineSummary.totalCount,
+  //           workedTimeMs: machineSummary.totalWorkedMs,
+  //           workedTimeFormatted: formatDuration(machineSummary.totalWorkedMs),
+  //           pph: Math.round(machinePph * 100) / 100,
+  //           proratedStandard: Math.round(proratedStandard * 100) / 100,
+  //           efficiency: Math.round(machineEff * 10000) / 100,
+  //         },
+  //       });
+  //     }
+  
+  //     res.json(results);
+  //   } catch (error) {
+  //     logger.error("Error in /analytics/machine-item-summary:", error);
+  //     res.status(500).json({ error: "Failed to generate machine item summary" });
+  //   }
+  // });
 
   router.get("/analytics/machine-item-summary", async (req, res) => {
     try {
@@ -2151,49 +2266,56 @@ function constructor(server) {
   
           const grouped = groupCountsByItem(cycleCounts);
   
-          const items = Object.entries(grouped).map(([itemId, group]) => {
+          for (const [itemId, group] of Object.entries(grouped)) {
             const countTotal = group.length;
             const standard = group[0].item?.standard > 0 ? group[0].item.standard : 666;
             const name = group[0].item?.name || "Unknown";
   
-            const pph = countTotal / (workedTimeMs / 3600000);
-            const efficiency = pph / standard;
-  
-            // Add to machine summary
             if (!machineSummary.itemSummaries[itemId]) {
               machineSummary.itemSummaries[itemId] = {
                 count: 0,
                 standard,
+                workedTimeMs: 0,
+                name,
               };
             }
+  
             machineSummary.itemSummaries[itemId].count += countTotal;
+            machineSummary.itemSummaries[itemId].workedTimeMs += workedTimeMs;
             machineSummary.totalCount += countTotal;
             machineSummary.totalWorkedMs += workedTimeMs;
-  
-            return {
-              itemId: parseInt(itemId),
-              name,
-              countTotal,
-              standard,
-              pph: Math.round(pph * 100) / 100,
-              efficiency: Math.round(efficiency * 10000) / 100,
-            };
-          });
+          }
   
           sessions.push({
             start: cycleStart.toISOString(),
             end: cycleEnd.toISOString(),
             workedTimeMs,
             workedTimeFormatted: formatDuration(workedTimeMs),
-            items,
           });
         }
+  
+        // Add per-item formatted metrics
+        Object.entries(machineSummary.itemSummaries).forEach(([itemId, summary]) => {
+          const workedTimeFormatted = formatDuration(summary.workedTimeMs);
+          const totalHours = summary.workedTimeMs / 3600000;
+          const pph = totalHours > 0 ? summary.count / totalHours : 0;
+          const efficiency = summary.standard > 0 ? pph / summary.standard : 0;
+  
+          machineSummary.itemSummaries[itemId] = {
+            name: summary.name,
+            standard: summary.standard,
+            countTotal: summary.count,
+            workedTimeFormatted,
+            pph: Math.round(pph * 100) / 100,
+            efficiency: Math.round(efficiency * 10000) / 100,
+          };
+        });
   
         const totalHours = machineSummary.totalWorkedMs / 3600000;
         const machinePph = totalHours > 0 ? machineSummary.totalCount / totalHours : 0;
   
         const proratedStandard = Object.values(machineSummary.itemSummaries).reduce((acc, item) => {
-          const weight = machineSummary.totalCount > 0 ? item.count / machineSummary.totalCount : 0;
+          const weight = machineSummary.totalCount > 0 ? item.countTotal / machineSummary.totalCount : 0;
           return acc + weight * item.standard;
         }, 0);
   
@@ -2212,6 +2334,7 @@ function constructor(server) {
             pph: Math.round(machinePph * 100) / 100,
             proratedStandard: Math.round(proratedStandard * 100) / 100,
             efficiency: Math.round(machineEff * 10000) / 100,
+            itemSummaries: machineSummary.itemSummaries,
           },
         });
       }
@@ -2222,6 +2345,7 @@ function constructor(server) {
       res.status(500).json({ error: "Failed to generate machine item summary" });
     }
   });
+  
   
   
   //API route for machine item summary end

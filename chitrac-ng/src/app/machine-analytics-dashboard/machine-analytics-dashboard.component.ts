@@ -136,6 +136,7 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
   
   //   doc.save('machine_analytics_report.pdf');
   // }
+  
 
   downloadPdf(start: string, end: string): void {
     const formattedStart = new Date(start).toISOString();
@@ -144,7 +145,6 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
     this.machineItemSummaryService.getMachineItemSummary(formattedStart, formattedEnd).subscribe({
       next: (data) => {
         const doc = new jsPDF();
-  
         doc.setFontSize(14);
         doc.text('MACHINE ITEM SUMMARY REPORT', 14, 15);
         doc.setFontSize(11);
@@ -153,38 +153,42 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
         const head = [['Machine/Item', 'Worked Time', 'Total Count', 'PPH', 'Standard', 'Efficiency']];
         const body: any[] = [];
   
-        const formatTime = (t: any) =>
-          t && typeof t === 'object' ? `${t.hours}h ${t.minutes}m` : '0h 0m';
-  
         data.forEach((machine: any) => {
           const summary = machine.machineSummary;
   
+          // Add machine-wide summary
           body.push([
-            { content: machine.machine.name, styles: { fillColor: [200, 230, 255], textColor: 0, fontStyle: 'bold' } },
-            formatTime(summary.workedTimeFormatted),
+            {
+              content: machine.machine.name,
+              styles: {
+                fillColor: [200, 230, 255],
+                textColor: 0,
+                fontStyle: 'bold'
+              }
+            },
+            `${summary.workedTimeFormatted.hours}h ${summary.workedTimeFormatted.minutes}m`,
             summary.totalCount,
             summary.pph,
             summary.proratedStandard,
-            summary.efficiency + '%',
+            `${summary.efficiency}%`
           ]);
   
-          machine.sessions.forEach((session: any) => {
-            session.items.forEach((item: any) => {
-              body.push([
-                '  ' + item.name,
-                formatTime(session.workedTimeFormatted),
-                item.countTotal,
-                item.pph,
-                item.standard,
-                item.efficiency + '%',
-              ]);
-            });
+          // Add item summaries under this machine
+          Object.values(summary.itemSummaries).forEach((item: any) => {
+            body.push([
+              '  ' + item.name, // indented
+              `${item.workedTimeFormatted.hours}h ${item.workedTimeFormatted.minutes}m`,
+              item.countTotal,
+              item.pph,
+              item.standard,
+              `${item.efficiency}%`
+            ]);
           });
         });
   
         autoTable(doc, {
-          head: head,
-          body: body,
+          head,
+          body,
           startY: 30,
           styles: {
             fontSize: 8,
