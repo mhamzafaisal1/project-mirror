@@ -2345,10 +2345,107 @@ function constructor(server) {
       res.status(500).json({ error: "Failed to generate machine item summary" });
     }
   });
-  
-  
-  
   //API route for machine item summary end
+
+  //API route for operator item summary start
+
+router.get("/analytics/operator-item-summary", async (req, res) => {
+  try {
+    const { start, end } = parseAndValidateQueryParams(req);
+    const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+
+    const allStates = await fetchStatesForOperator(db, null, paddedStart, paddedEnd);
+    const groupedStates = groupStatesByOperatorAndSerial(allStates);
+
+    const allOperatorMachinePairs = Object.keys(groupedStates).map(key => {
+      const [operatorId, machineSerial] = key.split('-').map(Number);
+      return { operatorId, machineSerial };
+    });
+
+    const allCounts = await getCountsForOperatorMachinePairs(db, allOperatorMachinePairs, paddedStart, paddedEnd);
+
+    const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
+
+    const results = [];
+
+    for (const key in groupedCounts) {
+      const { operator, machine, counts, validCounts, misfeedCounts } = groupedCounts[key];
+      const itemMap = groupCountsByItem(validCounts);
+
+      const states = groupedStates[key]?.states || [];
+      const runCycles = getCompletedCyclesForOperator(states);
+
+      const totalRunMs = runCycles.reduce((acc, cycle) => acc + (cycle.duration || 0), 0);
+
+      for (const itemId in itemMap) {
+        const group = itemMap[itemId];
+        const item = group[0]?.item || {};
+        const count = group.length;
+        const misfeeds = misfeedCounts.filter(m => m.item?.id === parseInt(itemId)).length;
+
+        const hours = totalRunMs / 3600000;
+        const pph = hours > 0 ? count / hours : 0;
+        const standard = item.standard > 0 ? item.standard : 666;
+        const efficiency = standard > 0 ? pph / standard : 0;
+
+        results.push({
+          operatorName: operator?.name || 'Unknown',
+          machineName: machine?.name || 'Unknown',
+          itemName: item?.name || 'Unknown',
+          workedTimeFormatted: formatDuration(totalRunMs),
+          count,
+          misfeed: misfeeds,
+          pph: Math.round(pph * 100) / 100,
+          standard,
+          efficiency: Math.round(efficiency * 10000) / 100
+        });
+      }
+    }
+
+    // Consolidate duplicates: same operator, machine, and item
+const consolidated = {};
+
+for (const row of results) {
+  const key = `${row.operatorName}-${row.machineName}-${row.itemName}`;
+  
+  if (!consolidated[key]) {
+    consolidated[key] = { ...row };
+  } else {
+    const existing = consolidated[key];
+
+    // Accumulate counts
+    existing.count += row.count;
+    existing.misfeed += row.misfeed;
+
+    // Sum worked time
+    const existingMs = (existing.workedTimeFormatted.hours * 60 + existing.workedTimeFormatted.minutes) * 60 * 1000;
+    const newMs = (row.workedTimeFormatted.hours * 60 + row.workedTimeFormatted.minutes) * 60 * 1000;
+    const totalMs = existingMs + newMs;
+
+    // Recalculate time
+    const totalMinutes = Math.floor(totalMs / 60000);
+    existing.workedTimeFormatted = {
+      hours: Math.floor(totalMinutes / 60),
+      minutes: totalMinutes % 60
+    };
+
+    const totalHours = totalMs / 3600000;
+    existing.pph = Math.round((existing.count / totalHours) * 100) / 100;
+    existing.efficiency = Math.round((existing.pph / existing.standard) * 10000) / 100;
+  }
+}
+
+res.json(Object.values(consolidated));
+  } catch (err) {
+    logger.error("Error in /analytics/operator-item-summary:", err);
+    res.status(500).json({ error: "Failed to generate operator item summary report" });
+  }
+});
+
+
+  
+
+  //API route for operator item summary end 
 
   return router;
 }

@@ -14,11 +14,24 @@ import autoTable from 'jspdf-autotable';
 import { BaseTableComponent } from '../components/base-table/base-table.component';
 import { MachineAnalyticsService } from '../services/machine-analytics.service';
 import { MachineItemSummaryService } from '../services/machine-item-summary.service';
+import { OperatorSummaryService } from '../services/operator-summary.service';
 import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
 import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
 import { MachineFaultHistoryComponent } from '../machine-fault-history/machine-fault-history.component';
 import { OperatorPerformanceChartComponent } from '../operator-performance-chart/operator-performance-chart.component';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
+
+interface OperatorSummaryRow {
+  operatorName: string;
+  machineName: string;
+  itemName: string;
+  workedTimeFormatted: { hours: number; minutes: number };
+  count: number;
+  misfeed: number;
+  pph: number;
+  standard: number;
+  efficiency: number;
+}
 
 @Component({
   selector: 'app-machine-analytics-dashboard',
@@ -50,7 +63,8 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
     private dialog: MatDialog,
     private renderer: Renderer2,
     private elRef: ElementRef,
-    private machineItemSummaryService: MachineItemSummaryService
+    private machineItemSummaryService: MachineItemSummaryService,
+    private operatorSummaryService: OperatorSummaryService
   ) {}
 
   ngOnInit(): void {
@@ -138,7 +152,7 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
   // }
   
 
-  downloadPdf(start: string, end: string): void {
+  downloadMachineItemSummaryPdf(start: string, end: string): void {
     const formattedStart = new Date(start).toISOString();
     const formattedEnd = new Date(end).toISOString();
   
@@ -210,6 +224,134 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+  downloadOperatorSummaryPdf(start: string, end: string): void {
+    const formattedStart = new Date(start).toISOString();
+    const formattedEnd = new Date(end).toISOString();
+  
+    this.operatorSummaryService.getOperatorSummary(formattedStart, formattedEnd).subscribe({
+      next: (data: OperatorSummaryRow[]) => {
+        const doc = new jsPDF();
+        doc.setFontSize(14);
+        doc.text('OPERATOR SUMMARY REPORT', 14, 15);
+        doc.setFontSize(11);
+        doc.text(`Date Range: ${start} to ${end}`, 14, 23);
+  
+        const head = [['Operator', 'Machine', 'Item', 'Worked Time', 'Count', 'Misfeed', 'PPH', 'Standard', 'Efficiency']];
+        const body: any[] = [];
+  
+        // Group by composite key
+        const grouped = new Map<string, OperatorSummaryRow>();
+  
+        for (const row of data) {
+          const key = `${row.operatorName}-${row.machineName}-${row.itemName}`;
+          if (!grouped.has(key)) {
+            grouped.set(key, { ...row });
+          } else {
+            const existing = grouped.get(key)!;
+            existing.count += row.count;
+            existing.misfeed += row.misfeed;
+            existing.workedTimeFormatted.hours += row.workedTimeFormatted.hours;
+            existing.workedTimeFormatted.minutes += row.workedTimeFormatted.minutes;
+          }
+        }
+  
+        // Normalize time overflow
+        for (const summary of grouped.values()) {
+          if (summary.workedTimeFormatted.minutes >= 60) {
+            summary.workedTimeFormatted.hours += Math.floor(summary.workedTimeFormatted.minutes / 60);
+            summary.workedTimeFormatted.minutes %= 60;
+          }
+          const totalMs = summary.workedTimeFormatted.hours * 3600000 + summary.workedTimeFormatted.minutes * 60000;
+          const hours = totalMs / 3600000;
+          summary.pph = hours > 0 ? Math.round((summary.count / hours) * 100) / 100 : 0;
+          summary.efficiency = summary.standard > 0 ? Math.round((summary.pph / summary.standard) * 10000) / 100 : 0;
+        }
+  
+        // Group again by operator to compute operator-wide totals
+        const byOperator = new Map<string, OperatorSummaryRow[]>();
+        for (const row of grouped.values()) {
+          if (!byOperator.has(row.operatorName)) {
+            byOperator.set(row.operatorName, []);
+          }
+          byOperator.get(row.operatorName)!.push(row);
+        }
+  
+        for (const [operatorName, rows] of byOperator.entries()) {
+          const operatorTotal = {
+            count: 0,
+            misfeed: 0,
+            workedTimeMs: 0
+          };
+  
+          for (const row of rows) {
+            operatorTotal.count += row.count;
+            operatorTotal.misfeed += row.misfeed;
+            operatorTotal.workedTimeMs += row.workedTimeFormatted.hours * 3600000 + row.workedTimeFormatted.minutes * 60000;
+          }
+  
+          const totalHours = operatorTotal.workedTimeMs / 3600000;
+          const pph = totalHours > 0 ? operatorTotal.count / totalHours : 0;
+  
+          const proratedStandard = rows.reduce((acc, row) => {
+            const weight = operatorTotal.count > 0 ? row.count / operatorTotal.count : 0;
+            return acc + (weight * row.standard);
+          }, 0);
+  
+          const eff = proratedStandard > 0 ? pph / proratedStandard : 0;
+  
+          body.push([
+            {
+              content: operatorName,
+              styles: { fillColor: [200, 230, 255], textColor: 0, fontStyle: 'bold' }
+            },
+            'TOTAL',
+            'ALL ITEMS',
+            `${Math.floor(operatorTotal.workedTimeMs / 3600000)}h ${Math.floor((operatorTotal.workedTimeMs % 3600000) / 60000)}m`,
+            operatorTotal.count,
+            operatorTotal.misfeed,
+            Math.round(pph * 100) / 100,
+            Math.round(proratedStandard * 100) / 100,
+            `${Math.round(eff * 10000) / 100}%`
+          ]);
+  
+          for (const row of rows) {
+            body.push([
+              '  ' + row.operatorName,
+              row.machineName,
+              row.itemName,
+              `${row.workedTimeFormatted.hours}h ${row.workedTimeFormatted.minutes}m`,
+              row.count,
+              row.misfeed,
+              row.pph,
+              row.standard,
+              `${row.efficiency}%`
+            ]);
+          }
+        }
+  
+        autoTable(doc, {
+          head,
+          body,
+          startY: 30,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [52, 73, 94], textColor: 255 },
+          columnStyles: {
+            0: { cellWidth: 30 },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 30 }
+          }
+        });
+  
+        doc.save('operator_summary_report.pdf');
+      },
+      error: (err) => {
+        console.error("Failed to fetch operator summary:", err);
+      }
+    });
+  }
+  
+  
   
 
   onRowClick(row: any): void {

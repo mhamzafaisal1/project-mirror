@@ -19,10 +19,20 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
       .toArray();
   }
   
+
   function groupStatesByMachine(states) {
+    if (!Array.isArray(states)) {
+      throw new Error("Expected array of states but got: " + typeof states);
+    }
+  
     const grouped = {};
     for (const state of states) {
       const serial = state.machine?.serial;
+      if (!serial) {
+        console.warn("Skipping state with missing machine.serial:", state);
+        continue;
+      }
+  
       if (!grouped[serial]) {
         grouped[serial] = {
           machine: {
@@ -33,10 +43,15 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
           states: []
         };
       }
+  
       grouped[serial].states.push(state);
     }
+  
     return grouped;
   }
+  
+
+
   function extractAllCyclesFromStates(states, queryStart, queryEnd, mode) {
     const startTime = new Date(queryStart);
     const endTime = new Date(queryEnd);

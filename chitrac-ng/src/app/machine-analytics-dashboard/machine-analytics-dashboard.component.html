@@ -7,9 +7,11 @@
       <button mat-flat-button color="primary" (click)="fetchAnalyticsData()" [disabled]="!startTime || !endTime">
         Fetch Data
       </button>
-
-      <button mat-flat-button color="primary"  (click)="downloadPdf(startTime, endTime)" [disabled]="!startTime || !endTime">
-        Download PDF
+      <button mat-flat-button color="primary"  (click)="downloadMachineItemSummaryPdf(startTime, endTime)" [disabled]="!startTime || !endTime">
+        Download Machine Item Summary PDF
+      </button>
+      <button mat-flat-button color="primary"  (click)="downloadOperatorSummaryPdf(startTime, endTime)" [disabled]="!startTime || !endTime">
+        Download Operator Item Summary PDF
       </button>
     </div>
   </div>
