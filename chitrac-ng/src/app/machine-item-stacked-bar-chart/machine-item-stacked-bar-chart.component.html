@@ -1,1 +1,20 @@
-<p>machine-item-stacked-bar-chart works!</p>
+<div class="chart-container">
+    <div class="controls">
+      <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
+      <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
+      
+      <label>
+        Machine Serial:
+        <input type="text" [(ngModel)]="machineSerial" />
+      </label>
+  
+      <button (click)="fetchData()" [disabled]="!isValid()">Fetch Chart</button>
+    </div>
+  
+    <div class="chart-content">
+      <div *ngIf="loading" class="loading">Loading chart data...</div>
+      <div *ngIf="error" class="error">{{ error }}</div>
+      <app-stacked-bar-chart *ngIf="chartData" [data]="chartData"></app-stacked-bar-chart>
+    </div>
+  </div>
+  

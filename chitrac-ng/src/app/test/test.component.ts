@@ -4,6 +4,7 @@ import { LeveloneTableV2Component } from '../levelone-table-v2/levelone-table-v2
 import { LeveloneLineChartComponent } from '../levelone-line-chart/levelone-line-chart.component';
 import { LevelonePieChartComponent } from '../levelone-pie-chart/levelone-pie-chart.component';
 import { MachineItemSummaryTableComponent } from '../machine-item-summary-table/machine-item-summary-table.component';
+import { MachineItemStackedBarChartComponent } from '../machine-item-stacked-bar-chart/machine-item-stacked-bar-chart.component';
 import { CommonModule } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
@@ -21,7 +22,8 @@ import { MatButtonModule } from '@angular/material/button';
     LeveloneTableV2Component,
     LeveloneLineChartComponent,
     LevelonePieChartComponent,
-    MachineItemSummaryTableComponent
+    MachineItemSummaryTableComponent,
+    MachineItemStackedBarChartComponent
   ],
   templateUrl: './test.component.html',
   styleUrls: ['./test.component.scss']
@@ -31,6 +33,7 @@ export class TestComponent {
     // { label: 'Table View', component: LeveloneTableV2Component },
     // { label: 'Line Chart', component: LeveloneLineChartComponent },
     // { label: 'Pie Chart', component: LevelonePieChartComponent },
-    { label: 'Machine Item Summary', component: MachineItemSummaryTableComponent }
+    { label: 'Machine Item Summary', component: MachineItemSummaryTableComponent },
+    { label: 'Machine Item Stacked Bar Chart', component: MachineItemStackedBarChartComponent }
   ];
 }

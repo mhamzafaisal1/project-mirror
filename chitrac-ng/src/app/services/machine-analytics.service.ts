@@ -89,4 +89,10 @@ export class MachineAnalyticsService {
       params: { start, end, serial }
     });
   }
+
+  getMachineItemHourlyStack(start: string, end: string, serial: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/analytics/machine-item-hourly-item-stack`, {
+      params: { start, end, serial }
+    });
+  }
 }

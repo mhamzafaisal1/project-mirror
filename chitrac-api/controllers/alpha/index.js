@@ -2525,5 +2525,73 @@ res.json(Object.values(consolidated));
   
   //API route for item summary end
 
+  //Machine item stacked bar chart start
+  router.get('/analytics/machine-item-hourly-item-stack', async (req, res) => {
+    try {
+      const { start, end, serial } = parseAndValidateQueryParams(req);
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+  
+      if (!serial) {
+        return res.status(400).json({ error: 'Machine serial is required' });
+      }
+  
+      const counts = await getValidCounts(db, parseInt(serial), start, end);
+      if (!counts.length) return res.json({ title: 'No data', data: { hours: [], operators: {} } });
+  
+      // Normalize counts into hour buckets
+      const hourMap = new Map(); // hourIndex => { itemName => count }
+  
+      for (const count of counts) {
+        const ts = new Date(count.timestamp);
+        const hourIndex = Math.floor((ts - startDate) / (60 * 60 * 1000)); // hour offset since start
+        const itemName = count.item?.name || 'Unknown';
+  
+        if (!hourMap.has(hourIndex)) hourMap.set(hourIndex, {});
+        const hourEntry = hourMap.get(hourIndex);
+        hourEntry[itemName] = (hourEntry[itemName] || 0) + 1;
+      }
+  
+      // Build structure: hours[], and for each item: count array by hour
+      const maxHour = Math.max(...hourMap.keys());
+      const hours = Array.from({ length: maxHour + 1 }, (_, i) => i);
+      const itemNames = new Set();
+  
+      // Collect all item names
+      for (const hourEntry of hourMap.values()) {
+        Object.keys(hourEntry).forEach(name => itemNames.add(name));
+      }
+  
+      // Initialize operator structure
+      const operators = {};
+      for (const name of itemNames) {
+        operators[name] = Array(maxHour + 1).fill(0);
+      }
+  
+      // Fill operator counts
+      for (const [hourIndex, itemCounts] of hourMap.entries()) {
+        for (const [itemName, count] of Object.entries(itemCounts)) {
+          operators[itemName][hourIndex] = count;
+        }
+      }
+  
+      res.json({
+        title: `Item Stacked Count Chart for Machine ${serial}`,
+        data: {
+          hours,
+          operators
+        }
+      });
+    } catch (err) {
+      logger.error('Error in /analytics/machine-item-hourly-item-stack:', err);
+      res.status(500).json({ error: 'Failed to build item/hour stacked data' });
+    }
+  });
+  
+  
+  
+
+  //Machine item stacked bar chart end
+
   return router;
 }
