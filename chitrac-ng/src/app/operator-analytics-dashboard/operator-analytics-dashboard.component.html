@@ -1,28 +1,22 @@
-<div class="analytics-container">
-    <div class="analytics-inputs">
-      <app-date-time-picker
-        label="Start Time"
-        [(value)]="startTime"
-      ></app-date-time-picker>
-    
-      <app-date-time-picker
-        label="End Time"
-        [(value)]="endTime"
-      ></app-date-time-picker>
-    
-      <label>
-        Operator ID:
-        <input type="text" [(ngModel)]="operatorId" />
-      </label>
-    
-      <button (click)="fetchAnalyticsData()">Fetch Analytics</button>
+<div class="dashboard-container" [class.dark-mode]="isDarkTheme">
+  <div class="controls">
+    <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
+    <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
+
+    <div class="button-group">
+      <button mat-flat-button color="primary" (click)="fetchAnalyticsData()" [disabled]="!startTime || !endTime">
+        Fetch Data
+      </button>
     </div>
-    
-    <base-table 
-      *ngIf="rows.length" 
-      [columns]="columns" 
-      [rows]="rows"
-      [selectedRow]="selectedRow"
-      (rowClicked)="onRowSelected($event)"
-    ></base-table>
   </div>
+
+  <base-table
+    *ngIf="rows.length"
+    [columns]="columns"
+    [rows]="rows"
+    [selectedRow]="selectedRow"
+    (rowClicked)="onRowSelected($event)"
+    [class.dark]="isDarkTheme"
+    [class.light]="!isDarkTheme"
+  ></base-table>
+</div>

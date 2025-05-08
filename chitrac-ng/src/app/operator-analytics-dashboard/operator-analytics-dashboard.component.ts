@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, Renderer2 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from "@angular/material/button";
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
@@ -10,6 +11,7 @@ import { OperatorAnalyticsService } from '../services/operator-analytics.service
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
 import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
 import { OperatorCountbyitemChartComponent } from '../operator-countbyitem-chart/operator-countbyitem-chart.component';
+import { getStatusDotByCode } from '../../utils/status-utils';
 
 @Component({
   selector: 'app-operator-analytics-dashboard',
@@ -21,12 +23,15 @@ import { OperatorCountbyitemChartComponent } from '../operator-countbyitem-chart
     BaseTableComponent, 
     DateTimePickerComponent,
     MatTableModule,
-    MatSortModule
+    MatSortModule,
+    MatButtonModule
   ],
   templateUrl: './operator-analytics-dashboard.component.html',
   styleUrl: './operator-analytics-dashboard.component.scss'
 })
-export class OperatorAnalyticsDashboardComponent {
+export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
+  isDarkTheme: boolean = false;
+  private observer!: MutationObserver;
   startTime = '';
   endTime = '';
   operatorId?: number;
@@ -36,8 +41,39 @@ export class OperatorAnalyticsDashboardComponent {
 
   constructor(
     private analyticsService: OperatorAnalyticsService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private renderer: Renderer2,
+    private elRef: ElementRef
   ) {}
+
+  ngOnInit(): void {
+    this.detectTheme();
+
+    this.observer = new MutationObserver(() => {
+      this.detectTheme();
+    });
+    this.observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    this.fetchAnalyticsData();
+  }
+
+  ngOnDestroy(): void {
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+  }
+
+  detectTheme(): void {
+    const isDark = document.body.classList.contains('dark-theme');
+    this.isDarkTheme = isDark;
+
+    const element = this.elRef.nativeElement;
+    this.renderer.setStyle(element, 'background-color', isDark ? '#121212' : '#ffffff');
+    this.renderer.setStyle(element, 'color', isDark ? '#e0e0e0' : '#000000');
+  }
 
   fetchAnalyticsData(): void {
     if (!this.startTime || !this.endTime) return;
@@ -49,9 +85,9 @@ export class OperatorAnalyticsDashboardComponent {
         
         // Format the data for the table
         const formattedData = responses.map(response => ({
+          'Status': getStatusDotByCode(response.currentStatus?.code),
           'Operator Name': response.operator.name,
           'Operator ID': response.operator.id,
-          'Status': response.currentStatus.name,
           'Runtime': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
           'Paused Time': `${response.metrics.pausedTime.formatted.hours}h ${response.metrics.pausedTime.formatted.minutes}m`,
           'Fault Time': `${response.metrics.faultTime.formatted.hours}h ${response.metrics.faultTime.formatted.minutes}m`,

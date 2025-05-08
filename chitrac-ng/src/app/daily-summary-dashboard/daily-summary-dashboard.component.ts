@@ -22,7 +22,7 @@ import { BaseTableComponent } from "../components/base-table/base-table.componen
 import { MachineAnalyticsService } from "../services/machine-analytics.service";
 import { OperatorAnalyticsService } from '../services/operator-analytics.service';
 import { OperatorCountbyitemChartComponent } from "../operator-countbyitem-chart/operator-countbyitem-chart.component";
-
+import { getStatusDotByCode } from '../../utils/status-utils';
 
 @Component({
   selector: "app-daily-summary-dashboard",
@@ -119,7 +119,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
         // Populate machine rows
         const machineResponses = Array.isArray(machines) ? machines : [machines];
         this.machineRows = machineResponses.map((response: any) => ({
-          Status: this.getStatusDot(response.currentStatus),
+          Status: getStatusDotByCode(response.currentStatus),
           'Machine Name': response.machine.name,
           'OEE': `${response.metrics.performance.oee.percentage}%`,
           'Total Count': response.metrics.output.totalCount,
@@ -129,7 +129,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
         // Populate operator rows
         const operatorResponses = Array.isArray(operators) ? operators : [operators];
         this.operatorRows = operatorResponses.map((response: any) => ({
-          Status: this.getStatusDot(response.currentStatus),
+          Status: getStatusDotByCode(response.currentStatus),
           'Operator Name': response.operator.name,
           'Worked Time': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
           'Efficiency': `${response.metrics.performance.efficiency.percentage}%`,
@@ -165,7 +165,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       const responses = Array.isArray(data) ? data : [data];
   
       this.machineRows = responses.map((response: any) => ({
-        Status: this.getStatusDot(response.currentStatus),
+        Status: getStatusDotByCode(response.currentStatus),
         'Machine Name': response.machine.name,
         'OEE': `${response.metrics.performance.oee.percentage}%`,
         'Total Count': response.metrics.output.totalCount,
@@ -184,7 +184,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       const responses = Array.isArray(data) ? data : [data];
   
       this.operatorRows = responses.map((response: any) => ({
-        Status: this.getStatusDot(response.currentStatus), // assumes .code
+        Status: getStatusDotByCode(response.currentStatus), // assumes .code
         'Operator Name': response.operator.name,
         'Worked Time': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
         'Efficiency': `${response.metrics.performance.efficiency.percentage}%`,
@@ -292,15 +292,15 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   
   
 
-  getStatusDot(status: { code: number } | undefined | null): string {
-    const code = status?.code;
-    if (code === 1) return '🟢';       // Running
-    if (code === 0) return '🟡';       // Paused
-    if (typeof code === 'number' && code > 1) return '🔴'; // Faulted
+  // getStatusDot(status: { code: number } | undefined | null): string {
+  //   const code = status?.code;
+  //   if (code === 1) return '🟢';       // Running
+  //   if (code === 0) return '🟡';       // Paused
+  //   if (typeof code === 'number' && code > 1) return '🔴'; // Faulted
   
-    console.warn('Unknown status code:', status);
-    return '⚪'; // Offline or unknown
-  }
+  //   console.warn('Unknown status code:', status);
+  //   return '⚪'; // Offline or unknown
+  // }
   
   
   

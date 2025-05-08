@@ -20,6 +20,7 @@ import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
 import { MachineFaultHistoryComponent } from '../machine-fault-history/machine-fault-history.component';
 import { OperatorPerformanceChartComponent } from '../operator-performance-chart/operator-performance-chart.component';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
+import { getStatusDotByCode } from '../../utils/status-utils';
 
 interface OperatorSummaryRow {
   operatorName: string;
@@ -117,9 +118,9 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
         const responses = Array.isArray(data) ? data : [data];
 
         const formattedData = responses.map(response => ({
+          'Status': getStatusDotByCode(response.currentStatus?.code),
           'Machine Name': response.machine.name,
           'Serial Number': response.machine.serial,
-          'Status': response.currentStatus.name,
           'Runtime': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
           'Downtime': `${response.metrics.downtime.formatted.hours}h ${response.metrics.downtime.formatted.minutes}m`,
           'Total Count': response.metrics.output.totalCount,
