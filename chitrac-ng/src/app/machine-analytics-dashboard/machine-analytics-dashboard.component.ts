@@ -20,6 +20,7 @@ import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
 import { MachineFaultHistoryComponent } from '../machine-fault-history/machine-fault-history.component';
 import { OperatorPerformanceChartComponent } from '../operator-performance-chart/operator-performance-chart.component';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
+import { MachineItemSummaryTableComponent } from '../machine-item-summary-table/machine-item-summary-table.component';
 import { getStatusDotByCode } from '../../utils/status-utils';
 
 interface OperatorSummaryRow {
@@ -421,6 +422,15 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
     }, 0);
 
     const carouselTabs = [
+      { 
+        label: 'Item Summary', 
+        component: MachineItemSummaryTableComponent,
+        componentInputs: {
+          startTime: this.startTime,
+          endTime: this.endTime,
+          selectedMachineSerial: row['Serial Number']
+        }
+      },
       { 
         label: 'Fault Summaries', 
         component: MachineFaultHistoryComponent,
