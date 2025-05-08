@@ -3,13 +3,13 @@
     <div class="time-range-pickers">
       <app-date-time-picker
         label="Start Time"
-        [(value)]="startTime"
-      ></app-date-time-picker>
+        [(value)]="startTime">
+      </app-date-time-picker>
 
       <app-date-time-picker
         label="End Time"
-        [(value)]="endTime"
-      ></app-date-time-picker>
+        [(value)]="endTime">
+      </app-date-time-picker>
     </div>
 
     <div class="operator-input">
@@ -17,6 +17,7 @@
         Operator ID:
         <input type="number" [(ngModel)]="operatorId" placeholder="Enter Operator ID" />
       </label>
+
       <button (click)="fetchData()" [disabled]="!isValidInput()">Fetch Data</button>
     </div>
   </div>
@@ -24,7 +25,7 @@
   <div class="chart-content">
     <div *ngIf="loading" class="loading">Loading data...</div>
     <div *ngIf="error" class="error">{{ error }}</div>
-    
+
     <div *ngIf="!loading && !error && !chartData" class="no-data">
       No data available for the selected time range
     </div>

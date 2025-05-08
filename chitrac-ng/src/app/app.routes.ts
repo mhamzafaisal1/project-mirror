@@ -18,6 +18,7 @@ import { OperatorPerformanceChartComponent } from './operator-performance-chart/
 import { UseModalComponent } from './use-modal/use-modal.component';
 import { OperatorCountbyitemChartComponent } from './operator-countbyitem-chart/operator-countbyitem-chart.component';
 import { MachineFaultHistoryComponent } from './machine-fault-history/machine-fault-history.component';
+import { DailySummaryDashboardComponent } from './daily-summary-dashboard/daily-summary-dashboard.component';
 import { AuthGuard } from './guards/auth.guard';
 import { TestComponent } from './test/test.component';
 
@@ -40,6 +41,7 @@ export const routes: Routes = [
 	{ path: 'ng/use-modal', component: UseModalComponent },
 	{ path: 'ng/operator-countbyitem', component: OperatorCountbyitemChartComponent },
 	{ path: 'ng/machine-fault-history', component: MachineFaultHistoryComponent },
+	{ path: 'ng/daily-summary', component: DailySummaryDashboardComponent },
 	{ path: 'ng/test', component: TestComponent },
 	{ path: 'ng/*', redirectTo: 'ng/home' }
 	];
