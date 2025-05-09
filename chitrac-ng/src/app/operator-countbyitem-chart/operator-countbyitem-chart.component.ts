@@ -1,9 +1,10 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, OnDestroy, ElementRef, Renderer2 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Inject, Optional } from '@angular/core';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatDialogModule } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 
 import { OperatorCountbyitemService } from '../services/operator-countbyitem.service';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
@@ -32,14 +33,17 @@ interface StackedBarChartData {
   imports: [
     CommonModule, 
     FormsModule, 
+    MatDialogModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
     DateTimePickerComponent, 
-    StackedBarChartComponent,
-    MatDialogModule
+    StackedBarChartComponent
   ],
   templateUrl: './operator-countbyitem-chart.component.html',
   styleUrl: './operator-countbyitem-chart.component.scss'
 })
-export class OperatorCountbyitemChartComponent implements OnInit {
+export class OperatorCountbyitemChartComponent implements OnInit, OnDestroy {
   @Input() operatorId?: number;
   @Input() startTime: string = '';
   @Input() endTime: string = '';
@@ -47,19 +51,35 @@ export class OperatorCountbyitemChartComponent implements OnInit {
   chartData: StackedBarChartData | null = null;
   loading = false;
   error: string | null = null;
+  isDarkTheme = false;
+  private observer!: MutationObserver;
 
   constructor(
     private countByItemService: OperatorCountbyitemService,
-    @Optional() @Inject(MAT_DIALOG_DATA) public dialogData: any
+    private renderer: Renderer2,
+    private elRef: ElementRef
   ) {}
 
   ngOnInit() {
-    if (this.dialogData) {
-      this.operatorId = this.dialogData.operatorId;
-      this.startTime = this.dialogData.startTime;
-      this.endTime = this.dialogData.endTime;
+    this.detectTheme();
+    this.observer = new MutationObserver(() => this.detectTheme());
+    this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    if (this.isValidInput()) {
       this.fetchData();
     }
+  }
+
+  ngOnDestroy() {
+    this.observer?.disconnect();
+  }
+
+  private detectTheme() {
+    const dark = document.body.classList.contains('dark-theme');
+    this.isDarkTheme = dark;
+    const el = this.elRef.nativeElement;
+    this.renderer.setStyle(el, 'background-color', dark ? '#121212' : '#ffffff');
+    this.renderer.setStyle(el, 'color', dark ? '#e0e0e0' : '#000000');
   }
 
   isValidInput(): boolean {

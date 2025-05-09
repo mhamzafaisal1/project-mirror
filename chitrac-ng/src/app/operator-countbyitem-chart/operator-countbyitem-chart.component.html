@@ -1,24 +1,17 @@
-<div class="chart-container">
+<div class="chart-container" [class.dark-mode]="isDarkTheme">
   <div class="controls">
-    <div class="time-range-pickers">
-      <app-date-time-picker
-        label="Start Time"
-        [(value)]="startTime">
-      </app-date-time-picker>
+    <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
+    <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
+    
+    <mat-form-field appearance="outline">
+      <mat-label>Operator ID</mat-label>
+      <input matInput type="number" [(ngModel)]="operatorId" placeholder="Enter operator ID">
+    </mat-form-field>
 
-      <app-date-time-picker
-        label="End Time"
-        [(value)]="endTime">
-      </app-date-time-picker>
-    </div>
-
-    <div class="operator-input">
-      <label>
-        Operator ID:
-        <input type="number" [(ngModel)]="operatorId" placeholder="Enter Operator ID" />
-      </label>
-
-      <button (click)="fetchData()" [disabled]="!isValidInput()">Fetch Data</button>
+    <div class="button-group">
+      <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="!isValidInput()">
+        Fetch Data
+      </button>
     </div>
   </div>
 
