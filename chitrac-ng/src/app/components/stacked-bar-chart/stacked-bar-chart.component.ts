@@ -52,6 +52,16 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
     }
   }
 
+  private formatHour(hour: number): string {
+    const days = Math.floor(hour / 24);
+    const remainingHours = hour % 24;
+    
+    if (days > 0) {
+      return `Day ${days + 1}, ${remainingHours}:00`;
+    }
+    return `${remainingHours}:00`;
+  }
+
   renderChart(): void {
     if (!this.data) return;
 
@@ -68,6 +78,11 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
     const isDarkTheme = document.body.classList.contains('dark-theme');
     const textColor = isDarkTheme ? '#e0e0e0' : '#000000';
     const seriesColors = d3.schemeCategory10;
+
+    // Create a mapping of original hours to formatted labels
+    const hourLabels = new Map(
+      this.data.data.hours.map(hour => [hour.toString(), this.formatHour(hour)])
+    );
 
     const x = d3.scaleBand()
       .domain(this.data.data.hours.map(String))
@@ -107,7 +122,8 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
       .attr('transform', `translate(0,${this.height - this.margin.bottom})`)
       .call(
         d3.axisBottom(x)
-          .tickValues(x.domain().filter((d, i) => i % 4 === 0))  // Show every 4th hour (adjustable)
+          .tickValues(x.domain().filter((d, i) => i % 4 === 0))  // Show every 4th hour
+          .tickFormat(d => hourLabels.get(d) || '')  // Use formatted labels
           .tickSizeOuter(0)
       )
       
@@ -134,16 +150,17 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
       .attr('transform', `translate(${this.width - this.margin.right + 10}, ${this.margin.top})`);
 
     Object.keys(this.data.data.operators).forEach((key, i) => {
-      const legendRow = legend.append('g').attr('transform', `translate(0, ${i * 20})`);
+      const legendRow = legend.append('g').attr('transform', `translate(0, ${i * 16})`);
 
       legendRow.append('rect')
-        .attr('width', 12)
-        .attr('height', 12)
+        .attr('width', 10)
+        .attr('height', 10)
         .attr('fill', seriesColors[i % seriesColors.length]);
 
       legendRow.append('text')
-        .attr('x', 16)
-        .attr('y', 10)
+        .attr('x', 14)
+        .attr('y', 8)
+        .style('font-size', '11px')
         .style('fill', textColor)
         .text(key);
     });

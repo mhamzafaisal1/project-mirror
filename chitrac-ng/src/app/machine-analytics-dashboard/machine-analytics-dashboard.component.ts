@@ -21,6 +21,7 @@ import { MachineFaultHistoryComponent } from '../machine-fault-history/machine-f
 import { OperatorPerformanceChartComponent } from '../operator-performance-chart/operator-performance-chart.component';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
 import { MachineItemSummaryTableComponent } from '../machine-item-summary-table/machine-item-summary-table.component';
+import { MachineItemStackedBarChartComponent } from '../machine-item-stacked-bar-chart/machine-item-stacked-bar-chart.component';
 import { getStatusDotByCode } from '../../utils/status-utils';
 
 interface OperatorSummaryRow {
@@ -55,7 +56,8 @@ interface ItemSummary {
     MatInputModule,
     MatButtonModule,
     BaseTableComponent,
-    DateTimePickerComponent
+    DateTimePickerComponent,
+    MachineItemStackedBarChartComponent
   ],
   templateUrl: './machine-analytics-dashboard.component.html',
   styleUrls: ['./machine-analytics-dashboard.component.scss']
@@ -429,6 +431,15 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
           startTime: this.startTime,
           endTime: this.endTime,
           selectedMachineSerial: row['Serial Number']
+        }
+      },
+      { 
+        label: 'Item Stacked Chart', 
+        component: MachineItemStackedBarChartComponent,
+        componentInputs: {
+          startTime: this.startTime,
+          endTime: this.endTime,
+          machineSerial: row['Serial Number']
         }
       },
       { 
