@@ -43,14 +43,14 @@ export class PieChartComponent implements OnChanges, AfterViewInit {
 
     // Define margins
     const margin = {
-      top: 80,     // Reduced top margin
-      right: 120,  // Right margin for labels
-      bottom: 80,  // Bottom margin for labels
-      left: 120    // Left margin for labels
+      top: 120,     // Reduced top margin
+      right: 250,  // More right margin for labels
+      bottom: 200,  // Bottom margin for labels
+      left: 250    // More left margin for labels
     };
 
-    const width = 700;
-    const height = 700;
+    const width = 1100;
+    const height = 600;
     const radius = Math.min(width - margin.left - margin.right, height - margin.top - margin.bottom) / 2;
     const isDark = document.body.classList.contains('dark-theme');
     const textColor = isDark ? 'white' : 'black';

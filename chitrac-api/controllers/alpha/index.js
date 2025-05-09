@@ -2592,5 +2592,76 @@ function constructor(server) {
 
   //Machine item stacked bar chart end
 
+  // API Route for operator cycle pie chart start
+  router.get("/analytics/operator-cycle-pie", async (req, res) => {
+    try {
+      // Step 1: Parse and validate query parameters
+      const { start, end, operatorId } = parseAndValidateQueryParams(req);
+
+      // Step 2: Create padded time range
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+
+      if (!operatorId) {
+        return res.status(400).json({ error: "Operator ID is required" });
+      }
+
+      // Step 3: Get all state records using state.js utility
+      const states = await fetchStatesForOperator(
+        db,
+        operatorId,
+        paddedStart,
+        paddedEnd
+      );
+
+      if (!states.length) {
+        return res.json([]);
+      }
+
+      // Step 4: Extract cycles using state.js utility
+      const cycles = extractAllCyclesFromStates(states, start, end);
+      const runningCycles = cycles.running;
+      const pausedCycles = cycles.paused;
+      const faultCycles = cycles.fault;
+
+      // Calculate total durations
+      const runningTime = runningCycles.reduce(
+        (total, cycle) => total + cycle.duration,
+        0
+      );
+      const pausedTime = pausedCycles.reduce(
+        (total, cycle) => total + cycle.duration,
+        0
+      );
+      const faultedTime = faultCycles.reduce(
+        (total, cycle) => total + cycle.duration,
+        0
+      );
+
+      const totalTime = runningTime + pausedTime + faultedTime;
+
+      // Format response
+      const response = [
+        {
+          name: "Running",
+          value: Math.round((runningTime / totalTime) * 100)
+        },
+        {
+          name: "Paused",
+          value: Math.round((pausedTime / totalTime) * 100)
+        },
+        {
+          name: "Faulted",
+          value: Math.round((faultedTime / totalTime) * 100)
+        }
+      ];
+
+      res.json(response);
+    } catch (error) {
+      logger.error("Error calculating operator cycle pie data:", error);
+      res.status(500).json({ error: "Failed to fetch operator cycle pie data" });
+    }
+  });
+  // API Route for operator cycle pie chart end
+
   return router;
 }

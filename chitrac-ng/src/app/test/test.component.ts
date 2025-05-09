@@ -10,6 +10,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { OperatorItemSummaryTableComponent } from '../operator-item-summary-table/operator-item-summary-table.component';
+import { OperatorCyclePieChartComponent } from '../operator-cycle-pie-chart/operator-cycle-pie-chart.component';
 
 @Component({
   selector: 'app-test',
@@ -36,6 +37,7 @@ export class TestComponent {
     // { label: 'Pie Chart', component: LevelonePieChartComponent },
     { label: 'Machine Item Summary', component: MachineItemSummaryTableComponent },
     { label: 'Machine Item Stacked Bar Chart', component: MachineItemStackedBarChartComponent },
-    { label: 'Operator Item Summary', component: OperatorItemSummaryTableComponent }
+    { label: 'Operator Item Summary', component: OperatorItemSummaryTableComponent },
+    { label: 'Operator Cycle Pie Chart', component: OperatorCyclePieChartComponent }
   ];
 }

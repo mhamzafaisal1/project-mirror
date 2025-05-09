@@ -16,6 +16,7 @@ import { ModalWrapperComponent } from '../components/modal-wrapper-component/mod
 import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
 import { OperatorItemSummaryTableComponent } from '../operator-item-summary-table/operator-item-summary-table.component';
 import { OperatorCountbyitemChartComponent } from '../operator-countbyitem-chart/operator-countbyitem-chart.component';
+import { OperatorCyclePieChartComponent } from '../operator-cycle-pie-chart/operator-cycle-pie-chart.component';
 
 @Component({
   selector: 'app-operator-analytics-dashboard',
@@ -134,6 +135,15 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
       {
         label: 'Item Stacked Chart',
         component: OperatorCountbyitemChartComponent,
+        componentInputs: {
+          startTime: this.startTime,
+          endTime: this.endTime,
+          operatorId: operatorId
+        }
+      },
+      {
+        label: 'Running/Paused/Fault Pie Chart',
+        component: OperatorCyclePieChartComponent,
         componentInputs: {
           startTime: this.startTime,
           endTime: this.endTime,
