@@ -23,10 +23,14 @@ interface OperatorSummaryResponse {
 export class OperatorSummaryService {
   constructor(private http: HttpClient) {}
 
-  getOperatorSummary(startTime: string, endTime: string): Observable<OperatorSummaryResponse[]> {
-    const params = new HttpParams()
+  getOperatorSummary(startTime: string, endTime: string, operatorId?: number): Observable<OperatorSummaryResponse[]> {
+    let params = new HttpParams()
       .set('start', startTime)
       .set('end', endTime);
+
+    if (operatorId !== undefined) {
+      params = params.set('operatorId', operatorId.toString());
+    }
 
     return this.http.get<OperatorSummaryResponse[]>('/api/alpha/analytics/operator-item-summary', { params });
   }

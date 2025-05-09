@@ -6,12 +6,16 @@ import { MatButtonModule } from "@angular/material/button";
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
+
 import { BaseTableComponent } from '../components/base-table/base-table.component';
-import { OperatorAnalyticsService } from '../services/operator-analytics.service';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
-import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
-import { OperatorCountbyitemChartComponent } from '../operator-countbyitem-chart/operator-countbyitem-chart.component';
+import { OperatorAnalyticsService } from '../services/operator-analytics.service';
 import { getStatusDotByCode } from '../../utils/status-utils';
+
+import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
+import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
+import { OperatorItemSummaryTableComponent } from '../operator-item-summary-table/operator-item-summary-table.component';
+import { OperatorCountbyitemChartComponent } from '../operator-countbyitem-chart/operator-countbyitem-chart.component';
 
 @Component({
   selector: 'app-operator-analytics-dashboard',
@@ -80,11 +84,9 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
 
     this.analyticsService.getOperatorPerformance(this.startTime, this.endTime, this.operatorId)
       .subscribe((data: any) => {  
-        // Handle both single object and array responses
         const responses = Array.isArray(data) ? data : [data];
         
-        // Format the data for the table
-        const formattedData = responses.map(response => ({
+        this.rows = responses.map(response => ({
           'Status': getStatusDotByCode(response.currentStatus?.code),
           'Operator Name': response.operator.name,
           'Operator ID': response.operator.id,
@@ -98,11 +100,9 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
           'Efficiency': response.metrics.performance.efficiency.percentage,
           'Time Range': `${response.timeRange.start} to ${response.timeRange.end}`
         }));
-        
-        const allColumns = Object.keys(formattedData[0]);
-        const columnsToHide = ['Time Range'];
-        this.columns = allColumns.filter(col => !columnsToHide.includes(col));
-        this.rows = formattedData;
+
+        const allColumns = Object.keys(this.rows[0]);
+        this.columns = allColumns.filter(col => col !== 'Time Range');
       });
   }
 
@@ -119,17 +119,40 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
       element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 0);
 
+    const operatorId = row['Operator ID'];
+
+    const carouselTabs = [
+      {
+        label: 'Item Summary',
+        component: OperatorItemSummaryTableComponent,
+        componentInputs: {
+          startTime: this.startTime,
+          endTime: this.endTime,
+          operatorId: operatorId
+        }
+      },
+      {
+        label: 'Item Stacked Chart',
+        component: OperatorCountbyitemChartComponent,
+        componentInputs: {
+          startTime: this.startTime,
+          endTime: this.endTime,
+          operatorId: operatorId
+        }
+      }
+    ];
+
     const dialogRef = this.dialog.open(ModalWrapperComponent, {
       width: '90vw',
-      height: '80vh',
-      maxHeight: '90vh',
+      height: '85vh',
       maxWidth: '95vw',
+      maxHeight: '90vh',
       panelClass: 'performance-chart-dialog',
       data: {
-        component: OperatorCountbyitemChartComponent,
-        operatorId: row['Operator ID'],
-        startTime: this.startTime,
-        endTime: this.endTime
+        component: UseCarouselComponent,
+        componentInputs: {
+          tabData: carouselTabs
+        }
       }
     });
 
