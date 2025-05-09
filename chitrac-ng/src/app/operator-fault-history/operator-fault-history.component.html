@@ -1,0 +1,30 @@
+<div class="scroll-wrapper">
+  <div class="container" [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }">
+    <div class="controls">
+      <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
+      <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
+
+      <mat-form-field appearance="fill" class="operator-input">
+        <mat-label>Operator ID</mat-label>
+        <input matInput type="text" [(ngModel)]="operatorId" placeholder="Enter operator ID">
+      </mat-form-field>
+
+      <button
+        mat-flat-button
+        color="primary"
+        (click)="fetchData()"
+        [disabled]="!startTime || !endTime || !operatorId">
+        Fetch Fault History
+      </button>
+    </div>
+
+    <div class="error" *ngIf="error">{{ error }}</div>
+
+    <base-table
+      [columns]="columns"
+      [rows]="rows"
+      [selectedRow]="selectedRow"
+      (rowClicked)="onRowSelected($event)">
+    </base-table>
+  </div>
+</div>

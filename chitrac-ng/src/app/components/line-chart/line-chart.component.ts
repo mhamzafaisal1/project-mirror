@@ -14,27 +14,24 @@ export interface LineChartDataPoint {
   styleUrls: ['./line-chart.component.scss'],
 })
 export class LineChartComponent implements OnChanges, AfterViewInit, OnDestroy {
+  @ViewChild('chartContainer') private chartContainer!: ElementRef;
   @Input() data: LineChartDataPoint[] = [];
   @Input() title: string = '';
-  @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
-
-  private observer!: MutationObserver;
 
   ngAfterViewInit(): void {
-    this.renderChart();
-
-    this.observer = new MutationObserver(() => this.renderChart());
-    this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    if (this.data.length > 0) {
+      this.renderChart();
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['data'] && this.chartContainer) {
+    if (changes['data'] && this.chartContainer && this.data.length > 0) {
       this.renderChart();
     }
   }
 
   ngOnDestroy(): void {
-    this.observer?.disconnect();
+    // Clean up any D3 event listeners or timers if needed
   }
 
   renderChart(): void {
@@ -67,11 +64,23 @@ export class LineChartComponent implements OnChanges, AfterViewInit, OnDestroy {
       .x(d => x(d.label)!)
       .y(d => y(d.value));
 
+    // Create x-axis with custom tick format
+    const xAxis = d3.axisBottom(x)
+      .tickFormat((d, i) => {
+        // Show label every 4 days
+        return i % 4 === 0 ? d : '';
+      });
+
     svg.append('g')
       .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(x))
+      .call(xAxis)
       .selectAll('text')
-      .style('fill', textColor);
+      .style('fill', textColor)
+      .style('font-size', '12px')
+      .attr('transform', 'rotate(-45)')
+      .attr('text-anchor', 'end')
+      .attr('dx', '-.8em')
+      .attr('dy', '.15em');
 
     svg.append('g')
       .call(d3.axisLeft(y))
@@ -84,6 +93,16 @@ export class LineChartComponent implements OnChanges, AfterViewInit, OnDestroy {
       .attr('stroke', '#4c2c92')
       .attr('stroke-width', 2)
       .attr('d', line);
+
+    // Add dots for each data point
+    svg.selectAll('circle')
+      .data(this.data)
+      .enter()
+      .append('circle')
+      .attr('cx', d => x(d.label)!)
+      .attr('cy', d => y(d.value))
+      .attr('r', 4)
+      .attr('fill', '#4c2c92');
 
     svg.append('text')
       .attr('x', width / 2)

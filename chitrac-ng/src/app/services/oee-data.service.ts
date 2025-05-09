@@ -21,6 +21,27 @@ interface OperatorEfficiencyResponse {
   }[];
 }
 
+interface OperatorMachineEfficiencyResponse {
+  operator: {
+    id: number;
+    name: string;
+  };
+  timeRange: {
+    start: string;
+    end: string;
+    total: string;
+  };
+  hourlyData: {
+    hour: string;
+    averageEfficiency: number;
+    machines: {
+      serial: number;
+      name: string;
+      efficiency: number;
+    }[];
+  }[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -35,4 +56,22 @@ export class OeeDataService {
 
     return this.http.get<OperatorEfficiencyResponse>('/api/alpha/analytics/machine/operator-efficiency', { params });
   }
+
+  getOperatorDailyEfficiency(startTime: string, endTime: string, operatorId: string): Observable<{
+    operator: { id: number; name: string };
+    timeRange: { start: string; end: string; totalDays: number };
+    data: { date: string; efficiency: number }[];
+  }> {
+    const params = new HttpParams()
+      .set('start', startTime)
+      .set('end', endTime)
+      .set('operatorId', operatorId);
+  
+    return this.http.get<{
+      operator: { id: number; name: string };
+      timeRange: { start: string; end: string; totalDays: number };
+      data: { date: string; efficiency: number }[];
+    }>('/api/alpha/analytics/operator/daily-efficiency', { params });
+  }
+  
 }

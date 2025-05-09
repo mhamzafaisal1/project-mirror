@@ -17,6 +17,9 @@ import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
 import { OperatorItemSummaryTableComponent } from '../operator-item-summary-table/operator-item-summary-table.component';
 import { OperatorCountbyitemChartComponent } from '../operator-countbyitem-chart/operator-countbyitem-chart.component';
 import { OperatorCyclePieChartComponent } from '../operator-cycle-pie-chart/operator-cycle-pie-chart.component';
+import { OperatorFaultHistoryComponent } from '../operator-fault-history/operator-fault-history.component';
+import { OperatorPerformanceChartComponent } from '../operator-performance-chart/operator-performance-chart.component';
+import { OperatorLineChartComponent } from '../operator-line-chart/operator-line-chart.component';
 
 @Component({
   selector: 'app-operator-analytics-dashboard',
@@ -29,7 +32,9 @@ import { OperatorCyclePieChartComponent } from '../operator-cycle-pie-chart/oper
     DateTimePickerComponent,
     MatTableModule,
     MatSortModule,
-    MatButtonModule
+    MatButtonModule,
+    OperatorPerformanceChartComponent,
+    OperatorLineChartComponent
   ],
   templateUrl: './operator-analytics-dashboard.component.html',
   styleUrl: './operator-analytics-dashboard.component.scss'
@@ -121,6 +126,10 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     }, 0);
 
     const operatorId = row['Operator ID'];
+    const endTime = new Date().toISOString();
+    const startTime = new Date();
+    startTime.setDate(startTime.getDate() - 28);
+    const startTimeStr = startTime.toISOString();
 
     const carouselTabs = [
       {
@@ -148,6 +157,24 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
           startTime: this.startTime,
           endTime: this.endTime,
           operatorId: operatorId
+        }
+      },
+      {
+        label: 'Fault History',
+        component: OperatorFaultHistoryComponent,
+        componentInputs: {
+          startTime: this.startTime,
+          endTime: this.endTime,
+          operatorId: operatorId.toString()
+        }
+      },
+      {
+        label: 'Daily Efficiency Chart',
+        component: OperatorLineChartComponent,
+        componentInputs: {
+          startTime: startTimeStr,
+          endTime: endTime,
+          operatorId: operatorId.toString()
         }
       }
     ];

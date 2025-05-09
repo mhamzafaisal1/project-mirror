@@ -28,7 +28,7 @@ export class OperatorItemSummaryTableComponent implements OnInit {
   @Input() endTime: string = '';
   @Input() operatorId?: number;
 
-  itemColumns: string[] = ['Operator', 'Machine', 'Item', 'Worked Time', 'Count', 'Misfeed', 'PPH', 'Standard', 'Efficiency'];
+  itemColumns: string[] = ['Machine', 'Item', 'Worked Time', 'Count', 'Misfeed', 'PPH', 'Standard', 'Efficiency'];
   itemRows: any[] = [];
   loading: boolean = false;
   isDarkTheme: boolean = false;
@@ -53,7 +53,6 @@ export class OperatorItemSummaryTableComponent implements OnInit {
     this.operatorSummaryService.getOperatorSummary(formattedStart, formattedEnd, this.operatorId).subscribe({
       next: (data: any[]) => {
         this.itemRows = data.map(row => ({
-          'Operator': row.operatorName,
           'Machine': row.machineName,
           'Item': row.itemName,
           'Worked Time': `${row.workedTimeFormatted.hours}h ${row.workedTimeFormatted.minutes}m`,
