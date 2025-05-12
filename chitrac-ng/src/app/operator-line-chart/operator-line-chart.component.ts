@@ -5,8 +5,8 @@ import {
   ElementRef,
   Renderer2,
   Input,
-  OnChanges,
-  SimpleChanges
+  SimpleChanges,
+  OnChanges
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -17,6 +17,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { OeeDataService } from '../services/oee-data.service';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
 import { LineChartComponent, LineChartDataPoint } from '../components/line-chart/line-chart.component';
+
+function toDateTimeLocalString(dateStr: string): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 @Component({
   selector: 'app-operator-line-chart',
@@ -37,6 +44,10 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
   @Input() startTime: string = '';
   @Input() endTime: string = '';
   @Input() operatorId: string = '';
+
+  pickerStartTime: string = '';
+  pickerEndTime: string = '';
+
   efficiencyData: LineChartDataPoint[] = [];
   operatorName = '';
   loading = false;
@@ -49,20 +60,28 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
     private oeeService: OeeDataService,
     private renderer: Renderer2,
     private elRef: ElementRef
-  ) {
-    this.detectTheme();
-  }
+  ) {}
 
   ngOnInit(): void {
-    if (!this.startTime || !this.endTime) {
-      const now = new Date();
-      const before = new Date(now);
-      before.setDate(before.getDate() - 27);
-      this.startTime = before.toISOString();
-      this.endTime = now.toISOString();
-    }
-
+    this.detectTheme();
     this.observeTheme();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['startTime'] && this.startTime) {
+      this.pickerStartTime = toDateTimeLocalString(this.startTime);
+    }
+    if (changes['endTime'] && this.endTime) {
+      this.pickerEndTime = toDateTimeLocalString(this.endTime);
+    }
+    if (
+      (changes['startTime'] || changes['endTime'] || changes['operatorId']) &&
+      this.startTime &&
+      this.endTime &&
+      this.operatorId
+    ) {
+      this.fetchData();
+    }
   }
 
   ngOnDestroy(): void {
@@ -70,7 +89,6 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
   }
 
   private observeTheme(): void {
-    this.detectTheme();
     this.observer = new MutationObserver(() => this.detectTheme());
     this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   }
@@ -82,14 +100,6 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
     this.renderer.setStyle(el, 'color', this.isDarkTheme ? '#e0e0e0' : '#000000');
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['operatorId'] && changes['startTime'] && changes['endTime']) {
-      if (this.operatorId && this.startTime && this.endTime) {
-        this.fetchData();
-      }
-    }
-  }
-
   fetchData(): void {
     if (!this.startTime || !this.endTime || !this.operatorId) {
       this.error = 'All fields are required';
@@ -99,21 +109,13 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
     this.loading = true;
     this.error = null;
 
-    console.log('Fetching data with params:', {
-      startTime: this.startTime,
-      endTime: this.endTime,
-      operatorId: this.operatorId
-    });
-
     this.oeeService.getOperatorDailyEfficiency(this.startTime, this.endTime, this.operatorId).subscribe({
       next: (response) => {
-        console.log('Received response:', response);
         this.operatorName = response.operator.name;
         this.efficiencyData = response.data.map(entry => ({
           label: new Date(entry.date).toLocaleDateString(),
           value: entry.efficiency
         }));
-        console.log('Transformed data:', this.efficiencyData);
         this.loading = false;
       },
       error: (err) => {
@@ -122,5 +124,17 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
         this.loading = false;
       }
     });
+  }
+
+  onStartTimeChange(newValue: string) {
+    this.pickerStartTime = newValue;
+    this.startTime = new Date(newValue).toISOString();
+    this.fetchData();
+  }
+
+  onEndTimeChange(newValue: string) {
+    this.pickerEndTime = newValue;
+    this.endTime = new Date(newValue).toISOString();
+    this.fetchData();
   }
 }

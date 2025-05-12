@@ -2891,16 +2891,19 @@ function constructor(server) {
   
       const startDate = new Date(start);
       const endDate = new Date(end);
-  
       const days = [];
-      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-        const current = new Date(d);
-        const next = new Date(current);
-        next.setDate(current.getDate() + 1);
-  
-        days.push({ start: new Date(current), end: new Date(next) });
+      let cursor = new Date(startDate);
+      
+      while (cursor <= endDate) {
+        const startOfDay = new Date(cursor);
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setUTCHours(23, 59, 59, 999);
+      
+        days.push({ start: new Date(startOfDay), end: new Date(endOfDay) });
+      
+        cursor.setUTCDate(cursor.getUTCDate() + 1); // Move to next day
       }
-  
+      
       const results = [];
   
       for (const day of days) {

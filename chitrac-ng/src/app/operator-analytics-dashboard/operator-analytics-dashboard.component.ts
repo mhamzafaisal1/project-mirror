@@ -117,20 +117,24 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
       this.selectedRow = null;
       return;
     }
-
+  
     this.selectedRow = row;
-
+  
     setTimeout(() => {
       const element = document.querySelector('.mat-row.selected');
       element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 0);
-
+  
     const operatorId = row['Operator ID'];
-    const endTime = new Date().toISOString();
-    const startTime = new Date();
-    startTime.setDate(startTime.getDate() - 28);
-    const startTimeStr = startTime.toISOString();
-
+  
+    // Use the user-selected `this.endTime` to compute startTime for line chart
+    const selectedEnd = new Date(this.endTime);
+    const selectedStart = new Date(selectedEnd);
+    selectedStart.setDate(selectedStart.getDate() - 28);
+  
+    const startTimeStr = selectedStart.toISOString();
+    const endTimeStr = selectedEnd.toISOString();
+  
     const carouselTabs = [
       {
         label: 'Item Summary',
@@ -173,12 +177,12 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         component: OperatorLineChartComponent,
         componentInputs: {
           startTime: startTimeStr,
-          endTime: endTime,
+          endTime: endTimeStr,
           operatorId: operatorId.toString()
         }
       }
     ];
-
+  
     const dialogRef = this.dialog.open(ModalWrapperComponent, {
       width: '90vw',
       height: '85vh',
@@ -192,11 +196,12 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         }
       }
     });
-
+  
     dialogRef.afterClosed().subscribe(() => {
       if (this.selectedRow === row) {
         this.selectedRow = null;
       }
     });
   }
+  
 }

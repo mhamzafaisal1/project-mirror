@@ -1,7 +1,7 @@
 <div class="chart-container" [ngClass]="{ 'dark-theme': isDarkTheme }">
   <div class="controls">
-    <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
-    <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
+    <app-date-time-picker label="Start Time" [value]="pickerStartTime" (valueChange)="onStartTimeChange($event)"></app-date-time-picker>
+    <app-date-time-picker label="End Time" [value]="pickerEndTime" (valueChange)="onEndTimeChange($event)"></app-date-time-picker>
 
     <mat-form-field appearance="fill">
       <mat-label>Operator ID</mat-label>
