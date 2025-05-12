@@ -1,4 +1,13 @@
-import { Component, Input, ElementRef, ViewChild, OnChanges, SimpleChanges, AfterViewInit, OnDestroy } from '@angular/core';
+import {
+  Component,
+  Input,
+  ElementRef,
+  ViewChild,
+  OnChanges,
+  SimpleChanges,
+  AfterViewInit,
+  OnDestroy
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
 
@@ -10,6 +19,7 @@ export interface LineChartDataPoint {
 @Component({
   selector: 'line-chart',
   standalone: true,
+  imports: [CommonModule],
   templateUrl: './line-chart.component.html',
   styleUrls: ['./line-chart.component.scss'],
 })
@@ -31,16 +41,16 @@ export class LineChartComponent implements OnChanges, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Clean up any D3 event listeners or timers if needed
+    // Optional cleanup
   }
 
   renderChart(): void {
     const element = this.chartContainer.nativeElement;
     element.innerHTML = '';
 
-    const margin = { top: 40, right: 30, bottom: 50, left: 50 };
-    const width = 700 - margin.left - margin.right;
-    const height = 400 - margin.top - margin.bottom;
+    const margin = { top: 40, right: 50, bottom: 60, left: 60 };
+    const width = 900;
+    const height = 400;
 
     const isDark = document.body.classList.contains('dark-theme');
     const textColor = isDark ? 'white' : 'black';
@@ -54,22 +64,19 @@ export class LineChartComponent implements OnChanges, AfterViewInit, OnDestroy {
 
     const x = d3.scalePoint()
       .domain(this.data.map(d => d.label))
-      .range([0, width]);
+      .range([0, width])
+      .padding(0.5); // ✅ Center spacing
 
     const y = d3.scaleLinear()
-      .domain([0, d3.max(this.data, d => d.value)!])
+      .domain([0, Math.max(100, d3.max(this.data, d => d.value) || 0)]) // ✅ Cap at at least 100
       .range([height, 0]);
 
     const line = d3.line<LineChartDataPoint>()
       .x(d => x(d.label)!)
       .y(d => y(d.value));
 
-    // Create x-axis with custom tick format
     const xAxis = d3.axisBottom(x)
-      .tickFormat((d, i) => {
-        // Show label every 4 days
-        return i % 4 === 0 ? d : '';
-      });
+      .tickFormat((d, i) => (i % 4 === 0 ? d : ''));
 
     svg.append('g')
       .attr('transform', `translate(0,${height})`)
@@ -94,7 +101,6 @@ export class LineChartComponent implements OnChanges, AfterViewInit, OnDestroy {
       .attr('stroke-width', 2)
       .attr('d', line);
 
-    // Add dots for each data point
     svg.selectAll('circle')
       .data(this.data)
       .enter()
