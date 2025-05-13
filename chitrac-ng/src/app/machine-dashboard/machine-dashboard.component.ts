@@ -39,6 +39,7 @@ import { OperatorPerformanceChartComponent } from '../operator-performance-chart
 export class MachineDashboardComponent implements OnInit, OnDestroy {
   startTime: string = '';
   endTime: string = '';
+  machineData: any[] = [];
   columns: string[] = [];
   rows: any[] = [];
   selectedRow: any | null = null;
@@ -92,6 +93,9 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (data: any) => {
           const responses = Array.isArray(data) ? data : [data];
+          
+          // Store the raw data for later use
+          this.machineData = responses;
 
           const formattedData = responses.map(response => ({
             'Status': getStatusDotByCode(response.currentStatus?.code),
@@ -134,6 +138,13 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
       element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 0);
 
+    // Find the machine data from the API response
+    const machineData = this.machineData?.find((m: any) => m.machine?.serial === row['Serial Number']);
+    const itemSummaryData = machineData?.itemSummary?.machineSummary?.itemSummaries;
+
+    console.log('Machine Data:', machineData);
+    console.log('Item Summary Data:', itemSummaryData);
+
     const carouselTabs = [
       { 
         label: 'Item Summary', 
@@ -141,7 +152,8 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           startTime: this.startTime,
           endTime: this.endTime,
-          selectedMachineSerial: row['Serial Number']
+          selectedMachineSerial: row['Serial Number'],
+          itemSummaryData: itemSummaryData
         }
       },
       { 
