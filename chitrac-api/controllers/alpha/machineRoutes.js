@@ -15,7 +15,10 @@ module.exports = function (server) {
   // State + Count imports
   const {
     fetchStatesForMachine,
-    getAllMachineSerials
+    getAllMachineSerials,
+    groupStatesByMachine,
+    extractAllCyclesFromStates,
+    getAllMachinesFromStates
   } = require("../../utils/state");
 
   const {
@@ -82,6 +85,54 @@ module.exports = function (server) {
       res.status(500).json({ error: "Failed to fetch dashboard data" });
     }
   });
+
+
+  router.get("/daily-dashboard/machine-status", async (req, res) => {
+  try {
+    const { start, end, serial } = parseAndValidateQueryParams(req);
+    const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+
+    let machines;
+    if (serial) {
+      machines = [{ serial: parseInt(serial) }];
+    } else {
+      machines = await getAllMachinesFromStates(db, paddedStart, paddedEnd);
+    }
+
+    const results = [];
+
+    for (const machine of machines) {
+      const states = await fetchStatesForMachine(
+        db,
+        machine.serial,
+        paddedStart,
+        paddedEnd
+      );
+
+      if (!states.length) continue;
+
+      const cycles = extractAllCyclesFromStates(states, start, end);
+      const runningMs = cycles.running.reduce((sum, c) => sum + c.duration, 0);
+      const pausedMs = cycles.paused.reduce((sum, c) => sum + c.duration, 0);
+      const faultedMs = cycles.fault.reduce((sum, c) => sum + c.duration, 0);
+
+      results.push({
+        serial: machine.serial,
+        name: states[0].machine?.name || "Unknown",
+        runningMs,
+        pausedMs,
+        faultedMs,
+      });
+    }
+
+    res.json(results);
+  } catch (error) {
+    logger.error("Error calculating daily stacked bar data:", error);
+    res.status(500).json({ error: "Failed to fetch daily stacked bar data" });
+  }
+});
+
+  
 
   return router;
 };

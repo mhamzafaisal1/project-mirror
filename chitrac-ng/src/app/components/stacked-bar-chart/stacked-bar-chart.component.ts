@@ -9,7 +9,15 @@ export interface StackedBarChartData {
     operators: {
       [key: string]: number[];
     };
+    machineNames?: string[];
   };
+}
+
+export type StackedBarChartMode = 'time' | 'machine';
+
+interface StackedDataPoint {
+  [key: string]: number | string;
+  machineName: string;
 }
 
 @Component({
@@ -21,6 +29,7 @@ export interface StackedBarChartData {
 })
 export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() data: StackedBarChartData | null = null;
+  @Input() mode: StackedBarChartMode = 'time';
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
   private observer!: MutationObserver;
@@ -77,67 +86,169 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
 
     const isDarkTheme = document.body.classList.contains('dark-theme');
     const textColor = isDarkTheme ? '#e0e0e0' : '#000000';
-    const seriesColors = d3.schemeCategory10;
+    const seriesColors = ['#4CAF50', '#FFC107', '#F44336']; // Green for Running, Yellow for Paused, Red for Faulted
 
-    // Create a mapping of original hours to formatted labels
-    const hourLabels = new Map(
-      this.data.data.hours.map(hour => [hour.toString(), this.formatHour(hour)])
-    );
+    if (this.mode === 'machine') {
+      // Get machine names from the data or generate default names
+      const machineCount = this.data.data.operators[Object.keys(this.data.data.operators)[0]].length;
+      const machineNames = this.data.data.machineNames || 
+        Array.from({ length: machineCount }, (_, i) => `Machine ${i + 1}`);
 
-    const x = d3.scaleBand()
-      .domain(this.data.data.hours.map(String))
-      .range([this.margin.left, this.width - this.margin.right])
-      .padding(0.2);
+      const x = d3.scaleBand()
+        .domain(machineNames)
+        .range([this.margin.left, this.width - this.margin.right])
+        .padding(0.2);
 
-    const stackedData = d3.stack()
-      .keys(Object.keys(this.data.data.operators))
-      (this.data.data.hours.map((hour, i) => {
-        const entry: any = {};
-        Object.entries(this.data.data.operators).forEach(([itemName, values]) => {
-          entry[itemName] = values[i] || 0;
-        });
-        entry.hour = hour;
-        return entry;
-      }));
+      // Create stacked data
+      const stackedData = d3.stack()
+        .keys(['Running', 'Paused', 'Faulted'])
+        (Array.from({ length: machineCount }, (_, i) => {
+          const entry: { [key: string]: number } = {};
+          ['Running', 'Paused', 'Faulted'].forEach(status => {
+            entry[status] = this.data.data.operators[status][i];
+          });
+          return entry;
+        }));
 
-    const y = d3.scaleLinear()
-      .domain([0, d3.max(stackedData[stackedData.length - 1], d => d[1]) || 0])
-      .nice()
-      .range([this.height - this.margin.bottom, this.margin.top]);
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(stackedData[stackedData.length - 1], d => d[1]) || 0])
+        .nice()
+        .range([this.height - this.margin.bottom, this.margin.top]);
 
-    svg.append('g')
-      .selectAll('g')
-      .data(stackedData)
-      .join('g')
-      .attr('fill', (_, i) => seriesColors[i % seriesColors.length])
-      .selectAll('rect')
-      .data(d => d)
-      .join('rect')
-      .attr('x', d => x(String(d.data['hour']))!)
-      .attr('y', d => y(d[1]))
-      .attr('height', d => y(d[0]) - y(d[1]))
-      .attr('width', x.bandwidth());
+      // Add the stacked bars
+      svg.append('g')
+        .selectAll('g')
+        .data(stackedData)
+        .join('g')
+        .attr('fill', (_, i) => seriesColors[i])
+        .selectAll('rect')
+        .data((d, i) => d.map((point, j) => ({ ...point, machineName: machineNames[j] })))
+        .join('rect')
+        .attr('x', d => x(d.machineName)!)
+        .attr('y', d => y(d[1]))
+        .attr('height', d => y(d[0]) - y(d[1]))
+        .attr('width', x.bandwidth());
 
-    svg.append('g')
-      .attr('transform', `translate(0,${this.height - this.margin.bottom})`)
-      .call(
-        d3.axisBottom(x)
-          .tickValues(x.domain().filter((d, i) => i % 4 === 0))  // Show every 4th hour
-          .tickFormat(d => hourLabels.get(d) || '')  // Use formatted labels
-          .tickSizeOuter(0)
-      )
-      
-      .selectAll('text')
-      .attr('transform', 'rotate(-45)')
-      .style('text-anchor', 'end')
-      .style('fill', textColor);
+      // Add x-axis with machine names
+      svg.append('g')
+        .attr('transform', `translate(0,${this.height - this.margin.bottom})`)
+        .call(d3.axisBottom(x))
+        .selectAll('text')
+        .attr('transform', 'rotate(-45)')
+        .style('text-anchor', 'end')
+        .style('fill', textColor);
 
-    svg.append('g')
-      .attr('transform', `translate(${this.margin.left},0)`)
-      .call(d3.axisLeft(y))
-      .selectAll('text')
-      .style('fill', textColor);
+      // Add y-axis with hours
+      svg.append('g')
+        .attr('transform', `translate(${this.margin.left},0)`)
+        .call(
+          d3.axisLeft(y)
+            .ticks(10)
+            .tickFormat(d => `${d} hr`)
+        )
+        
+        .selectAll('text')
+        .style('fill', textColor);
 
+      // Add legend
+      const legend = svg.append('g')
+        .attr('transform', `translate(${this.width - this.margin.right + 10}, ${this.margin.top})`);
+
+      ['Running', 'Paused', 'Faulted'].forEach((status, i) => {
+        const legendRow = legend.append('g').attr('transform', `translate(0, ${i * 16})`);
+
+        legendRow.append('rect')
+          .attr('width', 10)
+          .attr('height', 10)
+          .attr('fill', seriesColors[i]);
+
+        legendRow.append('text')
+          .attr('x', 14)
+          .attr('y', 8)
+          .style('font-size', '11px')
+          .style('fill', textColor)
+          .text(status);
+      });
+    } else {
+      // Original time-based chart implementation
+      const hourLabels = new Map(
+        this.data.data.hours.map(hour => [hour.toString(), this.formatHour(hour)])
+      );
+
+      const x = d3.scaleBand()
+        .domain(this.data.data.hours.map(String))
+        .range([this.margin.left, this.width - this.margin.right])
+        .padding(0.2);
+
+      const stackedData = d3.stack()
+        .keys(Object.keys(this.data.data.operators))
+        (this.data.data.hours.map((hour, i) => {
+          const entry: any = {};
+          Object.entries(this.data.data.operators).forEach(([itemName, values]) => {
+            entry[itemName] = values[i] || 0;
+          });
+          entry.hour = hour;
+          return entry;
+        }));
+
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(stackedData[stackedData.length - 1], d => d[1]) || 0])
+        .nice()
+        .range([this.height - this.margin.bottom, this.margin.top]);
+
+      svg.append('g')
+        .selectAll('g')
+        .data(stackedData)
+        .join('g')
+        .attr('fill', (_, i) => seriesColors[i % seriesColors.length])
+        .selectAll('rect')
+        .data(d => d)
+        .join('rect')
+        .attr('x', d => x(String(d.data['hour']))!)
+        .attr('y', d => y(d[1]))
+        .attr('height', d => y(d[0]) - y(d[1]))
+        .attr('width', x.bandwidth());
+
+      svg.append('g')
+        .attr('transform', `translate(0,${this.height - this.margin.bottom})`)
+        .call(
+          d3.axisBottom(x)
+            .tickValues(x.domain().filter((d, i) => i % 4 === 0))
+            .tickFormat(d => hourLabels.get(d) || '')
+            .tickSizeOuter(0)
+        )
+        .selectAll('text')
+        .attr('transform', 'rotate(-45)')
+        .style('text-anchor', 'end')
+        .style('fill', textColor);
+
+      svg.append('g')
+        .attr('transform', `translate(${this.margin.left},0)`)
+        .call(d3.axisLeft(y))
+        .selectAll('text')
+        .style('fill', textColor);
+
+      const legend = svg.append('g')
+        .attr('transform', `translate(${this.width - this.margin.right + 10}, ${this.margin.top})`);
+
+      Object.keys(this.data.data.operators).forEach((key, i) => {
+        const legendRow = legend.append('g').attr('transform', `translate(0, ${i * 16})`);
+
+        legendRow.append('rect')
+          .attr('width', 10)
+          .attr('height', 10)
+          .attr('fill', seriesColors[i % seriesColors.length]);
+
+        legendRow.append('text')
+          .attr('x', 14)
+          .attr('y', 8)
+          .style('font-size', '11px')
+          .style('fill', textColor)
+          .text(key);
+      });
+    }
+
+    // Add title (common for both modes)
     svg.append('text')
       .attr('x', this.width / 2)
       .attr('y', this.margin.top / 2)
@@ -145,24 +256,5 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
       .style('font-size', '16px')
       .style('fill', textColor)
       .text(this.data.title);
-
-    const legend = svg.append('g')
-      .attr('transform', `translate(${this.width - this.margin.right + 10}, ${this.margin.top})`);
-
-    Object.keys(this.data.data.operators).forEach((key, i) => {
-      const legendRow = legend.append('g').attr('transform', `translate(0, ${i * 16})`);
-
-      legendRow.append('rect')
-        .attr('width', 10)
-        .attr('height', 10)
-        .attr('fill', seriesColors[i % seriesColors.length]);
-
-      legendRow.append('text')
-        .attr('x', 14)
-        .attr('y', 8)
-        .style('font-size', '11px')
-        .style('fill', textColor)
-        .text(key);
-    });
   }
 }
