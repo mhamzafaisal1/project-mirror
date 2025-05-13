@@ -95,4 +95,16 @@ export class MachineAnalyticsService {
       params: { start, end, serial }
     });
   }
+
+  getMachineDashboard(start: string, end: string, serial?: number): Observable<any> {
+    let params = new HttpParams()
+      .set('start', start)
+      .set('end', end);
+
+    if (serial) {
+      params = params.set('serial', serial.toString());
+    }
+
+    return this.http.get(`${this.apiUrl}/analytics/machine-dashboard`, { params });
+  }
 }

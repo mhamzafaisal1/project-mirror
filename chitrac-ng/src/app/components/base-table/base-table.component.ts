@@ -19,6 +19,7 @@ export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit {
   @Input() rows: any[] = [];
   @Input() selectedRow: any | null = null;
   @Input() disableSorting: boolean = false;
+  @Input() getCellClass: ((value: any) => string) | null = null;
 
   @Output() rowClicked = new EventEmitter<any>();
 
@@ -83,5 +84,12 @@ export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit {
     if (num >= 90) return 'green';
     if (num >= 70) return 'yellow';
     return 'red';
+  }
+
+  getCellClassForColumn(value: any, column: string): string {
+    if (this.getCellClass) {
+      return this.getCellClass(value);
+    }
+    return '';
   }
 }

@@ -1,0 +1,28 @@
+<div class="dashboard-container">
+  <div class="date-range-container">
+    <app-date-time-picker
+      label="Start Time"
+      [(value)]="startTime">
+    </app-date-time-picker>
+
+    <app-date-time-picker
+      label="End Time"
+      [(value)]="endTime">
+    </app-date-time-picker>
+
+    <button mat-raised-button color="primary" (click)="fetchAnalyticsData()" [disabled]="isLoading">
+      <mat-icon>refresh</mat-icon>
+      {{ isLoading ? 'Loading...' : 'Fetch Data' }}
+    </button>
+  </div>
+
+  <div class="table-container" [class.loading]="isLoading">
+    <base-table
+      [columns]="columns"
+      [rows]="rows"
+      [selectedRow]="selectedRow"
+      (rowClicked)="onRowClick($event)"
+      [getCellClass]="getEfficiencyClass">
+    </base-table>
+  </div>
+</div>

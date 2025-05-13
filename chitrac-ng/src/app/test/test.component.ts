@@ -13,6 +13,7 @@ import { OperatorItemSummaryTableComponent } from "../operator-item-summary-tabl
 import { OperatorCyclePieChartComponent } from "../operator-cycle-pie-chart/operator-cycle-pie-chart.component";
 import { OperatorFaultHistoryComponent } from "../operator-fault-history/operator-fault-history.component";
 import { OperatorLineChartComponent } from "../operator-line-chart/operator-line-chart.component";
+import { MachineDashboardComponent } from "../machine-dashboard/machine-dashboard.component";
 
 @Component({
   selector: "app-test",
@@ -31,7 +32,8 @@ import { OperatorLineChartComponent } from "../operator-line-chart/operator-line
     OperatorItemSummaryTableComponent,
     OperatorCyclePieChartComponent,
     OperatorFaultHistoryComponent,
-    OperatorLineChartComponent
+    OperatorLineChartComponent,
+    MachineDashboardComponent
   ],
   templateUrl: "./test.component.html",
   styleUrls: ["./test.component.scss"],
@@ -65,5 +67,9 @@ export class TestComponent {
       label: "Operator Performance Chart",
       component: OperatorLineChartComponent
     },
+    {
+      label: "Machine Dashboard",
+      component: MachineDashboardComponent
+    }
   ];
 }
