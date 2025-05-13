@@ -3,8 +3,9 @@ import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
 
 export interface BarChartDataPoint {
-  hour: number;
-  counts: number;
+  hour: number;      // for 'time' mode this is actual hour
+  counts: number;    // bar height (e.g., count or oee %)
+  label?: string;    // optional label for oee mode
 }
 
 @Component({
@@ -17,6 +18,7 @@ export interface BarChartDataPoint {
 export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
   @Input() data: BarChartDataPoint[] = [];
   @Input() title: string = '';
+  @Input() mode: 'time' | 'oee' = 'time';
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
   private observer!: MutationObserver;
@@ -28,7 +30,6 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    // Watch for theme change on <body>
     this.observer = new MutationObserver(() => {
       this.renderChart();
     });
@@ -52,7 +53,6 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
 
     const isDarkTheme = document.body.classList.contains('dark-theme');
     const textColor = isDarkTheme ? 'white' : 'black';
-    const barColor = '#4c2c92';
 
     const svg = d3.select(element)
       .append('svg')
@@ -61,13 +61,17 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
+    const xLabels = this.mode === 'time'
+      ? this.data.map(d => this.formatHour(d.hour))
+      : this.data.map(d => d.label || `#${d.hour + 1}`);
+
     const x = d3.scaleBand()
-      .domain(this.data.map(d => this.formatHour(d.hour)))
+      .domain(xLabels)
       .range([0, width])
       .padding(0.2);
 
     const y = d3.scaleLinear()
-      .domain([0, d3.max(this.data, d => d.counts as number)!])
+      .domain([0, d3.max(this.data, d => d.counts)!])
       .nice()
       .range([height, 0]);
 
@@ -88,11 +92,11 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
       .data(this.data)
       .enter()
       .append('rect')
-      .attr('x', d => x(this.formatHour(d.hour))!)
+      .attr('x', (d, i) => x(this.mode === 'time' ? this.formatHour(d.hour) : (d.label || `#${i + 1}`))!)
       .attr('y', d => y(d.counts))
       .attr('width', x.bandwidth())
       .attr('height', d => height - y(d.counts))
-      .attr('fill', barColor);
+      .attr('fill', d => this.getBarColor(d.counts));
 
     svg.append('text')
       .attr('x', width / 2)
@@ -108,5 +112,12 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
     if (hour === 12) return '12pm';
     if (hour < 12) return `${hour}am`;
     return `${hour - 12}pm`;
+  }
+
+  getBarColor(value: number): string {
+    // Color based on efficiency thresholds (same as dashboard)
+    if (value >= 85) return '#4CAF50'; // green
+    if (value >= 60) return '#FFC107'; // yellow
+    return '#F44336'; // red
   }
 }

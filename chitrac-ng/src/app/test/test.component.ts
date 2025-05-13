@@ -15,6 +15,7 @@ import { OperatorFaultHistoryComponent } from "../operator-fault-history/operato
 import { OperatorLineChartComponent } from "../operator-line-chart/operator-line-chart.component";
 import { MachineDashboardComponent } from "../machine-dashboard/machine-dashboard.component";
 import { DailyMachineStackedBarChartComponent } from "../daily-machine-stacked-bar-chart/daily-machine-stacked-bar-chart.component";
+import { DailyMachineOeeBarChartComponent } from "../daily-machine-oee-bar-chart/daily-machine-oee-bar-chart.component";
 
 @Component({
   selector: "app-test",
@@ -35,8 +36,9 @@ import { DailyMachineStackedBarChartComponent } from "../daily-machine-stacked-b
     OperatorFaultHistoryComponent,
     OperatorLineChartComponent,
     MachineDashboardComponent,
-    DailyMachineStackedBarChartComponent
-  ],
+    DailyMachineStackedBarChartComponent,
+    DailyMachineOeeBarChartComponent
+    ],
   templateUrl: "./test.component.html",
   styleUrls: ["./test.component.scss"],
 })
@@ -53,14 +55,14 @@ export class TestComponent {
       label: "Machine Item Stacked Bar Chart",
       component: MachineItemStackedBarChartComponent,
     },
-    {
-      label: "Operator Item Summary",
-      component: OperatorItemSummaryTableComponent,
-    },
-    {
-      label: "Operator Cycle Pie Chart",
-      component: OperatorCyclePieChartComponent,
-    },
+    // {
+    //   label: "Operator Item Summary",
+    //   component: OperatorItemSummaryTableComponent,
+    // },
+    // {
+    //   label: "Operator Cycle Pie Chart",
+    //   component: OperatorCyclePieChartComponent,
+    // },
     {
       label: "Operator Fault History",
       component: OperatorFaultHistoryComponent,
@@ -77,5 +79,9 @@ export class TestComponent {
       label: "Daily Machine Stacked Bar Chart",
       component: DailyMachineStackedBarChartComponent
     },
+    {
+      label: "Daily Machine OEE Bar Chart",
+      component: DailyMachineOeeBarChartComponent
+    }
   ];
 }
