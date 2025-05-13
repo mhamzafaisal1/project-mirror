@@ -600,6 +600,18 @@ function extractFaultCycles(states, queryStart, queryEnd) {
 }
 
 
+/**
+ * Returns an array of unique machine serial numbers found in the 'state' collection
+ * within the given time range.
+ * 
+ * @param {Db} db - MongoDB database instance
+ * @returns {Promise<number[]>} Array of machine serials
+ */
+async function getAllMachineSerials(db) {
+  const serials = await db.collection('state').distinct('machine.serial');
+  return serials.filter(s => typeof s === 'number' && !isNaN(s));
+}
+
 
 
   
@@ -616,6 +628,7 @@ function extractFaultCycles(states, queryStart, queryEnd) {
     groupStatesByOperator,
     groupStatesByOperatorAndSerial,
     getCompletedCyclesForOperator,
-    extractFaultCycles
+    extractFaultCycles,
+    getAllMachineSerials
   };
   

@@ -29,7 +29,7 @@ const {
   groupStatesByOperatorAndSerial,
   extractAllCyclesFromStates,
   getCompletedCyclesForOperator,
-  extractFaultCycles
+  extractFaultCycles,
 } = require("../../utils/state");
 const {
   getCountRecords,
@@ -45,7 +45,7 @@ const {
   groupCountsByOperatorAndMachine,
   processCountStatistics,
   getCountsForMachine,
-  groupCountsByItem
+  groupCountsByItem,
 } = require("../../utils/count");
 const {
   calculateRuntime,
@@ -71,6 +71,11 @@ function constructor(server) {
   const db = server.db;
   const logger = server.logger;
   const passport = server.passport;
+
+  // Import machine-related routes
+  const machineRoutes = require("./machineRoutes")(server);
+  router.use("/analytics", machineRoutes);
+
 
   router.get("/timestamp", (req, res, next) => {
     res.json(startupDT);
@@ -1533,11 +1538,9 @@ function constructor(server) {
       // Validate start is a valid ISO date string
       const startDate = new Date(start);
       if (isNaN(startDate.getTime())) {
-        return res
-          .status(400)
-          .json({
-            error: "Invalid start time format. Please use ISO date string",
-          });
+        return res.status(400).json({
+          error: "Invalid start time format. Please use ISO date string",
+        });
       }
 
       // Step 2: Handle end parameter
@@ -1546,11 +1549,9 @@ function constructor(server) {
         // If end parameter is provided, validate it
         endDate = new Date(req.query.end);
         if (isNaN(endDate.getTime())) {
-          return res
-            .status(400)
-            .json({
-              error: "Invalid end time format. Please use ISO date string",
-            });
+          return res.status(400).json({
+            error: "Invalid end time format. Please use ISO date string",
+          });
         }
       }
 
@@ -2078,22 +2079,30 @@ function constructor(server) {
     try {
       const { start, end, serial } = parseAndValidateQueryParams(req);
       const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
-  
+
       if (!serial) {
         return res.status(400).json({ error: "Machine serial is required" });
       }
-  
+
       // Fetch states for the specified machine
-      const states = await fetchStatesForMachine(db, serial, paddedStart, paddedEnd);
-  
+      const states = await fetchStatesForMachine(
+        db,
+        serial,
+        paddedStart,
+        paddedEnd
+      );
+
       if (!states.length) {
         return res.json({ faultCycles: [], faultSummary: [] });
       }
-  
-      // Extract fault cycles
-      const { faultCycles, faultSummaries } = extractFaultCycles(states, start, end);
 
-  
+      // Extract fault cycles
+      const { faultCycles, faultSummaries } = extractFaultCycles(
+        states,
+        start,
+        end
+      );
+
       res.json({
         faultCycles,
         faultSummaries,
@@ -2103,7 +2112,7 @@ function constructor(server) {
       res.status(500).json({ error: "Failed to fetch fault history" });
     }
   });
-  
+
   // API route for machine fault history end
 
   //API route for operator fault history start
@@ -2111,9 +2120,11 @@ function constructor(server) {
   router.get("/analytics/operator-fault-history", async (req, res) => {
     try {
       const { start, end, operatorId } = req.query;
-  
+
       if (!start || !end || !operatorId) {
-        return res.status(400).json({ error: "Start time, end time, and operatorId are required" });
+        return res
+          .status(400)
+          .json({ error: "Start time, end time, and operatorId are required" });
       }
 
       // Convert string dates to Date objects
@@ -2122,19 +2133,29 @@ function constructor(server) {
 
       // Validate dates
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        return res.status(400).json({ error: "Invalid date format. Please use ISO date strings" });
+        return res
+          .status(400)
+          .json({ error: "Invalid date format. Please use ISO date strings" });
       }
-  
-      const { paddedStart, paddedEnd } = createPaddedTimeRange(startDate, endDate);
+
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(
+        startDate,
+        endDate
+      );
       const parsedOperatorId = parseInt(operatorId);
-  
+
       if (isNaN(parsedOperatorId)) {
         return res.status(400).json({ error: "Invalid operatorId" });
       }
-  
+
       // Get all machine states where this operator was present
-      const states = await fetchStatesForOperator(db, parsedOperatorId, paddedStart, paddedEnd);
-  
+      const states = await fetchStatesForOperator(
+        db,
+        parsedOperatorId,
+        paddedStart,
+        paddedEnd
+      );
+
       if (!states.length) {
         return res.json({ faultCycles: [], faultSummaries: [] });
       }
@@ -2150,13 +2171,17 @@ function constructor(server) {
         const machineName = group.machine?.name || "Unknown";
 
         // Extract fault cycles for this machine
-        const { faultCycles, faultSummaries } = extractFaultCycles(machineStates, startDate, endDate);
+        const { faultCycles, faultSummaries } = extractFaultCycles(
+          machineStates,
+          startDate,
+          endDate
+        );
 
         // Add machine info to each fault cycle
-        const machineFaultCycles = faultCycles.map(cycle => ({
+        const machineFaultCycles = faultCycles.map((cycle) => ({
           ...cycle,
           machineName,
-          machineSerial: group.machine?.serial
+          machineSerial: group.machine?.serial,
         }));
 
         allFaultCycles.push(...machineFaultCycles);
@@ -2168,7 +2193,7 @@ function constructor(server) {
             faultTypeMap.set(key, {
               faultType: key,
               count: 0,
-              totalDuration: 0
+              totalDuration: 0,
             });
           }
           const existing = faultTypeMap.get(key);
@@ -2178,30 +2203,31 @@ function constructor(server) {
       }
 
       // Convert fault summaries to array and format durations
-      const faultSummaries = Array.from(faultTypeMap.values()).map(summary => {
-        const totalSeconds = Math.floor(summary.totalDuration / 1000);
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        const seconds = totalSeconds % 60;
+      const faultSummaries = Array.from(faultTypeMap.values()).map(
+        (summary) => {
+          const totalSeconds = Math.floor(summary.totalDuration / 1000);
+          const hours = Math.floor(totalSeconds / 3600);
+          const minutes = Math.floor((totalSeconds % 3600) / 60);
+          const seconds = totalSeconds % 60;
 
-        return {
-          ...summary,
-          formatted: {
-            hours,
-            minutes,
-            seconds
-          }
-        };
-      });
+          return {
+            ...summary,
+            formatted: {
+              hours,
+              minutes,
+              seconds,
+            },
+          };
+        }
+      );
 
       // Sort fault cycles by start time
       allFaultCycles.sort((a, b) => new Date(a.start) - new Date(b.start));
-  
+
       res.json({
         faultCycles: allFaultCycles,
-        faultSummaries
+        faultSummaries,
       });
-  
     } catch (err) {
       logger.error("Error in /analytics/operator-fault-history:", err);
       res.status(500).json({ error: "Failed to fetch operator fault history" });
@@ -2210,60 +2236,59 @@ function constructor(server) {
 
   //API route for operator fault history end
 
-
   //API route for machine item summary start
-//Orignal route for machine item summary with all the items (not aggregated)
+  //Orignal route for machine item summary with all the items (not aggregated)
   // router.get("/analytics/machine-item-summary", async (req, res) => {
   //   try {
   //     const { start, end, serial } = parseAndValidateQueryParams(req);
   //     const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
-  
+
   //     const allStates = await fetchStatesForMachine(db, serial || null, paddedStart, paddedEnd);
   //     if (!allStates.length) return res.json([]);
-  
+
   //     const groupedStates = groupStatesByMachine(allStates);
   //     const results = [];
-  
+
   //     for (const [machineSerial, group] of Object.entries(groupedStates)) {
   //       const machineName = group.machine?.name || "Unknown";
   //       const machineStates = group.states;
   //       const cycles = extractAllCyclesFromStates(machineStates, start, end).running;
-  
+
   //       const allCounts = await getValidCounts(db, parseInt(machineSerial), start, end);
-  
+
   //       const machineSummary = {
   //         totalCount: 0,
   //         totalWorkedMs: 0,
   //         itemSummaries: {},
   //       };
-  
+
   //       const sessions = [];
-  
+
   //       for (const cycle of cycles) {
   //         const cycleStart = new Date(cycle.start);
   //         const cycleEnd = new Date(cycle.end);
   //         const cycleMs = cycleEnd - cycleStart;
-  
+
   //         const cycleCounts = allCounts.filter((c) => {
   //           const ts = new Date(c.timestamp);
   //           return ts >= cycleStart && ts <= cycleEnd;
   //         });
-  
+
   //         if (!cycleCounts.length) continue;
-  
+
   //         const operators = new Set(cycleCounts.map((c) => c.operator?.id).filter(Boolean));
   //         const workedTimeMs = cycleMs * Math.max(1, operators.size);
-  
+
   //         const grouped = groupCountsByItem(cycleCounts);
-  
+
   //         const items = Object.entries(grouped).map(([itemId, group]) => {
   //           const countTotal = group.length;
   //           const standard = group[0].item?.standard > 0 ? group[0].item.standard : 666;
   //           const name = group[0].item?.name || "Unknown";
-  
+
   //           const pph = countTotal / (workedTimeMs / 3600000);
   //           const efficiency = pph / standard;
-  
+
   //           // Add to machine summary
   //           if (!machineSummary.itemSummaries[itemId]) {
   //             machineSummary.itemSummaries[itemId] = {
@@ -2274,7 +2299,7 @@ function constructor(server) {
   //           machineSummary.itemSummaries[itemId].count += countTotal;
   //           machineSummary.totalCount += countTotal;
   //           machineSummary.totalWorkedMs += workedTimeMs;
-  
+
   //           return {
   //             itemId: parseInt(itemId),
   //             name,
@@ -2284,7 +2309,7 @@ function constructor(server) {
   //             efficiency: Math.round(efficiency * 10000) / 100,
   //           };
   //         });
-  
+
   //         sessions.push({
   //           start: cycleStart.toISOString(),
   //           end: cycleEnd.toISOString(),
@@ -2293,17 +2318,17 @@ function constructor(server) {
   //           items,
   //         });
   //       }
-  
+
   //       const totalHours = machineSummary.totalWorkedMs / 3600000;
   //       const machinePph = totalHours > 0 ? machineSummary.totalCount / totalHours : 0;
-  
+
   //       const proratedStandard = Object.values(machineSummary.itemSummaries).reduce((acc, item) => {
   //         const weight = machineSummary.totalCount > 0 ? item.count / machineSummary.totalCount : 0;
   //         return acc + weight * item.standard;
   //       }, 0);
-  
+
   //       const machineEff = proratedStandard > 0 ? machinePph / proratedStandard : 0;
-  
+
   //       results.push({
   //         machine: {
   //           name: machineName,
@@ -2320,7 +2345,7 @@ function constructor(server) {
   //         },
   //       });
   //     }
-  
+
   //     res.json(results);
   //   } catch (error) {
   //     logger.error("Error in /analytics/machine-item-summary:", error);
@@ -2332,50 +2357,67 @@ function constructor(server) {
     try {
       const { start, end, serial } = parseAndValidateQueryParams(req);
       const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
-  
-      const allStates = await fetchStatesForMachine(db, serial || null, paddedStart, paddedEnd);
+
+      const allStates = await fetchStatesForMachine(
+        db,
+        serial || null,
+        paddedStart,
+        paddedEnd
+      );
       if (!allStates.length) return res.json([]);
-  
+
       const groupedStates = groupStatesByMachine(allStates);
       const results = [];
-  
+
       for (const [machineSerial, group] of Object.entries(groupedStates)) {
         const machineName = group.machine?.name || "Unknown";
         const machineStates = group.states;
-        const cycles = extractAllCyclesFromStates(machineStates, start, end).running;
-  
-        const allCounts = await getValidCounts(db, parseInt(machineSerial), start, end);
-  
+        const cycles = extractAllCyclesFromStates(
+          machineStates,
+          start,
+          end
+        ).running;
+
+        const allCounts = await getValidCounts(
+          db,
+          parseInt(machineSerial),
+          start,
+          end
+        );
+
         const machineSummary = {
           totalCount: 0,
           totalWorkedMs: 0,
           itemSummaries: {},
         };
-  
+
         const sessions = [];
-  
+
         for (const cycle of cycles) {
           const cycleStart = new Date(cycle.start);
           const cycleEnd = new Date(cycle.end);
           const cycleMs = cycleEnd - cycleStart;
-  
+
           const cycleCounts = allCounts.filter((c) => {
             const ts = new Date(c.timestamp);
             return ts >= cycleStart && ts <= cycleEnd;
           });
-  
+
           if (!cycleCounts.length) continue;
-  
-          const operators = new Set(cycleCounts.map((c) => c.operator?.id).filter(Boolean));
+
+          const operators = new Set(
+            cycleCounts.map((c) => c.operator?.id).filter(Boolean)
+          );
           const workedTimeMs = cycleMs * Math.max(1, operators.size);
-  
+
           const grouped = groupCountsByItem(cycleCounts);
-  
+
           for (const [itemId, group] of Object.entries(grouped)) {
             const countTotal = group.length;
-            const standard = group[0].item?.standard > 0 ? group[0].item.standard : 666;
+            const standard =
+              group[0].item?.standard > 0 ? group[0].item.standard : 666;
             const name = group[0].item?.name || "Unknown";
-  
+
             if (!machineSummary.itemSummaries[itemId]) {
               machineSummary.itemSummaries[itemId] = {
                 count: 0,
@@ -2384,13 +2426,13 @@ function constructor(server) {
                 name,
               };
             }
-  
+
             machineSummary.itemSummaries[itemId].count += countTotal;
             machineSummary.itemSummaries[itemId].workedTimeMs += workedTimeMs;
             machineSummary.totalCount += countTotal;
             machineSummary.totalWorkedMs += workedTimeMs;
           }
-  
+
           sessions.push({
             start: cycleStart.toISOString(),
             end: cycleEnd.toISOString(),
@@ -2398,34 +2440,44 @@ function constructor(server) {
             workedTimeFormatted: formatDuration(workedTimeMs),
           });
         }
-  
+
         // Add per-item formatted metrics
-        Object.entries(machineSummary.itemSummaries).forEach(([itemId, summary]) => {
-          const workedTimeFormatted = formatDuration(summary.workedTimeMs);
-          const totalHours = summary.workedTimeMs / 3600000;
-          const pph = totalHours > 0 ? summary.count / totalHours : 0;
-          const efficiency = summary.standard > 0 ? pph / summary.standard : 0;
-  
-          machineSummary.itemSummaries[itemId] = {
-            name: summary.name,
-            standard: summary.standard,
-            countTotal: summary.count,
-            workedTimeFormatted,
-            pph: Math.round(pph * 100) / 100,
-            efficiency: Math.round(efficiency * 10000) / 100,
-          };
-        });
-  
+        Object.entries(machineSummary.itemSummaries).forEach(
+          ([itemId, summary]) => {
+            const workedTimeFormatted = formatDuration(summary.workedTimeMs);
+            const totalHours = summary.workedTimeMs / 3600000;
+            const pph = totalHours > 0 ? summary.count / totalHours : 0;
+            const efficiency =
+              summary.standard > 0 ? pph / summary.standard : 0;
+
+            machineSummary.itemSummaries[itemId] = {
+              name: summary.name,
+              standard: summary.standard,
+              countTotal: summary.count,
+              workedTimeFormatted,
+              pph: Math.round(pph * 100) / 100,
+              efficiency: Math.round(efficiency * 10000) / 100,
+            };
+          }
+        );
+
         const totalHours = machineSummary.totalWorkedMs / 3600000;
-        const machinePph = totalHours > 0 ? machineSummary.totalCount / totalHours : 0;
-  
-        const proratedStandard = Object.values(machineSummary.itemSummaries).reduce((acc, item) => {
-          const weight = machineSummary.totalCount > 0 ? item.countTotal / machineSummary.totalCount : 0;
+        const machinePph =
+          totalHours > 0 ? machineSummary.totalCount / totalHours : 0;
+
+        const proratedStandard = Object.values(
+          machineSummary.itemSummaries
+        ).reduce((acc, item) => {
+          const weight =
+            machineSummary.totalCount > 0
+              ? item.countTotal / machineSummary.totalCount
+              : 0;
           return acc + weight * item.standard;
         }, 0);
-  
-        const machineEff = proratedStandard > 0 ? machinePph / proratedStandard : 0;
-  
+
+        const machineEff =
+          proratedStandard > 0 ? machinePph / proratedStandard : 0;
+
         results.push({
           machine: {
             name: machineName,
@@ -2443,11 +2495,13 @@ function constructor(server) {
           },
         });
       }
-  
+
       res.json(results);
     } catch (error) {
       logger.error("Error in /analytics/machine-item-summary:", error);
-      res.status(500).json({ error: "Failed to generate machine item summary" });
+      res
+        .status(500)
+        .json({ error: "Failed to generate machine item summary" });
     }
   });
   //API route for machine item summary end
@@ -2457,60 +2511,78 @@ function constructor(server) {
   router.get("/analytics/operator-item-summary", async (req, res) => {
     try {
       const { start, end } = parseAndValidateQueryParams(req);
-      const operatorId = req.query.operatorId ? parseInt(req.query.operatorId) : null;
+      const operatorId = req.query.operatorId
+        ? parseInt(req.query.operatorId)
+        : null;
       const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
-  
+
       // Fetch states filtered by operatorId if present
-      const allStates = await fetchStatesForOperator(db, operatorId, paddedStart, paddedEnd);
+      const allStates = await fetchStatesForOperator(
+        db,
+        operatorId,
+        paddedStart,
+        paddedEnd
+      );
       const groupedStates = groupStatesByOperatorAndSerial(allStates);
-  
+
       // Filter operator-machine pairs by operatorId if present
       const allOperatorMachinePairs = Object.keys(groupedStates)
-        .map(key => {
-          const [opId, machineSerial] = key.split('-').map(Number);
+        .map((key) => {
+          const [opId, machineSerial] = key.split("-").map(Number);
           return { operatorId: opId, machineSerial };
         })
-        .filter(pair => !operatorId || pair.operatorId === operatorId);
+        .filter((pair) => !operatorId || pair.operatorId === operatorId);
 
-      const allCounts = await getCountsForOperatorMachinePairs(db, allOperatorMachinePairs, paddedStart, paddedEnd);
+      const allCounts = await getCountsForOperatorMachinePairs(
+        db,
+        allOperatorMachinePairs,
+        paddedStart,
+        paddedEnd
+      );
       const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
-  
+
       const results = [];
-  
+
       for (const key in groupedCounts) {
-        const { operator, machine, counts, validCounts, misfeedCounts } = groupedCounts[key];
+        const { operator, machine, counts, validCounts, misfeedCounts } =
+          groupedCounts[key];
         // Skip if operatorId is provided and doesn't match
         if (operatorId && operator?.id !== operatorId) continue;
-        
+
         const itemMap = groupCountsByItem(validCounts);
         const states = groupedStates[key]?.states || [];
         const runCycles = getCompletedCyclesForOperator(states);
-        const totalRunMs = runCycles.reduce((acc, cycle) => acc + (cycle.duration || 0), 0);
-  
+        const totalRunMs = runCycles.reduce(
+          (acc, cycle) => acc + (cycle.duration || 0),
+          0
+        );
+
         for (const itemId in itemMap) {
           const group = itemMap[itemId];
           const item = group[0]?.item || {};
           const count = group.length;
-          const misfeeds = misfeedCounts.filter(m => m.item?.id === parseInt(itemId)).length;
+          const misfeeds = misfeedCounts.filter(
+            (m) => m.item?.id === parseInt(itemId)
+          ).length;
           const hours = totalRunMs / 3600000;
           const pph = hours > 0 ? count / hours : 0;
           const standard = item.standard > 0 ? item.standard : 666;
           const efficiency = standard > 0 ? pph / standard : 0;
-  
+
           results.push({
-            operatorName: operator?.name || 'Unknown',
-            machineName: machine?.name || 'Unknown',
-            itemName: item?.name || 'Unknown',
+            operatorName: operator?.name || "Unknown",
+            machineName: machine?.name || "Unknown",
+            itemName: item?.name || "Unknown",
             workedTimeFormatted: formatDuration(totalRunMs),
             count,
             misfeed: misfeeds,
             pph: Math.round(pph * 100) / 100,
             standard,
-            efficiency: Math.round(efficiency * 10000) / 100
+            efficiency: Math.round(efficiency * 10000) / 100,
           });
         }
       }
-  
+
       // Consolidate duplicate rows
       const consolidated = {};
       for (const row of results) {
@@ -2521,73 +2593,99 @@ function constructor(server) {
           const existing = consolidated[key];
           existing.count += row.count;
           existing.misfeed += row.misfeed;
-  
-          const existingMs = (existing.workedTimeFormatted.hours * 60 + existing.workedTimeFormatted.minutes) * 60000;
-          const newMs = (row.workedTimeFormatted.hours * 60 + row.workedTimeFormatted.minutes) * 60000;
+
+          const existingMs =
+            (existing.workedTimeFormatted.hours * 60 +
+              existing.workedTimeFormatted.minutes) *
+            60000;
+          const newMs =
+            (row.workedTimeFormatted.hours * 60 +
+              row.workedTimeFormatted.minutes) *
+            60000;
           const totalMs = existingMs + newMs;
-  
+
           const totalMinutes = Math.floor(totalMs / 60000);
           existing.workedTimeFormatted = {
             hours: Math.floor(totalMinutes / 60),
-            minutes: totalMinutes % 60
+            minutes: totalMinutes % 60,
           };
-  
+
           const totalHours = totalMs / 3600000;
           existing.pph = Math.round((existing.count / totalHours) * 100) / 100;
-          existing.efficiency = Math.round((existing.pph / existing.standard) * 10000) / 100;
+          existing.efficiency =
+            Math.round((existing.pph / existing.standard) * 10000) / 100;
         }
       }
-  
+
       res.json(Object.values(consolidated));
     } catch (err) {
       logger.error("Error in /analytics/operator-item-summary:", err);
-      res.status(500).json({ error: "Failed to generate operator item summary report" });
+      res
+        .status(500)
+        .json({ error: "Failed to generate operator item summary report" });
     }
   });
-  
-  //API route for operator item summary end 
-  
+
+  //API route for operator item summary end
+
   //API route for item summary start
   router.get("/analytics/item-summary", async (req, res) => {
     try {
       const { start, end } = parseAndValidateQueryParams(req);
       const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
-  
-      const allStates = await fetchStatesForMachine(db, null, paddedStart, paddedEnd);
+
+      const allStates = await fetchStatesForMachine(
+        db,
+        null,
+        paddedStart,
+        paddedEnd
+      );
       const groupedStates = groupStatesByMachine(allStates);
-  
+
       const resultsMap = new Map();
-  
+
       for (const [machineSerial, group] of Object.entries(groupedStates)) {
         const machineStates = group.states;
         const machineName = group.machine?.name || "Unknown";
-        const cycles = extractAllCyclesFromStates(machineStates, start, end).running;
-  
-        const counts = await getValidCounts(db, parseInt(machineSerial), start, end);
+        const cycles = extractAllCyclesFromStates(
+          machineStates,
+          start,
+          end
+        ).running;
+
+        const counts = await getValidCounts(
+          db,
+          parseInt(machineSerial),
+          start,
+          end
+        );
         if (!counts.length || !cycles.length) continue;
-  
+
         for (const cycle of cycles) {
           const cycleStart = new Date(cycle.start);
           const cycleEnd = new Date(cycle.end);
           const cycleMs = cycleEnd - cycleStart;
-  
-          const cycleCounts = counts.filter(c => {
+
+          const cycleCounts = counts.filter((c) => {
             const ts = new Date(c.timestamp);
             return ts >= cycleStart && ts <= cycleEnd;
           });
-  
+
           if (!cycleCounts.length) continue;
-  
-          const operators = new Set(cycleCounts.map(c => c.operator?.id).filter(Boolean));
+
+          const operators = new Set(
+            cycleCounts.map((c) => c.operator?.id).filter(Boolean)
+          );
           const workedTimeMs = cycleMs * Math.max(1, operators.size);
-  
+
           const grouped = groupCountsByItem(cycleCounts);
-  
+
           for (const [itemId, group] of Object.entries(grouped)) {
             const name = group[0].item?.name || "Unknown";
-            const standard = group[0].item?.standard > 0 ? group[0].item.standard : 666;
+            const standard =
+              group[0].item?.standard > 0 ? group[0].item.standard : 666;
             const countTotal = group.length;
-  
+
             if (!resultsMap.has(itemId)) {
               resultsMap.set(itemId, {
                 itemId: parseInt(itemId),
@@ -2597,103 +2695,104 @@ function constructor(server) {
                 workedTimeMs: 0,
               });
             }
-  
+
             const entry = resultsMap.get(itemId);
             entry.count += countTotal;
             entry.workedTimeMs += workedTimeMs;
           }
         }
       }
-  
-      const results = Array.from(resultsMap.values()).map(entry => {
+
+      const results = Array.from(resultsMap.values()).map((entry) => {
         const totalHours = entry.workedTimeMs / 3600000;
         const pph = totalHours > 0 ? entry.count / totalHours : 0;
         const efficiency = entry.standard > 0 ? pph / entry.standard : 0;
-  
+
         return {
           itemName: entry.name,
           workedTimeFormatted: formatDuration(entry.workedTimeMs),
           count: entry.count,
           pph: Math.round(pph * 100) / 100,
           standard: entry.standard,
-          efficiency: Math.round(efficiency * 10000) / 100
+          efficiency: Math.round(efficiency * 10000) / 100,
         };
       });
-  
+
       res.json(results);
     } catch (err) {
       logger.error("Error in /analytics/item-summary:", err);
       res.status(500).json({ error: "Failed to generate item summary report" });
     }
   });
-  
+
   //API route for item summary end
 
   //Machine item stacked bar chart start
-  router.get('/analytics/machine-item-hourly-item-stack', async (req, res) => {
+  router.get("/analytics/machine-item-hourly-item-stack", async (req, res) => {
     try {
       const { start, end, serial } = parseAndValidateQueryParams(req);
       const startDate = new Date(start);
       const endDate = new Date(end);
-  
+
       if (!serial) {
-        return res.status(400).json({ error: 'Machine serial is required' });
+        return res.status(400).json({ error: "Machine serial is required" });
       }
-  
+
       const counts = await getValidCounts(db, parseInt(serial), start, end);
-      if (!counts.length) return res.json({ title: 'No data', data: { hours: [], operators: {} } });
-  
+      if (!counts.length)
+        return res.json({
+          title: "No data",
+          data: { hours: [], operators: {} },
+        });
+
       // Normalize counts into hour buckets
       const hourMap = new Map(); // hourIndex => { itemName => count }
-  
+
       for (const count of counts) {
         const ts = new Date(count.timestamp);
         const hourIndex = Math.floor((ts - startDate) / (60 * 60 * 1000)); // hour offset since start
-        const itemName = count.item?.name || 'Unknown';
-  
+        const itemName = count.item?.name || "Unknown";
+
         if (!hourMap.has(hourIndex)) hourMap.set(hourIndex, {});
         const hourEntry = hourMap.get(hourIndex);
         hourEntry[itemName] = (hourEntry[itemName] || 0) + 1;
       }
-  
+
       // Build structure: hours[], and for each item: count array by hour
       const maxHour = Math.max(...hourMap.keys());
       const hours = Array.from({ length: maxHour + 1 }, (_, i) => i);
       const itemNames = new Set();
-  
+
       // Collect all item names
       for (const hourEntry of hourMap.values()) {
-        Object.keys(hourEntry).forEach(name => itemNames.add(name));
+        Object.keys(hourEntry).forEach((name) => itemNames.add(name));
       }
-  
+
       // Initialize operator structure
       const operators = {};
       for (const name of itemNames) {
         operators[name] = Array(maxHour + 1).fill(0);
       }
-  
+
       // Fill operator counts
       for (const [hourIndex, itemCounts] of hourMap.entries()) {
         for (const [itemName, count] of Object.entries(itemCounts)) {
           operators[itemName][hourIndex] = count;
         }
       }
-  
+
       res.json({
         title: `Item Stacked Count Chart for Machine ${serial}`,
         data: {
           hours,
-          operators
-        }
+          operators,
+        },
       });
     } catch (err) {
-      logger.error('Error in /analytics/machine-item-hourly-item-stack:', err);
-      res.status(500).json({ error: 'Failed to build item/hour stacked data' });
+      logger.error("Error in /analytics/machine-item-hourly-item-stack:", err);
+      res.status(500).json({ error: "Failed to build item/hour stacked data" });
     }
   });
-  
-  
-  
 
   //Machine item stacked bar chart end
 
@@ -2748,22 +2847,24 @@ function constructor(server) {
       const response = [
         {
           name: "Running",
-          value: Math.round((runningTime / totalTime) * 100)
+          value: Math.round((runningTime / totalTime) * 100),
         },
         {
           name: "Paused",
-          value: Math.round((pausedTime / totalTime) * 100)
+          value: Math.round((pausedTime / totalTime) * 100),
         },
         {
           name: "Faulted",
-          value: Math.round((faultedTime / totalTime) * 100)
-        }
+          value: Math.round((faultedTime / totalTime) * 100),
+        },
       ];
 
       res.json(response);
     } catch (error) {
       logger.error("Error calculating operator cycle pie data:", error);
-      res.status(500).json({ error: "Failed to fetch operator cycle pie data" });
+      res
+        .status(500)
+        .json({ error: "Failed to fetch operator cycle pie data" });
     }
   });
   // API Route for operator cycle pie chart end
@@ -2880,132 +2981,161 @@ function constructor(server) {
   // API Route for operator efficiency end
 
   // API Route for operator efficiency line chart start
-  router.get('/analytics/operator/daily-efficiency', async (req, res) => {
+  router.get("/analytics/operator/daily-efficiency", async (req, res) => {
     try {
       const { start, end, operatorId } = parseAndValidateQueryParams(req);
       const parsedOperatorId = parseInt(operatorId);
-  
+
       if (!parsedOperatorId || isNaN(parsedOperatorId)) {
-        return res.status(400).json({ error: 'Valid operatorId is required' });
+        return res.status(400).json({ error: "Valid operatorId is required" });
       }
-  
+
       const startDate = new Date(start);
       const endDate = new Date(end);
       const days = [];
       let cursor = new Date(startDate);
-      
+
       while (cursor <= endDate) {
         const startOfDay = new Date(cursor);
         const endOfDay = new Date(startOfDay);
         endOfDay.setUTCHours(23, 59, 59, 999);
-      
+
         days.push({ start: new Date(startOfDay), end: new Date(endOfDay) });
-      
+
         cursor.setUTCDate(cursor.getUTCDate() + 1); // Move to next day
       }
-      
+
       const results = [];
-  
+
       for (const day of days) {
         // 1. Get states for this day
-        const dayStates = await fetchStatesForOperator(db, parsedOperatorId, day.start, day.end);
+        const dayStates = await fetchStatesForOperator(
+          db,
+          parsedOperatorId,
+          day.start,
+          day.end
+        );
         const runCycles = getCompletedCyclesForOperator(dayStates);
-        const totalRunTimeMs = runCycles.reduce((sum, cycle) => sum + cycle.duration, 0);
-  
+        const totalRunTimeMs = runCycles.reduce(
+          (sum, cycle) => sum + cycle.duration,
+          0
+        );
+
         // 2. Get valid counts
-        const validCounts = await getValidCountsForOperator(db, parsedOperatorId, day.start, day.end);
-  
+        const validCounts = await getValidCountsForOperator(
+          db,
+          parsedOperatorId,
+          day.start,
+          day.end
+        );
+
         // 3. Estimate average standard from item data
         let avgStandard = 666; // default fallback
         if (validCounts.length > 0) {
           const standards = validCounts
-            .map(c => c.item?.standard)
-            .filter(s => typeof s === 'number' && s > 0);
-  
+            .map((c) => c.item?.standard)
+            .filter((s) => typeof s === "number" && s > 0);
+
           if (standards.length > 0) {
-            avgStandard = standards.reduce((sum, s) => sum + s, 0) / standards.length;
+            avgStandard =
+              standards.reduce((sum, s) => sum + s, 0) / standards.length;
           }
         }
-  
+
         // 4. Calculate PPH
         const hours = totalRunTimeMs / 3600000;
         const pph = hours > 0 ? validCounts.length / hours : 0;
-  
+
         // 5. Calculate efficiency
         const efficiency = avgStandard > 0 ? (pph / avgStandard) * 100 : 0;
-  
+
         results.push({
-          date: day.start.toISOString().split('T')[0],
-          efficiency: Math.round(efficiency * 100) / 100
+          date: day.start.toISOString().split("T")[0],
+          efficiency: Math.round(efficiency * 100) / 100,
         });
       }
-  
+
       const operatorName = await getOperatorNameFromCount(db, parsedOperatorId);
-  
+
       res.json({
         operator: {
           id: parsedOperatorId,
-          name: operatorName || 'Unknown'
+          name: operatorName || "Unknown",
         },
         timeRange: {
           start,
           end,
-          totalDays: results.length
+          totalDays: results.length,
         },
-        data: results
+        data: results,
       });
-  
     } catch (error) {
-      logger.error('Error in /analytics/operator/daily-efficiency:', error);
-      res.status(500).json({ error: 'Failed to compute daily efficiency' });
+      logger.error("Error in /analytics/operator/daily-efficiency:", error);
+      res.status(500).json({ error: "Failed to compute daily efficiency" });
     }
   });
 
   // API Route for operator efficiency line chart end
-
 
   //API route for item Dashboard start
   router.get("/analytics/item-dashboard-summary", async (req, res) => {
     try {
       const { start, end } = parseAndValidateQueryParams(req);
       const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
-  
-      const allStates = await fetchStatesForMachine(db, null, paddedStart, paddedEnd);
+
+      const allStates = await fetchStatesForMachine(
+        db,
+        null,
+        paddedStart,
+        paddedEnd
+      );
       const groupedStates = groupStatesByMachine(allStates);
-  
+
       const resultsMap = new Map();
-  
+
       for (const [machineSerial, group] of Object.entries(groupedStates)) {
         const machineStates = group.states;
-        const cycles = extractAllCyclesFromStates(machineStates, start, end).running;
+        const cycles = extractAllCyclesFromStates(
+          machineStates,
+          start,
+          end
+        ).running;
         if (!cycles.length) continue;
-  
-        const counts = await getValidCounts(db, parseInt(machineSerial), start, end);
+
+        const counts = await getValidCounts(
+          db,
+          parseInt(machineSerial),
+          start,
+          end
+        );
         if (!counts.length) continue;
-  
+
         for (const cycle of cycles) {
           const cycleStart = new Date(cycle.start);
           const cycleEnd = new Date(cycle.end);
           const cycleMs = cycleEnd - cycleStart;
-  
-          const cycleCounts = counts.filter(c => {
+
+          const cycleCounts = counts.filter((c) => {
             const ts = new Date(c.timestamp);
             return ts >= cycleStart && ts <= cycleEnd;
           });
-  
+
           if (!cycleCounts.length) continue;
-  
-          const operators = new Set(cycleCounts.map(c => c.operator?.id).filter(Boolean));
+
+          const operators = new Set(
+            cycleCounts.map((c) => c.operator?.id).filter(Boolean)
+          );
           const workedTimeMs = cycleMs * Math.max(1, operators.size);
-  
+
           const grouped = groupCountsByItem(cycleCounts);
-  
+
           for (const [itemId, group] of Object.entries(grouped)) {
             const itemIdNum = parseInt(itemId);
             const name = group[0].item?.name || "Unknown";
-            const standard = group[0].item?.standard > 0 ? group[0].item.standard : 666;
+            const standard =
+              group[0].item?.standard > 0 ? group[0].item.standard : 666;
             const countTotal = group.length;
-  
+
             if (!resultsMap.has(itemId)) {
               resultsMap.set(itemId, {
                 itemId: itemIdNum,
@@ -3015,19 +3145,20 @@ function constructor(server) {
                 workedTimeMs: 0,
               });
             }
-  
+
             const entry = resultsMap.get(itemId);
             entry.count += countTotal;
             entry.workedTimeMs += workedTimeMs;
           }
         }
       }
-  
-      const results = Array.from(resultsMap.values()).map(entry => {
+
+      const results = Array.from(resultsMap.values()).map((entry) => {
         const totalHours = entry.workedTimeMs / 3600000;
         const pph = totalHours > 0 ? entry.count / totalHours : 0;
-        const efficiency = entry.standard > 0 ? (pph / entry.standard) * 100 : 0;
-  
+        const efficiency =
+          entry.standard > 0 ? (pph / entry.standard) * 100 : 0;
+
         return {
           itemId: entry.itemId,
           itemName: entry.itemName,
@@ -3035,18 +3166,18 @@ function constructor(server) {
           count: entry.count,
           pph: Math.round(pph * 100) / 100,
           standard: entry.standard,
-          efficiency: Math.round(efficiency * 100) / 100
+          efficiency: Math.round(efficiency * 100) / 100,
         };
       });
-  
+
       res.json(results);
     } catch (err) {
       logger.error("Error in /analytics/item-dashboard-summary:", err);
-      res.status(500).json({ error: "Failed to generate item dashboard summary" });
+      res
+        .status(500)
+        .json({ error: "Failed to generate item dashboard summary" });
     }
   });
-  
-  
 
   //API route for item Dashboard end
 
