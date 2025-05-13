@@ -1,0 +1,68 @@
+.chart-container {
+  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  .controls {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .chart-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 500;
+    }
+
+    .time-range {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #666;
+    }
+  }
+
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-size: 1.2rem;
+    color: #666;
+  }
+
+  .error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #f44336;
+    font-size: 1.2rem;
+  }
+}
+
+:host-context(.dark-theme) {
+  .chart-container {
+    .chart-content {
+      h2 {
+        color: #e0e0e0;
+      }
+
+      .time-range {
+        color: #9e9e9e;
+      }
+    }
+
+    .loading {
+      color: #9e9e9e;
+    }
+  }
+}

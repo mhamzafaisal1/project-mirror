@@ -1,0 +1,62 @@
+<div class="scroll-wrapper">
+  <div
+    class="container"
+    [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }"
+  >
+    <div class="controls">
+      <!-- View Type Toggle -->
+      <div class="view-type-toggle">
+        <mat-form-field appearance="fill">
+          <mat-label>View Type</mat-label>
+          <mat-select [(ngModel)]="viewType">
+            <mat-option value="summary">Fault Summaries</mat-option>
+            <mat-option value="cycles">Fault Cycles</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <!-- Start Time -->
+      <app-date-time-picker
+        label="Start Time"
+        [(value)]="startTime"
+      ></app-date-time-picker>
+
+      <!-- End Time -->
+      <app-date-time-picker
+        label="End Time"
+        [(value)]="endTime"
+      ></app-date-time-picker>
+
+      <!-- Serial Input -->
+      <div class="serial-input-group">
+        <div class="form-group">
+          <label for="serial">Serial Number:</label>
+          <input
+            type="text"
+            id="serial"
+            [(ngModel)]="serial"
+            placeholder="Enter machine serial number"
+          />
+        </div>
+        
+        <!-- Fetch Button -->
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="fetchData()"
+          [disabled]="!startTime || !endTime || !serial"
+        >
+          Fetch Fault History
+        </button>
+      </div>
+    </div>
+
+    <base-table
+      [columns]="columns"
+      [rows]="rows"
+      [selectedRow]="selectedRow"
+      [disableSorting]="viewType === 'cycles'"
+      (rowClicked)="onRowSelected($event)"
+    ></base-table>
+  </div>
+</div>

@@ -1,53 +1,82 @@
-.base-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: 'Segoe UI', sans-serif;
-    margin: 20px 0;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    background-color: var(--theme-color-surface);
-    color: var(--theme-color-on-surface-variant); // 🌗 auto switch text color
-  
-    thead {
-      background-color: #4c2c92;
-      color: #ffffff;
-  
-      th {
-        padding: 12px;
-        text-align: left;
-        font-weight: 600;
-        font-size: 0.95rem;
-      }
+:host {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+
+  &.dark {
+    --header-bg: rgba(255, 255, 255, 0.05);
+    --hover-bg: rgba(255, 255, 255, 0.05);
+    --selected-bg: rgba(30, 136, 229, 0.25);
+    --selected-hover: rgba(30, 136, 229, 0.3);
+    --border-left: #42a5f5;
+    --efficiency-green: #81c784;
+    --efficiency-yellow: #ffb74d;
+    --efficiency-red: #e57373;
+  }
+
+  &.light {
+    --header-bg: rgba(0, 0, 0, 0.04);
+    --hover-bg: rgba(0, 0, 0, 0.04);
+    --selected-bg: rgba(30, 136, 229, 0.15);
+    --selected-hover: rgba(30, 136, 229, 0.2);
+    --border-left: #1e88e5;
+    --efficiency-green: #4caf50;
+    --efficiency-yellow: #ff9800;
+    --efficiency-red: #f44336;
+  }
+}
+
+mat-table {
+  width: 100%;
+  background: inherit;
+  box-shadow: none;
+  font-size: 0.875rem;
+}
+
+mat-header-cell,
+mat-cell {
+  padding: 0.75rem 1rem;
+  word-break: break-word;
+}
+
+mat-header-row {
+  background-color: var(--header-bg);
+}
+
+mat-row {
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  border-left: 4px solid transparent;
+
+  &:hover {
+    background-color: var(--hover-bg);
+  }
+
+  &.selected {
+    background-color: var(--selected-bg);
+    border-left: 4px solid var(--border-left);
+    z-index: 1;
+
+    &:hover {
+      background-color: var(--selected-hover);
     }
-  
-    tbody {
-      tr:hover {
-        background-color: #f1f5ff;
-      }
-  
-      td {
-        padding: 12px;
-        font-size: 0.92rem;
-        color: var(--theme-color-on-surface-variant); // 🌗 text color auto-switch
-        border-bottom: 1px solid #eee;
-  
-        &.efficiency {
-          font-weight: bold;
-        }
-  
-        &.green {
-          color: #2e7d32;
-        }
-  
-        &.yellow {
-          color: #f9a825;
-        }
-  
-        &.red {
-          color: #c62828;
-        }
-      }
+
+    mat-cell {
+      font-weight: 600;
     }
   }
-  
+}
+
+/* Efficiency color coding */
+.green {
+  color: var(--efficiency-green);
+  font-weight: 600;
+}
+.yellow {
+  color: var(--efficiency-yellow);
+  font-weight: 600;
+}
+.red {
+  color: var(--efficiency-red);
+  font-weight: 600;
+}

@@ -1,0 +1,21 @@
+<div class="chart-wrapper" [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }">
+  <div class="error" *ngIf="error">{{ error }}</div>
+
+  <div class="chart-controls">
+    <span class="machine-id">Machine: {{ machineSerial }}</span>
+
+    <app-date-time-picker label="Start Time" [(value)]="startTime" />
+    <app-date-time-picker label="End Time" [(value)]="endTime" />
+
+    <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="loading || !startTime || !endTime">
+      {{ loading ? 'Refreshing...' : 'Update Chart' }}
+    </button>
+  </div>
+
+  <div class="chart-container" *ngIf="chartData && !loading">
+    <app-multiple-line-chart [data]="chartData" [isDarkTheme]="isDarkTheme" />
+  </div>
+
+  <div class="loading" *ngIf="loading">Loading...</div>
+  <div class="placeholder" *ngIf="!chartData && !loading">No chart data available.</div>
+</div>

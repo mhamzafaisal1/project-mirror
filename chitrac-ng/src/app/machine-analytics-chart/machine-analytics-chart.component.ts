@@ -1,8 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { MultipleBarChartComponent, BarChartData } from '../components/multiple-bar-chart/multiple-bar-chart.component';
 import { MachineAnalyticsService } from '../services/machine-analytics.service';
+import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
+import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
+import { MachineFaultHistoryComponent } from '../machine-fault-history/machine-fault-history.component';
+import { OperatorPerformanceChartComponent } from '../operator-performance-chart/operator-performance-chart.component';
 
 interface Machine {
   serial: string;
@@ -23,7 +28,10 @@ export class MachineAnalyticsChartComponent implements OnInit {
   endDate: string = '';
   machines: Machine[] = [];
 
-  constructor(private machineAnalyticsService: MachineAnalyticsService) {}
+  constructor(
+    private machineAnalyticsService: MachineAnalyticsService,
+    private dialog: MatDialog
+  ) {}
 
   ngOnInit(): void {
     this.setDefaultDates();
@@ -97,5 +105,45 @@ export class MachineAnalyticsChartComponent implements OnInit {
 
   onMachineChange(): void {
     this.fetchData();
+  }
+
+  onChartClick(machineData: any): void {
+    const carouselTabs = [
+      { 
+        label: 'Fault Summaries', 
+        component: MachineFaultHistoryComponent,
+        componentInputs: {
+          viewType: 'summary'
+        }
+      },
+      { 
+        label: 'Fault Cycles', 
+        component: MachineFaultHistoryComponent,
+        componentInputs: {
+          viewType: 'cycles'
+        }
+      },
+      { 
+        label: 'Performance Chart', 
+        component: OperatorPerformanceChartComponent 
+      }
+    ];
+
+    const dialogRef = this.dialog.open(ModalWrapperComponent, {
+      width: '90vw',
+      height: '80vh',
+      maxHeight: '90vh',
+      maxWidth: '95vw',
+      panelClass: 'performance-chart-dialog',
+      data: {
+        component: UseCarouselComponent,
+        componentInputs: {
+          tabData: carouselTabs
+        },
+        machineSerial: machineData.machine.serial,
+        startTime: this.startDate,
+        endTime: this.endDate
+      }
+    });
   }
 }

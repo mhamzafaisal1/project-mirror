@@ -6,6 +6,7 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class MachineAnalyticsService {
+  private apiUrl = '/api/alpha';
 
   constructor(private http: HttpClient) {}
 
@@ -74,5 +75,36 @@ export class MachineAnalyticsService {
     }
 
     return this.http.get('/api/alpha/analytics/machine-state-totals', { params });
+  }
+
+  getItemSummary(start: string, end: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/analytics/item-summary`, {
+      params: { start, end }
+    });
+  }
+
+  
+  getMachineItemSummary(start: string, end: string, serial:number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/analytics/machine-item-summary`, {
+      params: { start, end, serial }
+    });
+  }
+
+  getMachineItemHourlyStack(start: string, end: string, serial: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/analytics/machine-item-hourly-item-stack`, {
+      params: { start, end, serial }
+    });
+  }
+
+  getMachineDashboard(start: string, end: string, serial?: number): Observable<any> {
+    let params = new HttpParams()
+      .set('start', start)
+      .set('end', end);
+
+    if (serial) {
+      params = params.set('serial', serial.toString());
+    }
+
+    return this.http.get(`${this.apiUrl}/analytics/machine-dashboard`, { params });
   }
 }

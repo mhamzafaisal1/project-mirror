@@ -1,14 +1,22 @@
 .pie-chart-container {
-    display: flex;
-    justify-content: center;
-    padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
   
-    svg {
-      max-width: 100%;
-    }
-  
-    text {
-      font-family: 'Segoe UI', sans-serif;
-    }
+  svg {
+    transform: scale(0.8);              // 80% scale
+    transform-origin: top center;
+    max-width: 100%;
+    height: auto;
+    display: block;
   }
-  
+
+  text {
+    font-family: 'Segoe UI', sans-serif;
+  }
+}

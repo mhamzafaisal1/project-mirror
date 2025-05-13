@@ -1,0 +1,55 @@
+<div class="dashboard-container" [class.dark-mode]="isDarkTheme">
+    <div class="controls">
+      <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
+      <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
+  
+      <div class="button-group">
+        <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="!startTime || !endTime">
+          Fetch Data
+        </button>
+      </div>
+    </div>
+  
+    <div class="tables-container" [class.loading]="loading">
+      <div class="loading-overlay" *ngIf="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading data...</div>
+      </div>
+  
+      <div class="table-section">
+        <h2>Machines</h2>
+        <base-table
+        [class.dark]="isDarkTheme"
+        [class.light]="!isDarkTheme"
+        [columns]="machineColumns"
+        [rows]="machineRows"
+        [selectedRow]="selectedRow"
+        (rowClicked)="onMachineClick($event)">
+      </base-table>          
+      </div>
+      
+  
+      <div class="table-section">
+        <h2>Operators</h2>
+        <base-table
+          [class.dark]="isDarkTheme"
+          [class.light]="!isDarkTheme"
+          [columns]="operatorColumns"
+          [rows]="operatorRows"
+          [selectedRow]="selectedOperator"
+          (rowClicked)="onOperatorClick($event)">
+        </base-table>
+      </div>
+  
+      <div class="table-section">
+        <h2>Items</h2>
+        <base-table
+          [class.dark]="isDarkTheme"
+          [class.light]="!isDarkTheme"
+          [columns]="itemColumns"
+          [rows]="itemRows">
+        </base-table>
+      </div>
+    </div>
+  </div>
+  

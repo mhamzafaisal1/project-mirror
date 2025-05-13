@@ -106,3 +106,84 @@ input::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* Custom modal styling */
+.custom-modal-panel .mat-dialog-container {
+  border-radius: 12px;
+  padding: 0;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.cdk-overlay-container {
+  overflow-y: hidden !important;
+}
+
+body.cdk-global-scrollblock {
+  overflow: hidden !important;
+}
+
+/* Performance Chart Dialog Styles */
+.performance-chart-dialog {
+  height: 100%;
+
+  .mat-mdc-dialog-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .mat-mdc-dialog-surface {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+}
+
+
+/* DEBUG: Outline all modal and fault history containers */
+// .modal-wrapper,
+// .container,
+// .scroll-wrapper,
+// .cdk-overlay-pane,
+// .mat-dialog-container {
+//   outline: 2px solid red !important;
+//   overflow-x: visible !important;
+//   min-width: 0 !important;
+//   max-width: 100vw !important;
+//   box-sizing: border-box !important;
+// }
+
+/* Hide vertical scrollbar for modal and carousel */
+.modal-wrapper,
+.carousel-container,
+.cdk-overlay-pane,
+.mat-dialog-container,
+body,
+html {
+  overflow-y: hidden !important;
+}
+
+.modal-wrapper::-webkit-scrollbar,
+.carousel-container::-webkit-scrollbar,
+.cdk-overlay-pane::-webkit-scrollbar,
+.mat-dialog-container::-webkit-scrollbar,
+body::-webkit-scrollbar,
+html::-webkit-scrollbar {
+  display: none !important;
+}
+
+::ng-deep .performance-chart-dialog .mat-dialog-container {
+  padding: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+
+
+

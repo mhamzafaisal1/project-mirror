@@ -19,10 +19,20 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
       .toArray();
   }
   
+
   function groupStatesByMachine(states) {
+    if (!Array.isArray(states)) {
+      throw new Error("Expected array of states but got: " + typeof states);
+    }
+  
     const grouped = {};
     for (const state of states) {
       const serial = state.machine?.serial;
+      if (!serial) {
+        console.warn("Skipping state with missing machine.serial:", state);
+        continue;
+      }
+  
       if (!grouped[serial]) {
         grouped[serial] = {
           machine: {
@@ -33,10 +43,15 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
           states: []
         };
       }
+  
       grouped[serial].states.push(state);
     }
+  
     return grouped;
   }
+  
+
+
   function extractAllCyclesFromStates(states, queryStart, queryEnd, mode) {
     const startTime = new Date(queryStart);
     const endTime = new Date(queryEnd);
@@ -435,40 +450,167 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
   }
 
   const getCompletedCyclesForOperator = (states) => {
-    const completedCycles = [];
-    let currentCycle = null;
-
-    for (let i = 0; i < states.length; i++) {
-      const state = states[i];
-      const statusCode = state.status?.code;
-
-      // Start of a new running cycle
-      if (statusCode === 1 && !currentCycle) {
-        currentCycle = {
-          start: new Date(state.timestamp),
-          states: [state]
-        };
-      }
-      // Continue an existing running cycle
-      else if (statusCode === 1 && currentCycle) {
-        currentCycle.states.push(state);
-      }
-      // End of a running cycle (paused or faulted)
-      else if (statusCode !== 1 && currentCycle) {
-        currentCycle.end = new Date(state.timestamp);
-        currentCycle.duration = currentCycle.end - currentCycle.start;
-        completedCycles.push(currentCycle);
-        currentCycle = null;
-      }
+    if (!Array.isArray(states) || states.length === 0) {
+        return [];
     }
 
-    // If we have an open cycle at the end, it's not completed
+    const completedCycles = [];
+    let currentCycle = null;
+    const MAX_CYCLE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+    const sortedStates = states.sort((a, b) =>
+        new Date(a.timestamp) - new Date(b.timestamp)
+    );
+
+    for (let i = 0; i < sortedStates.length; i++) {
+        const state = sortedStates[i];
+        // Skip invalid states
+        if (!state.status || typeof state.status.code !== 'number') {
+            continue;
+        }
+
+        const statusCode = state.status.code;
+        const timestamp = new Date(state.timestamp);
+        
+        if (statusCode === 1) {
+            // Start a new cycle when code is 1
+            if (!currentCycle) {
+                currentCycle = {
+                    start: timestamp,
+                    startState: state,
+                    states: [state]
+                };
+            } else {
+                currentCycle.states.push(state);
+            }
+        } else if (statusCode === 0 || statusCode > 1) {
+            // Close the current cycle if we're in one
+            if (currentCycle) {
+                currentCycle.end = timestamp;
+                currentCycle.endState = state;
+                currentCycle.duration = currentCycle.end - currentCycle.start;
+                currentCycle.finalStatus = statusCode;
+
+                // Only push if duration is valid and <= 24 hours
+                if (
+                    currentCycle.duration > 0 &&
+                    currentCycle.duration <= MAX_CYCLE_DURATION
+                ) {
+                    completedCycles.push(currentCycle);
+                }
+                currentCycle = null;
+            }
+        }
+    }
+
+    // Final check: if machine never paused/faulted after last Run
     if (currentCycle) {
-      currentCycle = null;
+        const lastState = sortedStates[sortedStates.length - 1];
+        currentCycle.end = new Date(lastState.timestamp);
+        currentCycle.endState = lastState;
+        currentCycle.duration = currentCycle.end - currentCycle.start;
+
+        if (
+            currentCycle.duration > 0 &&
+            currentCycle.duration <= MAX_CYCLE_DURATION
+        ) {
+            completedCycles.push(currentCycle);
+        }
     }
 
     return completedCycles;
+};
+  
+
+// Fault history start
+/**
+ * Extracts fault cycles from machine states.
+ * Groups each cycle by fault type (status.name) and returns detailed cycle data.
+ * 
+ * @param {Array} states - Array of state documents from the DB.
+ * @param {string|Date} queryStart - The original start timestamp.
+ * @param {string|Date} queryEnd - The original end timestamp.
+ * @returns {Object} { faultCycles: Array, faultSummaries: Map }
+ */
+function extractFaultCycles(states, queryStart, queryEnd) {
+  const faultCycles = [];
+  const faultSummaryMap = new Map();
+
+  const startTime = new Date(queryStart);
+  const endTime = new Date(queryEnd);
+
+  let currentCycle = null;
+
+  const sortedStates = states
+    .filter(s => s.status?.code !== undefined && s.timestamp)
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  for (const state of sortedStates) {
+    const code = state.status.code;
+    const faultName = state.status.name || 'Unknown';
+    const timestamp = new Date(state.timestamp);
+
+    if (code > 1) {
+      if (!currentCycle) {
+        currentCycle = {
+          faultType: faultName,
+          start: timestamp,
+          states: [state],
+        };
+      } else {
+        currentCycle.states.push(state);
+      }
+    } else if (code <= 1 && currentCycle) {
+      currentCycle.end = timestamp;
+      currentCycle.duration = timestamp - currentCycle.start;
+
+      if (currentCycle.start >= startTime && currentCycle.end <= endTime) {
+        faultCycles.push(currentCycle);
+
+        // Update summary
+        const summary = faultSummaryMap.get(currentCycle.faultType) || { totalDuration: 0, count: 0 };
+        summary.totalDuration += currentCycle.duration;
+        summary.count += 1;
+        faultSummaryMap.set(currentCycle.faultType, summary);
+      }
+
+      currentCycle = null;
+    }
   }
+
+  // If still faulting at end of range
+  if (currentCycle && currentCycle.start >= startTime) {
+    currentCycle.end = endTime;
+    currentCycle.duration = endTime - currentCycle.start;
+    faultCycles.push(currentCycle);
+
+    const summary = faultSummaryMap.get(currentCycle.faultType) || { totalDuration: 0, count: 0 };
+    summary.totalDuration += currentCycle.duration;
+    summary.count += 1;
+    faultSummaryMap.set(currentCycle.faultType, summary);
+  }
+
+  const faultSummaries = Array.from(faultSummaryMap.entries()).map(([faultType, { totalDuration, count }]) => ({
+    faultType,
+    totalDuration,
+    count,
+  }));
+
+  return { faultCycles, faultSummaries };
+}
+
+
+/**
+ * Returns an array of unique machine serial numbers found in the 'state' collection
+ * within the given time range.
+ * 
+ * @param {Db} db - MongoDB database instance
+ * @returns {Promise<number[]>} Array of machine serials
+ */
+async function getAllMachineSerials(db) {
+  const serials = await db.collection('state').distinct('machine.serial');
+  return serials.filter(s => typeof s === 'number' && !isNaN(s));
+}
 
 
 
@@ -485,6 +627,8 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     fetchStatesForOperator,
     groupStatesByOperator,
     groupStatesByOperatorAndSerial,
-    getCompletedCyclesForOperator
+    getCompletedCyclesForOperator,
+    extractFaultCycles,
+    getAllMachineSerials
   };
   

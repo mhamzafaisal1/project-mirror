@@ -19,17 +19,14 @@ export interface StackedBarChartData {
   templateUrl: './stacked-bar-chart.component.html',
   styleUrl: './stacked-bar-chart.component.scss'
 })
-export class StackedBarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
+export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() data: StackedBarChartData | null = null;
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
   private observer!: MutationObserver;
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['data'] && this.data) {
-      this.renderChart();
-    }
-  }
+  private margin = { top: 40, right: 140, bottom: 80, left: 60 };
+  private width = 1000;
+  private height = 500;
 
   ngAfterViewInit(): void {
     this.observer = new MutationObserver(() => {
@@ -37,6 +34,16 @@ export class StackedBarChartComponent implements OnChanges, OnDestroy, AfterView
     });
 
     this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    if (this.data) {
+      this.renderChart();
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['data'] && this.data) {
+      this.renderChart();
+    }
   }
 
   ngOnDestroy(): void {
@@ -45,122 +52,117 @@ export class StackedBarChartComponent implements OnChanges, OnDestroy, AfterView
     }
   }
 
+  private formatHour(hour: number): string {
+    const days = Math.floor(hour / 24);
+    const remainingHours = hour % 24;
+    
+    if (days > 0) {
+      return `Day ${days + 1}, ${remainingHours}:00`;
+    }
+    return `${remainingHours}:00`;
+  }
+
   renderChart(): void {
     if (!this.data) return;
 
     const element = this.chartContainer.nativeElement;
-    element.innerHTML = ''; // Clear existing chart
-
-    const margin = { top: 40, right: 120, bottom: 50, left: 50 };
-    const width = 900 - margin.left - margin.right;
-    const height = 400 - margin.top - margin.bottom;
-
-    const isDarkTheme = document.body.classList.contains('dark-theme');
-    const textColor = isDarkTheme ? 'white' : 'black';
-    const seriesColors = d3.schemeCategory10;
+    element.innerHTML = '';
 
     const svg = d3.select(element)
       .append('svg')
-      .attr('width', width + margin.left + margin.right + 100)
-      .attr('height', height + margin.top + margin.bottom)
-      .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
+      .attr('viewBox', `0 0 ${this.width} ${this.height}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet')
+      .style('width', '100%')
+      .style('height', 'auto');
 
-    // Prepare the data for stacking
-    const series = Object.entries(this.data.data.operators).map(([name, values]) => {
-      return this.data.data.hours.map((hour, i) => ({
-        hour,
-        value: values[i],
-        operator: name
-      }));
-    });
+    const isDarkTheme = document.body.classList.contains('dark-theme');
+    const textColor = isDarkTheme ? '#e0e0e0' : '#000000';
+    const seriesColors = d3.schemeCategory10;
+
+    // Create a mapping of original hours to formatted labels
+    const hourLabels = new Map(
+      this.data.data.hours.map(hour => [hour.toString(), this.formatHour(hour)])
+    );
+
+    const x = d3.scaleBand()
+      .domain(this.data.data.hours.map(String))
+      .range([this.margin.left, this.width - this.margin.right])
+      .padding(0.2);
 
     const stackedData = d3.stack()
       .keys(Object.keys(this.data.data.operators))
-      .value((d, key) => d[key] || 0)
-      (this.data.data.hours.map(hour => {
-        const entry: any = { hour };
-        Object.entries(this.data.data.operators).forEach(([operator, values]) => {
-          entry[operator] = values[this.data.data.hours.indexOf(hour)];
+      (this.data.data.hours.map((hour, i) => {
+        const entry: any = {};
+        Object.entries(this.data.data.operators).forEach(([itemName, values]) => {
+          entry[itemName] = values[i] || 0;
         });
+        entry.hour = hour;
         return entry;
       }));
 
-    const x = d3.scaleBand()
-      .domain(this.data.data.hours.map(h => this.formatHour(h)))
-      .range([0, width])
-      .padding(0.2);
-
     const y = d3.scaleLinear()
-      .domain([0, d3.max(stackedData[stackedData.length - 1], d => d[1])!])
+      .domain([0, d3.max(stackedData[stackedData.length - 1], d => d[1]) || 0])
       .nice()
-      .range([height, 0]);
+      .range([this.height - this.margin.bottom, this.margin.top]);
 
-    // Add the stacked bars
     svg.append('g')
       .selectAll('g')
       .data(stackedData)
       .join('g')
-      .attr('fill', (d, i) => seriesColors[i])
+      .attr('fill', (_, i) => seriesColors[i % seriesColors.length])
       .selectAll('rect')
       .data(d => d)
       .join('rect')
-      .attr('x', d => x(this.formatHour(d.data['hour']))!)
+      .attr('x', d => x(String(d.data['hour']))!)
       .attr('y', d => y(d[1]))
       .attr('height', d => y(d[0]) - y(d[1]))
       .attr('width', x.bandwidth());
 
-    // Add x-axis
     svg.append('g')
-      .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(x))
+      .attr('transform', `translate(0,${this.height - this.margin.bottom})`)
+      .call(
+        d3.axisBottom(x)
+          .tickValues(x.domain().filter((d, i) => i % 4 === 0))  // Show every 4th hour
+          .tickFormat(d => hourLabels.get(d) || '')  // Use formatted labels
+          .tickSizeOuter(0)
+      )
+      
       .selectAll('text')
       .attr('transform', 'rotate(-45)')
       .style('text-anchor', 'end')
       .style('fill', textColor);
 
-    // Add y-axis
     svg.append('g')
+      .attr('transform', `translate(${this.margin.left},0)`)
       .call(d3.axisLeft(y))
       .selectAll('text')
       .style('fill', textColor);
 
-    // Add title
     svg.append('text')
-      .attr('x', width / 2)
-      .attr('y', -10)
+      .attr('x', this.width / 2)
+      .attr('y', this.margin.top / 2)
       .attr('text-anchor', 'middle')
       .style('font-size', '16px')
       .style('fill', textColor)
       .text(this.data.title);
 
-    // Add legend
     const legend = svg.append('g')
-      .attr('class', 'legend')
-      .attr('transform', `translate(${width + 20}, 0)`);
+      .attr('transform', `translate(${this.width - this.margin.right + 10}, ${this.margin.top})`);
 
-    Object.keys(this.data.data.operators).forEach((operator, i) => {
-      const legendItem = legend.append('g')
-        .attr('transform', `translate(0, ${i * 20})`);
+    Object.keys(this.data.data.operators).forEach((key, i) => {
+      const legendRow = legend.append('g').attr('transform', `translate(0, ${i * 16})`);
 
-      legendItem.append('rect')
+      legendRow.append('rect')
         .attr('width', 10)
         .attr('height', 10)
-        .attr('fill', seriesColors[i]);
+        .attr('fill', seriesColors[i % seriesColors.length]);
 
-      legendItem.append('text')
-        .attr('x', 15)
-        .attr('y', 10)
+      legendRow.append('text')
+        .attr('x', 14)
+        .attr('y', 8)
+        .style('font-size', '11px')
         .style('fill', textColor)
-        .style('font-size', '12px')
-        .text(operator);
+        .text(key);
     });
-  }
-
-  formatHour(hour: number): string {
-    if (hour === 0) return '12am';
-    if (hour === 12) return '12pm';
-    if (hour < 12) return `${hour}am`;
-    return `${hour - 12}pm`;
   }
 }

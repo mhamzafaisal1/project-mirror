@@ -1,0 +1,25 @@
+<div class="summary-table-container">
+  <div class="controls">
+    <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
+    <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
+
+    <button mat-flat-button color="primary" (click)="fetchItemSummaryData()" [disabled]="!startTime || !endTime">
+      Fetch Item Summary
+    </button>
+  </div>
+
+  <div class="table-section">
+    <h2>Items</h2>
+    <base-table
+      [columns]="itemColumns"
+      [rows]="itemRows"
+      [class.dark]="isDarkTheme"
+      [class.light]="!isDarkTheme"
+    ></base-table>
+  </div>
+
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading...</div>
+  </div>
+</div>

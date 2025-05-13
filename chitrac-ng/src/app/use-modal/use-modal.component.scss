@@ -1,0 +1,34 @@
+.use-modal-container {
+    display: flex;
+    // justify-content: center;
+    // align-items: center;
+    height: 100%;
+    padding: 20px;
+  }
+  
+  button[mat-fab-extended] {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* space between icon and text */
+    font-weight: 600;
+    padding: 10px 24px;
+    border-radius: 10px;
+    height: 48px; /* ✅ uniform button height */
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+  
+    mat-icon {
+      font-size: 24px;
+      height: 24px;
+      width: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  
+    &:hover {
+      box-shadow: 0px 6px 16px rgba(0, 0, 0, 0.25);
+      transform: scale(1.02); /* slight pop on hover */
+    }
+  }
+  

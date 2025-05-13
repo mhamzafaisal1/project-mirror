@@ -1,0 +1,9 @@
+<div class="modal-wrapper" [ngClass]="{ 'dark': isDarkTheme, 'light': !isDarkTheme }">
+  <div class="modal-content">
+    <ng-container #container></ng-container>
+  </div>
+
+  <div class="modal-actions">
+    <button mat-flat-button color="primary" (click)="close()">Close</button>
+  </div>
+</div>
