@@ -1,0 +1,36 @@
+<div class="chart-container" [class.dark-mode]="isDarkTheme">
+    <div class="controls">
+      <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
+      <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
+  
+      <div class="button-group">
+        <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="!isValid()">Fetch Data</button>
+      </div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item">
+          <span class="color-box green"></span> ≥ 85% (Good)
+        </div>
+        <div class="legend-item">
+          <span class="color-box yellow"></span> 60–84% (Okay)
+        </div>
+        <div class="legend-item">
+          <span class="color-box red"></span> < 60% (Poor)
+        </div>
+      </div>
+      
+  
+    <div class="chart-content">
+      <div *ngIf="loading" class="loading">Loading...</div>
+      <div *ngIf="error" class="error">{{ error }}</div>
+  
+      <bar-chart
+        *ngIf="chartData.length && !loading && !error"
+        [data]="chartData"
+        [title]="'Top 10 Operator Efficiency %'"
+        [mode]="'oee'">
+      </bar-chart>
+    </div>
+  </div>
+  

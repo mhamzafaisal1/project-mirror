@@ -8,14 +8,19 @@ const {
   calculateOperatorTimes,
 } = require('./analytics');
 
+
 const {
   parseAndValidateQueryParams,
   createPaddedTimeRange,
   formatDuration,
 } = require("./time");
 
-const { extractAllCyclesFromStates, fetchStatesForMachine, getAllMachinesFromStates } = require('./state');
-const { getValidCounts } = require('./count');
+const { extractAllCyclesFromStates, fetchStatesForMachine, getAllMachinesFromStates, groupStatesByOperator, fetchAllStates } = require('./state');
+const {
+    getValidCounts,
+    groupCountsByOperator,
+    processCountStatistics
+  } = require('./count');
 
 async function buildMachineOEE(db, start, end) {
   try {
@@ -52,63 +57,6 @@ async function buildMachineOEE(db, start, end) {
     throw error;
   }
 }
-
-// async function buildDailyItemHourlyStack(db, start, end) {
-//   try {
-//     const startDate = new Date(start);
-//     const endDate = new Date(end);
-
-//     const counts = await getValidCounts(db, null, start, end); // no serial
-//     if (!counts.length) {
-//       return {
-//         title: "No data",
-//         data: { hours: [], operators: {} }
-//       };
-//     }
-
-//     const hourMap = new Map(); // hourIndex => { itemName => count }
-
-//     for (const count of counts) {
-//       const ts = new Date(count.timestamp);
-//       const hourIndex = Math.floor((ts - startDate) / (60 * 60 * 1000)); // hour bucket
-//       const itemName = count.item?.name || "Unknown";
-
-//       if (!hourMap.has(hourIndex)) hourMap.set(hourIndex, {});
-//       const hourEntry = hourMap.get(hourIndex);
-//       hourEntry[itemName] = (hourEntry[itemName] || 0) + 1;
-//     }
-
-//     const maxHour = Math.max(...hourMap.keys());
-//     const hours = Array.from({ length: maxHour + 1 }, (_, i) => i);
-//     const itemNames = new Set();
-
-//     for (const hourEntry of hourMap.values()) {
-//       Object.keys(hourEntry).forEach(name => itemNames.add(name));
-//     }
-
-//     const operators = {};
-//     for (const name of itemNames) {
-//       operators[name] = Array(maxHour + 1).fill(0);
-//     }
-
-//     for (const [hourIndex, itemCounts] of hourMap.entries()) {
-//       for (const [itemName, count] of Object.entries(itemCounts)) {
-//         operators[itemName][hourIndex] = count;
-//       }
-//     }
-
-//     return {
-//       title: `Item Counts by Hour (All Machines)`,
-//       data: {
-//         hours,
-//         operators
-//       }
-//     };
-//   } catch (error) {
-//     console.error('Error in buildDailyItemHourlyStack:', error);
-//     throw error;
-//   }
-// }
 
 async function buildDailyItemHourlyStack(db, start, end) {
     try {
@@ -203,9 +151,85 @@ async function buildDailyItemHourlyStack(db, start, end) {
       throw error;
     }
   }
+
+  async function buildTopOperatorEfficiency(db, start, end) {
+    const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+  
+    const [counts, states] = await Promise.all([
+      db.collection('count').aggregate([
+        {
+          $match: {
+            timestamp: { $gte: paddedStart, $lte: paddedEnd },
+            'operator.id': { $exists: true, $ne: -1 },
+            misfeed: { $ne: true }
+          }
+        },
+        {
+          $group: {
+            _id: '$operator.id',
+            name: { $first: '$operator.name' },
+            items: {
+              $push: {
+                item: '$item',
+                timestamp: '$timestamp'
+              }
+            },
+            totalCount: { $sum: 1 }
+          }
+        }
+      ]).toArray(),
+      fetchAllStates(db, paddedStart, paddedEnd)
+    ]);
+  
+    if (!counts.length || !states.length) {
+      return [];
+    }
+  
+    const groupedStates = groupStatesByOperator(states);
+    const operatorData = [];
+  
+    for (const count of counts) {
+      const operatorId = parseInt(count._id);
+      const name = count.name || 'Unknown';
+      const stateGroup = groupedStates[operatorId]?.states || [];
+  
+      const validCounts = count.items.map(entry => ({
+        item: entry.item,
+        timestamp: entry.timestamp,
+        misfeed: false
+      }));
+  
+      const totalCount = validCounts.length;
+      const runtime = calculateOperatorTimes(stateGroup, paddedStart, paddedEnd).runtime;
+      const efficiency = calculateEfficiency(runtime, totalCount, validCounts);
+  
+      operatorData.push({
+        id: operatorId,
+        name,
+        efficiency: +(efficiency * 100).toFixed(2),
+        metrics: {
+          runtime: {
+            total: runtime,
+            formatted: formatDuration(runtime)
+          },
+          output: {
+            totalCount,
+            validCount: totalCount,
+            misfeedCount: 0
+          }
+        }
+      });
+    }
+  
+    return operatorData
+      .sort((a, b) => b.efficiency - a.efficiency)
+      .slice(0, 10);
+  }
+  
   
 
 module.exports = {
   buildMachineOEE,
-  buildDailyItemHourlyStack
+  buildDailyItemHourlyStack,
+  buildTopOperatorEfficiency
 };

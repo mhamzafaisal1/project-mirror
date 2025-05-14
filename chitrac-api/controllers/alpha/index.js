@@ -76,6 +76,10 @@ function constructor(server) {
   const machineRoutes = require("./machineRoutes")(server);
   router.use("/analytics", machineRoutes);
 
+  // Import operator-related routes
+  const operatorRoutes = require("./operatorRoutes")(server);
+  router.use("/analytics", operatorRoutes);
+
 
   router.get("/timestamp", (req, res, next) => {
     res.json(startupDT);

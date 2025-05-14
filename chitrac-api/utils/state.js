@@ -614,7 +614,25 @@ async function getAllMachineSerials(db) {
 
 
 
-  
+async function fetchAllStates(db, start, end) {
+  return db.collection('state')
+    .find({
+      timestamp: { $gte: new Date(start), $lte: new Date(end) },
+      'operators': { $exists: true, $ne: [] } // Only states with at least one operator
+    })
+    .sort({ timestamp: 1 })
+    .project({
+      timestamp: 1,
+      'machine.serial': 1,
+      'machine.name': 1,
+      'program.mode': 1,
+      'status.code': 1,
+      'status.name': 1,
+      'operators': 1
+    })
+    .toArray();
+}
+
   
 
   module.exports = {
@@ -629,6 +647,7 @@ async function getAllMachineSerials(db) {
     groupStatesByOperatorAndSerial,
     getCompletedCyclesForOperator,
     extractFaultCycles,
-    getAllMachineSerials
+    getAllMachineSerials,
+    fetchAllStates
   };
   

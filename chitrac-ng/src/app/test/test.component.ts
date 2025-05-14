@@ -17,7 +17,7 @@ import { MachineDashboardComponent } from "../machine-dashboard/machine-dashboar
 import { DailyMachineStackedBarChartComponent } from "../daily-machine-stacked-bar-chart/daily-machine-stacked-bar-chart.component";
 import { DailyMachineOeeBarChartComponent } from "../daily-machine-oee-bar-chart/daily-machine-oee-bar-chart.component";
 import { DailyMachineItemStackedBarChartComponent } from "../daily-machine-item-stacked-bar-chart/daily-machine-item-stacked-bar-chart.component";
-
+import { RankedOperatorBarChartComponent } from "../ranked-operator-bar-chart/ranked-operator-bar-chart.component";
 @Component({
   selector: "app-test",
   standalone: true,
@@ -39,7 +39,8 @@ import { DailyMachineItemStackedBarChartComponent } from "../daily-machine-item-
     MachineDashboardComponent,
     DailyMachineStackedBarChartComponent,
     DailyMachineOeeBarChartComponent,
-    DailyMachineItemStackedBarChartComponent
+    DailyMachineItemStackedBarChartComponent,
+    RankedOperatorBarChartComponent
     ],
   templateUrl: "./test.component.html",
   styleUrls: ["./test.component.scss"],
@@ -73,10 +74,10 @@ export class TestComponent {
     //   label: "Operator Performance Chart",
     //   component: OperatorLineChartComponent
     // },
-    {
-      label: "Machine Dashboard",
-      component: MachineDashboardComponent
-    },
+    // {
+    //   label: "Machine Dashboard",
+    //   component: MachineDashboardComponent
+    // },
     {
       label: "Daily Machine Stacked Bar Chart",
       component: DailyMachineStackedBarChartComponent
@@ -88,6 +89,10 @@ export class TestComponent {
     {
       label: "Daily Machine Item Stacked Bar Chart",
       component: DailyMachineItemStackedBarChartComponent
+    },
+    {
+      label: "Ranked Operator Bar Chart",
+      component: RankedOperatorBarChartComponent
     }
   ];
 }

@@ -351,6 +351,18 @@ async function getCountRecords(db, serial, start, end) {
   
     return grouped;
   }
+
+  function groupCountsByOperator(counts) {
+    const grouped = {};
+    for (const count of counts) {
+      const opId = count.operator?.id;
+      if (!opId || opId === -1) continue;
+      if (!grouped[opId]) grouped[opId] = [];
+      grouped[opId].push(count);
+    }
+    return grouped;
+  }
+  
   
   
 
@@ -370,6 +382,7 @@ async function getCountRecords(db, serial, start, end) {
     groupCountsByOperatorAndMachine,
     groupCountsByItem,
     getCountsForMachine,
-    groupCountsByOperatorAndMachine
+    groupCountsByOperatorAndMachine,
+    groupCountsByOperator
   };
   
