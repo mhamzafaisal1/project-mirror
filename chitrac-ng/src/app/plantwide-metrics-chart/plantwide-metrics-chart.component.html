@@ -1,0 +1,41 @@
+<div class="chart-wrapper">
+  <div class="chart-header">
+    <h2 class="chart-title">Plantwide Metrics by Hour</h2>
+    <app-date-time-picker
+    [(value)]="startTime"
+    label="Start Time"
+  ></app-date-time-picker>
+  
+  <app-date-time-picker
+    [(value)]="endTime"
+    label="End Time"
+  ></app-date-time-picker>
+  
+  <button mat-flat-button color="primary" (click)="fetchData()">
+    Refresh
+  </button>
+  
+  </div>
+
+  <div class="chart-content">
+    <div *ngIf="loading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <span>Loading metrics data...</span>
+    </div>
+
+    <div *ngIf="error" class="error-state">
+      <span class="error-icon">!</span>
+      <span>{{ error }}</span>
+    </div>
+
+    <app-bar-and-line-chart
+      *ngIf="chartData && !loading && !error"
+      [data]="chartData"
+      [title]="'Plantwide Metrics'"
+      [barSeries]="['Availability', 'Efficiency', 'Throughput']"
+      [lineSeries]="['OEE']"
+      [isDarkTheme]="isDarkTheme"
+    ></app-bar-and-line-chart>
+  </div>
+</div>
+  

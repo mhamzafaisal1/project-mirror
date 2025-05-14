@@ -45,5 +45,13 @@ export class DailyDashboardService {
 
     return this.http.get(`${this.apiUrl}/analytics/daily-dashboard/operator-efficiency-top10`, { params });
   }
+
+  getPlantwideMetricsByHour(start: string, end: string): Observable<any> {
+    const params = new HttpParams()
+      .set('start', start)
+      .set('end', end);
+
+    return this.http.get(`${this.apiUrl}/analytics/daily-dashboard/plantwide-metrics-by-hour`, { params });
+  }
   
 }

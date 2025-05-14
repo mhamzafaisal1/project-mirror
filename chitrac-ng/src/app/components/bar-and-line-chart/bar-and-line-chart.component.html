@@ -1,0 +1,20 @@
+<div class="bar-line-chart-outer">
+  <div class="bar-line-chart-title">{{ title }}</div>
+  <div class="bar-line-chart-inner">
+    <div #chartContainer class="bar-line-chart-svg"></div>
+  </div>
+  <div class="bar-line-chart-legend">
+    <ng-container *ngFor="let metric of barSeries">
+      <span class="legend-item">
+        <span class="legend-swatch" [style.background]="getColor(metric)"></span>
+        <span class="legend-label">{{ metric }}</span>
+      </span>
+    </ng-container>
+    <ng-container *ngFor="let metric of lineSeries">
+      <span class="legend-item">
+        <span class="legend-swatch line" [style.background]="getColor(metric)"></span>
+        <span class="legend-label">{{ metric }}</span>
+      </span>
+    </ng-container>
+  </div>
+</div>

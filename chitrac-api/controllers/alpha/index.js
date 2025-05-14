@@ -62,6 +62,11 @@ const {
   calculatePiecesPerHour,
   calculateOperatorTimes,
 } = require("../../utils/analytics");
+const {
+  buildMachineOEE,
+  buildDailyItemHourlyStack,
+  buildTopOperatorEfficiency
+} = require("../../utils/dailyDashboardBuilder");
 
 module.exports = function (server) {
   return constructor(server);
@@ -3184,6 +3189,7 @@ function constructor(server) {
   });
 
   //API route for item Dashboard end
+
 
   return router;
 }

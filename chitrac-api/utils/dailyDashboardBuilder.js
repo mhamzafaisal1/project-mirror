@@ -13,9 +13,10 @@ const {
   parseAndValidateQueryParams,
   createPaddedTimeRange,
   formatDuration,
+  getHourlyIntervals
 } = require("./time");
 
-const { extractAllCyclesFromStates, fetchStatesForMachine, getAllMachinesFromStates, groupStatesByOperator, fetchAllStates } = require('./state');
+const { extractAllCyclesFromStates, fetchStatesForMachine, getAllMachinesFromStates, groupStatesByOperator, fetchAllStates, groupStatesByMachine } = require('./state');
 const {
     getValidCounts,
     groupCountsByOperator,
@@ -225,11 +226,139 @@ async function buildDailyItemHourlyStack(db, start, end) {
       .sort((a, b) => b.efficiency - a.efficiency)
       .slice(0, 10);
   }
+
+
+//   async function buildPlantwideMetricsByHour(db, start, end) {
+//     const hourlyIntervals = getHourlyIntervals(start, end);
+//     const allStates = await fetchStatesForMachine(db, null, start, end);
+//     const groupedStates = groupStatesByMachine(allStates);
   
+//     const results = [];
+  
+//     for (const { start: hourStart, end: hourEnd } of hourlyIntervals) {
+//       let totalRuntime = 0;
+//       let weightedAvailability = 0;
+//       let weightedEfficiency = 0;
+//       let weightedThroughput = 0;
+//       let weightedOEE = 0;
+  
+//       for (const [machineSerial, group] of Object.entries(groupedStates)) {
+//         const machineStates = group.states;
+//         const cycles = extractAllCyclesFromStates(machineStates, hourStart, hourEnd);
+//         const runningCycles = cycles.running;
+  
+//         // Calculate runtime within this hour
+//         const runtimeMs = runningCycles.reduce((total, cycle) => {
+//           const startTs = new Date(cycle.start);
+//           const endTs = new Date(cycle.end);
+//           const effectiveStart = startTs < hourStart ? hourStart : startTs;
+//           const effectiveEnd = endTs > hourEnd ? hourEnd : endTs;
+//           return total + (effectiveEnd - effectiveStart);
+//         }, 0);
+  
+//         if (runtimeMs === 0) continue;
+  
+//         const machineSerialInt = parseInt(machineSerial);
+//         const counts = await getValidCounts(db, machineSerialInt, hourStart, hourEnd);
+//         const validCounts = counts.filter(c => !c.misfeed);
+//         const misfeedCounts = counts.filter(c => c.misfeed);
+  
+//         const availability = runtimeMs / 3600000;
+//         const throughput = validCounts.length > 0
+//           ? validCounts.length / (validCounts.length + misfeedCounts.length)
+//           : 0;
+//         const efficiency = calculateEfficiency(runtimeMs, validCounts.length, validCounts);
+//         const oee = calculateOEE(availability, efficiency, throughput);
+  
+//         totalRuntime += runtimeMs;
+//         weightedAvailability += availability * runtimeMs;
+//         weightedEfficiency += efficiency * runtimeMs;
+//         weightedThroughput += throughput * runtimeMs;
+//         weightedOEE += oee * runtimeMs;
+//       }
+  
+//       results.push({
+//         hour: hourStart.getHours(),
+//         label: hourStart.toISOString(),
+//         availability: totalRuntime ? (weightedAvailability / totalRuntime) * 100 : 0,
+//         efficiency: totalRuntime ? (weightedEfficiency / totalRuntime) * 100 : 0,
+//         throughput: totalRuntime ? (weightedThroughput / totalRuntime) * 100 : 0,
+//         oee: totalRuntime ? (weightedOEE / totalRuntime) * 100 : 0,
+//       });
+//     }
+  
+//     return results;
+//   }
+
+async function buildPlantwideMetricsByHour(db, start, end) {
+    const intervals = getHourlyIntervals(start, end);
+    const allStates = await fetchStatesForMachine(db, null, start, end);
+    const groupedStates = groupStatesByMachine(allStates);
+  
+    const hourlyMetrics = [];
+  
+    for (const interval of intervals) {
+      let totalRuntime = 0;
+      let weightedAvailability = 0;
+      let weightedEfficiency = 0;
+      let weightedThroughput = 0;
+      let weightedOEE = 0;
+  
+      for (const [machineSerial, group] of Object.entries(groupedStates)) {
+        const machineStates = group.states.filter(s => {
+          const ts = new Date(s.timestamp);
+          return ts >= interval.start && ts < interval.end;
+        });
+  
+        if (!machineStates.length) continue;
+  
+        const cycles = extractAllCyclesFromStates(machineStates, interval.start, interval.end);
+        const runtime = cycles.running.reduce((sum, c) => sum + c.duration, 0);
+        if (!runtime) continue;
+  
+        const counts = await getValidCounts(db, parseInt(machineSerial), interval.start, interval.end);
+        const validCounts = counts.filter(c => !c.misfeed);
+        const misfeedCounts = counts.filter(c => c.misfeed);
+  
+        const availability = runtime / (interval.end - interval.start);
+        const throughput = validCounts.length > 0 ? validCounts.length / (validCounts.length + misfeedCounts.length) : 0;
+        const efficiency = calculateEfficiency(runtime, validCounts.length, validCounts);
+        const oee = calculateOEE(availability, efficiency, throughput);
+  
+        totalRuntime += runtime;
+        weightedAvailability += availability * runtime;
+        weightedEfficiency += efficiency * runtime;
+        weightedThroughput += throughput * runtime;
+        weightedOEE += oee * runtime;
+      }
+  
+      if (totalRuntime === 0) {
+        hourlyMetrics.push({
+          hour: interval.start.getHours(),
+          availability: 0,
+          efficiency: 0,
+          throughput: 0,
+          oee: 0
+        });
+      } else {
+        hourlyMetrics.push({
+          hour: interval.start.getHours(),
+          availability: (weightedAvailability / totalRuntime) * 100,
+          efficiency: (weightedEfficiency / totalRuntime) * 100,
+          throughput: (weightedThroughput / totalRuntime) * 100,
+          oee: (weightedOEE / totalRuntime) * 100
+        });
+      }
+    }
+  
+    return hourlyMetrics;
+  }
+
   
 
 module.exports = {
   buildMachineOEE,
   buildDailyItemHourlyStack,
-  buildTopOperatorEfficiency
+  buildTopOperatorEfficiency,
+  buildPlantwideMetricsByHour
 };

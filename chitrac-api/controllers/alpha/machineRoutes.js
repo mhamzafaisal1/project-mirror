@@ -36,7 +36,8 @@ module.exports = function (server) {
 
   const {
     buildMachineOEE,
-    buildDailyItemHourlyStack
+    buildDailyItemHourlyStack,
+    buildPlantwideMetricsByHour
   } = require("../../utils/dailyDashboardBuilder");
 
   router.get("/machine-dashboard", async (req, res) => {
@@ -158,6 +159,41 @@ router.get("/daily-dashboard/item-hourly-stack", async (req, res) => {
     res.status(500).json({ error: "Failed to build item/hour stacked data" });
   }
 });
+
+  //API route for plantwide metrics by hour start
+  router.get("/daily-dashboard/plantwide-metrics-by-hour", async (req, res) => {
+    try {
+      const { start, end } = parseAndValidateQueryParams(req);
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+
+      const hourlyMetrics = await buildPlantwideMetricsByHour(db, paddedStart, paddedEnd);
+
+      // Format the response for the chart
+      const response = {
+        title: "Plantwide Metrics by Hour",
+        data: {
+          hours: hourlyMetrics.map(m => m.hour),
+          series: {
+            Availability: hourlyMetrics.map(m => Math.round(m.availability * 100) / 100),
+            Efficiency: hourlyMetrics.map(m => Math.round(m.efficiency * 100) / 100),
+            Throughput: hourlyMetrics.map(m => Math.round(m.throughput * 100) / 100),
+            OEE: hourlyMetrics.map(m => Math.round(m.oee * 100) / 100)
+          }
+        },
+        timeRange: {
+          start: start,
+          end: end,
+          total: formatDuration(new Date(end) - new Date(start))
+        }
+      };
+
+      res.json(response);
+    } catch (err) {
+      logger.error("Error in /analytics/plantwide-metrics-by-hour:", err);
+      res.status(500).json({ error: "Failed to generate plantwide metrics by hour" });
+    }
+  });
+  //API route for plantwide metrics by hour end
   
   
 
