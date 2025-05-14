@@ -33,7 +33,7 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
   private observer!: MutationObserver;
-  private margin = { top: 40, right: 140, bottom: 80, left: 60 };
+  private margin = { top: 40, right: 200, bottom: 80, left: 60 };
   private width = 1000;
   private height = 500;
 
@@ -64,7 +64,7 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
   private formatHour(hour: number): string {
     const days = Math.floor(hour / 24);
     const remainingHours = hour % 24;
-    
+
     if (days > 0) {
       return `Day ${days + 1}, ${remainingHours}:00`;
     }
@@ -86,26 +86,28 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
 
     const isDarkTheme = document.body.classList.contains('dark-theme');
     const textColor = isDarkTheme ? '#e0e0e0' : '#000000';
-    const seriesColors = ['#4CAF50', '#FFC107', '#F44336']; // Green for Running, Yellow for Paused, Red for Faulted
 
     if (this.mode === 'machine') {
-      // Get machine names from the data or generate default names
       const machineCount = this.data.data.operators[Object.keys(this.data.data.operators)[0]].length;
-      const machineNames = this.data.data.machineNames || 
+      const machineNames = this.data.data.machineNames ||
         Array.from({ length: machineCount }, (_, i) => `Machine ${i + 1}`);
+      const keys = Object.keys(this.data.data.operators);
+
+      const colorScale = d3.scaleOrdinal<string>()
+        .domain(keys)
+        .range(d3.schemeTableau10.concat(d3.schemeSet3, d3.schemePaired));
 
       const x = d3.scaleBand()
         .domain(machineNames)
         .range([this.margin.left, this.width - this.margin.right])
         .padding(0.2);
 
-      // Create stacked data
       const stackedData = d3.stack()
-        .keys(['Running', 'Paused', 'Faulted'])
+        .keys(keys)
         (Array.from({ length: machineCount }, (_, i) => {
-          const entry: { [key: string]: number } = {};
-          ['Running', 'Paused', 'Faulted'].forEach(status => {
-            entry[status] = this.data.data.operators[status][i];
+          const entry: any = {};
+          keys.forEach(k => {
+            entry[k] = this.data!.data.operators[k][i];
           });
           return entry;
         }));
@@ -115,12 +117,11 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
         .nice()
         .range([this.height - this.margin.bottom, this.margin.top]);
 
-      // Add the stacked bars
       svg.append('g')
         .selectAll('g')
         .data(stackedData)
         .join('g')
-        .attr('fill', (_, i) => seriesColors[i])
+        .attr('fill', d => colorScale(d.key))
         .selectAll('rect')
         .data((d, i) => d.map((point, j) => ({ ...point, machineName: machineNames[j] })))
         .join('rect')
@@ -129,7 +130,6 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
         .attr('height', d => y(d[0]) - y(d[1]))
         .attr('width', x.bandwidth());
 
-      // Add x-axis with machine names
       svg.append('g')
         .attr('transform', `translate(0,${this.height - this.margin.bottom})`)
         .call(d3.axisBottom(x))
@@ -138,42 +138,38 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
         .style('text-anchor', 'end')
         .style('fill', textColor);
 
-      // Add y-axis with hours
       svg.append('g')
         .attr('transform', `translate(${this.margin.left},0)`)
-        .call(
-          d3.axisLeft(y)
-            .ticks(10)
-            .tickFormat(d => `${d} hr`)
-        )
-        
+        .call(d3.axisLeft(y).ticks(10).tickFormat(d => `${d} hr`))
         .selectAll('text')
         .style('fill', textColor);
 
-      // Add legend
       const legend = svg.append('g')
         .attr('transform', `translate(${this.width - this.margin.right + 10}, ${this.margin.top})`);
 
-      ['Running', 'Paused', 'Faulted'].forEach((status, i) => {
+      keys.forEach((key, i) => {
         const legendRow = legend.append('g').attr('transform', `translate(0, ${i * 16})`);
-
         legendRow.append('rect')
           .attr('width', 10)
           .attr('height', 10)
-          .attr('fill', seriesColors[i]);
-
+          .attr('fill', colorScale(key));
         legendRow.append('text')
           .attr('x', 14)
           .attr('y', 8)
           .style('font-size', '11px')
           .style('fill', textColor)
-          .text(status);
+          .text(key);
       });
+
     } else {
-      // Original time-based chart implementation
       const hourLabels = new Map(
         this.data.data.hours.map(hour => [hour.toString(), this.formatHour(hour)])
       );
+      const keys = Object.keys(this.data.data.operators);
+
+      const colorScale = d3.scaleOrdinal<string>()
+        .domain(keys)
+        .range(d3.schemeTableau10.concat(d3.schemeSet3, d3.schemePaired));
 
       const x = d3.scaleBand()
         .domain(this.data.data.hours.map(String))
@@ -181,11 +177,11 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
         .padding(0.2);
 
       const stackedData = d3.stack()
-        .keys(Object.keys(this.data.data.operators))
+        .keys(keys)
         (this.data.data.hours.map((hour, i) => {
           const entry: any = {};
-          Object.entries(this.data.data.operators).forEach(([itemName, values]) => {
-            entry[itemName] = values[i] || 0;
+          keys.forEach(k => {
+            entry[k] = this.data!.data.operators[k][i] || 0;
           });
           entry.hour = hour;
           return entry;
@@ -200,7 +196,7 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
         .selectAll('g')
         .data(stackedData)
         .join('g')
-        .attr('fill', (_, i) => seriesColors[i % seriesColors.length])
+        .attr('fill', d => colorScale(d.key))
         .selectAll('rect')
         .data(d => d)
         .join('rect')
@@ -213,7 +209,7 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
         .attr('transform', `translate(0,${this.height - this.margin.bottom})`)
         .call(
           d3.axisBottom(x)
-            .tickValues(x.domain().filter((d, i) => i % 4 === 0))
+            .tickValues(x.domain().filter((_, i) => i % 4 === 0))
             .tickFormat(d => hourLabels.get(d) || '')
             .tickSizeOuter(0)
         )
@@ -231,14 +227,12 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
       const legend = svg.append('g')
         .attr('transform', `translate(${this.width - this.margin.right + 10}, ${this.margin.top})`);
 
-      Object.keys(this.data.data.operators).forEach((key, i) => {
+      keys.forEach((key, i) => {
         const legendRow = legend.append('g').attr('transform', `translate(0, ${i * 16})`);
-
         legendRow.append('rect')
           .attr('width', 10)
           .attr('height', 10)
-          .attr('fill', seriesColors[i % seriesColors.length]);
-
+          .attr('fill', colorScale(key));
         legendRow.append('text')
           .attr('x', 14)
           .attr('y', 8)
@@ -248,7 +242,6 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
       });
     }
 
-    // Add title (common for both modes)
     svg.append('text')
       .attr('x', this.width / 2)
       .attr('y', this.margin.top / 2)

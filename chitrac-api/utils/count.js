@@ -8,19 +8,23 @@ async function getCountRecords(db, serial, start, end) {
       .sort({ timestamp: 1 })
       .toArray();
   }
-
   async function getValidCounts(db, serial, start, end) {
+    const query = {
+      timestamp: { $gte: new Date(start), $lte: new Date(end) },
+      'operator.id': { $exists: true, $ne: -1 },
+      misfeed: { $ne: true }
+    };
+  
+    if (serial !== null && serial !== undefined) {
+      query['machine.serial'] = serial;
+    }
+  
     return db.collection('count')
-      .find({
-        'machine.serial': serial,
-        timestamp: { $gte: new Date(start), $lte: new Date(end) },
-        'operator.id': { $exists: true, $ne: -1 },
-        misfeed: { $ne: true } // Exclude misfeeds
-      })
+      .find(query)
       .sort({ timestamp: 1 })
       .toArray();
   }
-
+  
   
   async function getMisfeedCounts(db, serial, start, end) {
     return db.collection('count')

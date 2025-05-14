@@ -34,6 +34,11 @@ module.exports = function (server) {
     buildOperatorEfficiency
   } = require("../../utils/machineDashboardBuilder");
 
+  const {
+    buildMachineOEE,
+    buildDailyItemHourlyStack
+  } = require("../../utils/dailyDashboardBuilder");
+
   router.get("/machine-dashboard", async (req, res) => {
     try {
       const { start, end, serial } = parseAndValidateQueryParams(req);
@@ -133,41 +138,27 @@ module.exports = function (server) {
 });
 
 router.get("/daily-dashboard/machine-oee", async (req, res) => {
-    try {
-      const { start, end } = parseAndValidateQueryParams(req);
-      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
-      const totalWindowMs = new Date(paddedEnd) - new Date(paddedStart);
+  try {
+    const { start, end } = parseAndValidateQueryParams(req);
+    const results = await buildMachineOEE(db, start, end);
+    res.json(results);
+  } catch (err) {
+    logger.error("OEE fetch error:", err);
+    res.status(500).json({ error: "Failed to calculate machine OEE%" });
+  }
+});
+
+router.get("/daily-dashboard/item-hourly-stack", async (req, res) => {
+  try {
+    const { start, end } = parseAndValidateQueryParams(req);
+    const result = await buildDailyItemHourlyStack(db, start, end);
+    res.json(result);
+  } catch (err) {
+    logger.error("Error in /analytics/daily-dashboard/item-hourly-stack:", err);
+    res.status(500).json({ error: "Failed to build item/hour stacked data" });
+  }
+});
   
-      const machines = await getAllMachinesFromStates(db, paddedStart, paddedEnd);
-      const results = [];
-  
-      for (const machine of machines) {
-        const states = await fetchStatesForMachine(db, machine.serial, paddedStart, paddedEnd);
-        if (!states.length) continue;
-  
-        const cycles = extractAllCyclesFromStates(states, start, end);
-        const workedTimeMs = cycles.running.reduce((sum, c) => sum + c.duration, 0);
-        const totalRuntime = cycles.running.reduce((sum, c) => sum + c.duration, 0) +
-                           cycles.paused.reduce((sum, c) => sum + c.duration, 0) +
-                           cycles.fault.reduce((sum, c) => sum + c.duration, 0);
-        const oee = (workedTimeMs / totalRuntime) * 100;
-  
-        results.push({
-          serial: machine.serial,
-          name: states[0].machine?.name || 'Unknown',
-          oee: +oee.toFixed(2)
-        });
-      }
-  
-      // Sort descending
-      results.sort((a, b) => b.oee - a.oee);
-  
-      res.json(results);
-    } catch (err) {
-      console.error("OEE fetch error:", err);
-      res.status(500).json({ error: "Failed to calculate machine OEE%" });
-    }
-  });
   
 
   
