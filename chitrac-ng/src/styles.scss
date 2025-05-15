@@ -185,5 +185,14 @@ html::-webkit-scrollbar {
 }
 
 
+body.light-theme {
+  --theme-icon-invert: 0;
+}
+
+body.dark-theme {
+  --theme-icon-invert: 1;
+}
+
+
 
 

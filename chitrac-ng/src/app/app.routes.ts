@@ -22,6 +22,7 @@ import { DailySummaryDashboardComponent } from './daily-summary-dashboard/daily-
 import { ItemAnalyticsDashboardComponent } from './item-analytics-dashboard/item-analytics-dashboard.component';
 import { AuthGuard } from './guards/auth.guard';
 import { TestComponent } from './test/test.component';
+import { DailyAnalyticsDashboardComponent } from './daily-analytics-dashboard/daily-analytics-dashboard.component';
 
 export const routes: Routes = [
 	{ path: 'ng/configGridTest', component: ConfigGridTestComponent },
@@ -45,5 +46,6 @@ export const routes: Routes = [
 	{ path: 'ng/daily-summary', component: DailySummaryDashboardComponent },
 	{ path: 'ng/itemAnalytics', component: ItemAnalyticsDashboardComponent },
 	{ path: 'ng/test', component: TestComponent },
+	{ path: 'ng/daily-analytics', component: DailyAnalyticsDashboardComponent },
 	{ path: 'ng/*', redirectTo: 'ng/home' }
 	];

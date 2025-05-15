@@ -3,34 +3,32 @@ import { CommonModule } from '@angular/common';
 import { BarChartComponent, BarChartDataPoint } from '../components/bar-chart/bar-chart.component';
 
 @Component({
-  selector: 'app-ranked-operator-bar-chart',
+  selector: 'app-daily-count-bar-chart',
   standalone: true,
   imports: [CommonModule, BarChartComponent],
-  templateUrl: './ranked-operator-bar-chart.component.html',
-  styleUrls: ['./ranked-operator-bar-chart.component.scss']
+  templateUrl: './daily-count-bar-chart.component.html',
+  styleUrls: ['./daily-count-bar-chart.component.scss']
 })
-export class RankedOperatorBarChartComponent implements OnChanges {
-  @Input() data: any[] = [];
+export class DailyCountBarChartComponent implements OnChanges {
+  @Input() data: { date: string; count: number }[] = [];
 
   chartData: BarChartDataPoint[] = [];
   isDarkTheme = false;
 
   constructor() {
     this.isDarkTheme = document.body.classList.contains('dark-theme');
-
     const observer = new MutationObserver(() => {
       this.isDarkTheme = document.body.classList.contains('dark-theme');
     });
-
     observer.observe(document.body, { attributes: true });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['data'] && Array.isArray(this.data)) {
-      this.chartData = this.data.map((op: any, i: number) => ({
+      this.chartData = this.data.map((entry, i) => ({
         hour: i,
-        counts: op.efficiency,
-        label: op.name
+        counts: entry.count,
+        label: entry.date
       }));
     }
   }

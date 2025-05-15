@@ -1,85 +1,62 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .chart-container {
-    padding: 1rem;
-    width: 100%;
-    box-sizing: border-box;
-  
-    &.dark-mode {
-      background-color: #121212;
-      color: #e0e0e0;
-    }
-  
-    &:not(.dark-mode) {
-      background-color: #ffffff;
-      color: #000000;
-    }
-  }
-  
-  .controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    align-items: center;
-    margin-bottom: 1rem;
-  
-    .button-group {
-      display: flex;
-      gap: 1rem;
-    }
-  }
-  
-  .chart-content {
-    position: relative;
-    min-height: 400px;
-  
-    .loading,
-    .error {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 1rem;
-      text-align: center;
-    }
-  
-    .error {
-      color: #f44336;
-      background-color: rgba(244, 67, 54, 0.1);
-      padding: 1rem;
-      border-radius: 4px;
-    }
+  width: 100%;
+  height: 100%;
+  padding: 1rem;
+  box-sizing: border-box;
+
+  &.dark-mode {
+    background-color: #121212;
+    color: #e0e0e0;
   }
 
-  .legend {
+  &:not(.dark-mode) {
+    background-color: #ffffff;
+    color: #000000;
+  }
+}
+
+.chart-content {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.legend {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin: 0.5rem 0 1rem 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+
+  .legend-item {
     display: flex;
-    gap: 1.5rem;
     align-items: center;
-    margin-top: 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-  
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .color-box {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    display: inline-block;
+
+    &.green {
+      background-color: #4CAF50;
     }
-  
-    .color-box {
-      width: 16px;
-      height: 16px;
-      border-radius: 3px;
-      display: inline-block;
-  
-      &.green {
-        background-color: #4CAF50;
-      }
-  
-      &.yellow {
-        background-color: #FFC107;
-      }
-  
-      &.red {
-        background-color: #F44336;
-      }
+
+    &.yellow {
+      background-color: #FFC107;
+    }
+
+    &.red {
+      background-color: #F44336;
     }
   }
-  
+}

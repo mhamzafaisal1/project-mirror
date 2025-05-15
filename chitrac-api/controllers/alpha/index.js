@@ -79,11 +79,15 @@ function constructor(server) {
 
   // Import machine-related routes
   const machineRoutes = require("./machineRoutes")(server);
-  router.use("/analytics", machineRoutes);
+  router.use("/", machineRoutes);
 
   // Import operator-related routes
   const operatorRoutes = require("./operatorRoutes")(server);
-  router.use("/analytics", operatorRoutes);
+  router.use("/", operatorRoutes);
+
+  // Import daily dashboard-related routes
+  const dailyDashboardRoutes = require("./dailyDashboardRoutes")(server);
+  router.use("/", dailyDashboardRoutes);
 
 
   router.get("/timestamp", (req, res, next) => {

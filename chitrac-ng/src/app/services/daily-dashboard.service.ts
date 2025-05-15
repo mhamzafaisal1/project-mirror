@@ -23,35 +23,28 @@ export class DailyDashboardService {
   }
 
   getMachineOee(start: string, end: string): Observable<any> {
-    const params = new HttpParams()
-      .set('start', start)
-      .set('end', end);
-  
+    const params = new HttpParams().set('start', start).set('end', end);
     return this.http.get(`${this.apiUrl}/analytics/daily-dashboard/machine-oee`, { params });
   }
 
-    getAllMachinesItemHourlyStack(start: string, end: string): Observable<any> {
-    const params = new HttpParams()
-      .set('start', start)
-      .set('end', end);
-
+  getAllMachinesItemHourlyStack(start: string, end: string): Observable<any> {
+    const params = new HttpParams().set('start', start).set('end', end);
     return this.http.get(`${this.apiUrl}/analytics/daily-dashboard/item-hourly-stack`, { params });
   }
 
   getTopOperatorEfficiency(start: string, end: string): Observable<any> {
-    const params = new HttpParams()
-      .set('start', start)
-      .set('end', end);
-
+    const params = new HttpParams().set('start', start).set('end', end);
     return this.http.get(`${this.apiUrl}/analytics/daily-dashboard/operator-efficiency-top10`, { params });
   }
 
   getPlantwideMetricsByHour(start: string, end: string): Observable<any> {
-    const params = new HttpParams()
-      .set('start', start)
-      .set('end', end);
-
+    const params = new HttpParams().set('start', start).set('end', end);
     return this.http.get(`${this.apiUrl}/analytics/daily-dashboard/plantwide-metrics-by-hour`, { params });
   }
-  
+
+  /** ✅ New consolidated route for entire dashboard */
+  getFullDailyDashboard(start: string, end: string): Observable<any> {
+    const params = new HttpParams().set('start', start).set('end', end);
+    return this.http.get(`${this.apiUrl}/analytics/daily-dashboard/full`, { params });
+  }
 }

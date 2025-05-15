@@ -26,6 +26,7 @@
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
     "luxon": "^3.6.1",
+    "ng-dynamic-component": "^10.8.2",
     "rxjs": "~7.8.0",
     "sass": "^1.77.5",
     "tslib": "^2.6.3",

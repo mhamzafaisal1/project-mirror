@@ -1,41 +1,22 @@
-<div class="chart-wrapper">
-  <div class="chart-header">
-    <h2 class="chart-title">Plantwide Metrics by Hour</h2>
-    <app-date-time-picker
-    [(value)]="startTime"
-    label="Start Time"
-  ></app-date-time-picker>
-  
-  <app-date-time-picker
-    [(value)]="endTime"
-    label="End Time"
-  ></app-date-time-picker>
-  
-  <button mat-flat-button color="primary" (click)="fetchData()">
-    Refresh
-  </button>
-  
+<div class="chart-container" [class.dark-mode]="isDarkTheme">
+  <div class="legend">
+    <div class="legend-item">
+      <span class="color-box green"></span> ≥ 85% (Good)
+    </div>
+    <div class="legend-item">
+      <span class="color-box yellow"></span> 60–84% (Okay)
+    </div>
+    <div class="legend-item">
+      <span class="color-box red"></span> < 60% (Poor)
+    </div>
   </div>
 
   <div class="chart-content">
-    <div *ngIf="loading" class="loading-state">
-      <div class="loading-spinner"></div>
-      <span>Loading metrics data...</span>
-    </div>
-
-    <div *ngIf="error" class="error-state">
-      <span class="error-icon">!</span>
-      <span>{{ error }}</span>
-    </div>
-
-    <app-bar-and-line-chart
-      *ngIf="chartData && !loading && !error"
+    <bar-chart
+      *ngIf="chartData.length"
       [data]="chartData"
-      [title]="'Plantwide Metrics'"
-      [barSeries]="['Availability', 'Efficiency', 'Throughput']"
-      [lineSeries]="['OEE']"
-      [isDarkTheme]="isDarkTheme"
-    ></app-bar-and-line-chart>
+      [title]="'Plantwide OEE by Hour'"
+      [mode]="'oee'">
+    </bar-chart>
   </div>
 </div>
-  

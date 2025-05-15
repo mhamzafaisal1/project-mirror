@@ -354,11 +354,90 @@ async function buildPlantwideMetricsByHour(db, start, end) {
     return hourlyMetrics;
   }
 
+
+  async function buildDailyMachineStatus(db, start, end) {
+    const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+    const machines = await getAllMachinesFromStates(db, paddedStart, paddedEnd);
+    const results = [];
   
+    for (const machine of machines) {
+      const states = await fetchStatesForMachine(db, machine.serial, paddedStart, paddedEnd);
+      if (!states.length) continue;
+  
+      const cycles = extractAllCyclesFromStates(states, start, end);
+      results.push({
+        serial: machine.serial,
+        name: states[0].machine?.name || "Unknown",
+        runningMs: cycles.running.reduce((sum, c) => sum + c.duration, 0),
+        pausedMs: cycles.paused.reduce((sum, c) => sum + c.duration, 0),
+        faultedMs: cycles.fault.reduce((sum, c) => sum + c.duration, 0)
+      });
+    }
+  
+    return results;
+  }
+  
+
+  
+
+async function buildDailyCountTotals(db, start, end) {
+  try {
+    const pipeline = [
+      {
+        $match: {
+          timestamp: { $gte: start, $lte: end },
+          misfeed: { $ne: true },
+          'operator.id': { $exists: true, $ne: -1 }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$timestamp" },
+            month: { $month: "$timestamp" },
+            day: { $dayOfMonth: "$timestamp" }
+          },
+          count: { $sum: 1 },
+          date: { $first: "$timestamp" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          date: {
+            $dateFromParts: {
+              year: "$_id.year",
+              month: "$_id.month",
+              day: "$_id.day"
+            }
+          },
+          count: 1
+        }
+      },
+      {
+        $sort: { date: 1 }
+      }
+    ];
+
+    const results = await db.collection('count').aggregate(pipeline).toArray();
+
+    // Format the results for the frontend
+    return results.map(entry => ({
+      date: entry.date.toISOString().split('T')[0],
+      count: entry.count
+    }));
+
+  } catch (error) {
+    console.error('Error in buildDailyCountTotals:', error);
+    throw error;
+  }
+}
 
 module.exports = {
   buildMachineOEE,
   buildDailyItemHourlyStack,
   buildTopOperatorEfficiency,
-  buildPlantwideMetricsByHour
+  buildPlantwideMetricsByHour,
+  buildDailyMachineStatus,
+  buildDailyCountTotals
 };

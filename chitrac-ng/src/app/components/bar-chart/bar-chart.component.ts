@@ -18,7 +18,7 @@ export interface BarChartDataPoint {
 export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
   @Input() data: BarChartDataPoint[] = [];
   @Input() title: string = '';
-  @Input() mode: 'time' | 'oee' = 'time';
+  @Input() mode: 'time' | 'oee' | 'count' = 'time';
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
   private observer!: MutationObserver;
@@ -48,8 +48,8 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
     element.innerHTML = ''; // Clear existing chart
 
     const margin = { top: 40, right: 30, bottom: 100, left: 50 }; // increased bottom
-    const width = 800 - margin.left - margin.right;
-    const height = 500 - margin.top - margin.bottom;
+    const width = 400 - margin.left - margin.right;
+    const height = 250 - margin.top - margin.bottom;
     
     const isDarkTheme = document.body.classList.contains('dark-theme');
     const textColor = isDarkTheme ? 'white' : 'black';
@@ -115,6 +115,10 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
   }
 
   getBarColor(value: number): string {
+    if (this.mode === 'count') {
+      // For count mode, use a single color
+      return '#2196F3'; // Blue color for count bars
+    }
     // Color based on efficiency thresholds (same as dashboard)
     if (value >= 85) return '#4CAF50'; // green
     if (value >= 60) return '#FFC107'; // yellow

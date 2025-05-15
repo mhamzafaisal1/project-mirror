@@ -1,99 +1,75 @@
-.metrics-container {
-    padding: 20px;
-    max-width: 100%;
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-  }
-  
-  .picker-row {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
-  }
-  
-  .loading,
-  .error {
-    text-align: center;
-    margin: 1rem 0;
-    font-weight: bold;
-    color: red;
-  }
-  
-.chart-wrapper {
-  display: flex;
-  flex-direction: column;
+:host {
+  display: block;
+  width: 100%;
   height: 100%;
-  background-color: var(--surface-color);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
 }
 
-.chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--surface-color);
+.chart-container {
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
-  .chart-title {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 500;
-    color: var(--text-color);
+  &.dark-mode {
+    background-color: #1e1e1e;
+    color: #ffffff;
+  }
+
+  .chart-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 }
 
 .chart-content {
   flex: 1;
-  padding: 1rem;
-  position: relative;
   min-height: 400px;
+  position: relative;
+
+  bar-chart {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
 }
 
-.loading-state {
+.legend {
   display: flex;
-  flex-direction: column;
+  gap: 1.5rem;
   align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--text-color-secondary);
+  margin: 0.5rem 0 1rem 0;
+  font-size: 0.875rem;
+  font-weight: 500;
 
-  .loading-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--border-color);
-    border-top-color: var(--primary-color);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 1rem;
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .color-box {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    display: inline-block;
+
+    &.green {
+      background-color: #4caf50;
+    }
+
+    &.yellow {
+      background-color: #ffc107;
+    }
+
+    &.red {
+      background-color: #f44336;
+    }
   }
 }
-
-.error-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--error-color);
-  padding: 1rem;
-  text-align: center;
-
-  .error-icon {
-    font-size: 1.5rem;
-    margin-right: 0.5rem;
-  }
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-  

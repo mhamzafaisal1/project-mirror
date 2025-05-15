@@ -1,0 +1,11 @@
+<div class="chart-container" [class.dark-mode]="isDarkTheme">
+    <div class="chart-content">
+      <bar-chart
+        *ngIf="chartData.length"
+        [data]="chartData"
+        [title]="'Daily Total Counts (Last 28 Days)'"
+        [mode]="'count'">
+      </bar-chart>
+    </div>
+  </div>
+  
