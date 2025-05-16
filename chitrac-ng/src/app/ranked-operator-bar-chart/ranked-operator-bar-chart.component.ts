@@ -11,6 +11,8 @@ import { BarChartComponent, BarChartDataPoint } from '../components/bar-chart/ba
 })
 export class RankedOperatorBarChartComponent implements OnChanges {
   @Input() data: any[] = [];
+  @Input() chartWidth: number = 600;
+  @Input() chartHeight: number = 400;
 
   chartData: BarChartDataPoint[] = [];
   isDarkTheme = false;

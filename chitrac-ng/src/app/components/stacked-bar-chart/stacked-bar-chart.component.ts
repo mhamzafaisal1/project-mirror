@@ -30,12 +30,14 @@ interface StackedDataPoint {
 export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() data: StackedBarChartData | null = null;
   @Input() mode: StackedBarChartMode = 'time';
+  @Input() chartWidth: number = 600;
+  @Input() chartHeight: number = 400;
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
   private observer!: MutationObserver;
-  private margin = { top: 40, right: 200, bottom: 80, left: 60 };
-  private width = 500;
-  private height = 250;
+  private margin = { top: 40, right: 40, bottom: 100, left: 40 }; 
+  private width = 600;
+  private height = 400;
 
   ngAfterViewInit(): void {
     this.observer = new MutationObserver(() => {
@@ -77,14 +79,16 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
     const element = this.chartContainer.nativeElement;
     element.innerHTML = '';
   
+    // Set width and height from inputs
+    this.width = this.chartWidth;
+    this.height = this.chartHeight;
     const svg = d3.select(element)
-    .append('svg')
-    .attr('viewBox', `0 0 ${this.width} ${this.height}`)
-    .attr('preserveAspectRatio', 'xMidYMid slice')
-    .style('width', '100%')
-    .style('height', '100%')
-    .style('display', 'block')
-    .style('margin', '0 auto');
+      .append('svg')
+      .attr('viewBox', `0 0 ${this.width} ${this.height}`)
+      .attr('width', this.width)
+      .attr('height', this.height)
+      .style('display', 'block')
+      .style('margin', '0 auto');
   
   
     const isDarkTheme = document.body.classList.contains('dark-theme');

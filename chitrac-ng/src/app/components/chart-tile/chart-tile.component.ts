@@ -12,4 +12,6 @@ import { MatIconModule } from '@angular/material/icon';
 export class ChartTileComponent {
   @Input() title: string = '';
   @Input() icon?: string; // optional Material icon name
+  @Input() chartWidth: number = 600;
+  @Input() chartHeight: number = 400;
 }

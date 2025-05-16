@@ -22,6 +22,8 @@ interface MachineStatus {
 })
 export class DailyMachineStackedBarChartComponent implements OnChanges {
   @Input() data: MachineStatus[] | null = null;
+  @Input() chartWidth: number = 600;
+  @Input() chartHeight: number = 400;
 
   chartData: StackedBarChartData | null = null;
   isDarkTheme = false;

@@ -11,6 +11,8 @@ import { StackedBarChartComponent, StackedBarChartData } from '../components/sta
 })
 export class DailyMachineItemStackedBarChartComponent implements OnChanges {
   @Input() data: StackedBarChartData | null = null;
+  @Input() chartWidth: number = 600;
+  @Input() chartHeight: number = 400;
 
   isDarkTheme = false;
 

@@ -42,6 +42,9 @@ export class DailyAnalyticsDashboardComponent implements OnInit {
 
   fullDashboardData: any = null;
 
+  chartWidth: number = 600;
+  chartHeight: number = 450;
+
   chartComponents = [
     {
       component: DailyMachineStackedBarChartComponent,

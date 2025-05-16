@@ -3,7 +3,9 @@
     <app-stacked-bar-chart
       *ngIf="chartData"
       [data]="chartData"
-      mode="machine">
+      mode="machine"
+      [chartWidth]="chartWidth"
+      [chartHeight]="chartHeight">
     </app-stacked-bar-chart>
   </div>
 </div>

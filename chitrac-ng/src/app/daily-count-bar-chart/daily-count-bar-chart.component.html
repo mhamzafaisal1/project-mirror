@@ -4,7 +4,9 @@
         *ngIf="chartData.length"
         [data]="chartData"
         [title]="'Daily Total Counts (Last 28 Days)'"
-        [mode]="'count'">
+        [mode]="'count'"
+        [chartWidth]="chartWidth"
+        [chartHeight]="chartHeight">
       </bar-chart>
     </div>
   </div>

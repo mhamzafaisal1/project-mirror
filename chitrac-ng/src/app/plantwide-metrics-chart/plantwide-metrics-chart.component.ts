@@ -17,6 +17,8 @@ export class PlantwideMetricsChartComponent implements OnChanges {
     throughput: number;
     oee: number;
   }[] = [];
+  @Input() chartWidth: number = 600;
+  @Input() chartHeight: number = 400;
 
   chartData: BarChartDataPoint[] = [];
   isDarkTheme = false;
