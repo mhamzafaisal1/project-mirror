@@ -80,7 +80,8 @@ export class DailyAnalyticsDashboardComponent implements OnInit {
       component: PlantwideMetricsChartComponent,
       title: 'Plantwide Metrics by Hour',
       icon: 'trending_up',
-      dataKey: 'plantwideMetrics'
+      dataKey: 'plantwideMetrics',
+      // chartWidth and chartHeight will be passed via ndcDynamicInputs in the template
     }
     // Future charts:
     // { component: ..., title: ..., icon: ..., dataKey: ... }

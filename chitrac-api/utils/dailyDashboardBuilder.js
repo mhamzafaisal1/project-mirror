@@ -290,69 +290,75 @@ async function buildDailyItemHourlyStack(db, start, end) {
 //     return results;
 //   }
 
+
 async function buildPlantwideMetricsByHour(db, start, end) {
-    const intervals = getHourlyIntervals(start, end);
-    const allStates = await fetchStatesForMachine(db, null, start, end);
-    const groupedStates = groupStatesByMachine(allStates);
-  
-    const hourlyMetrics = [];
-  
-    for (const interval of intervals) {
-      let totalRuntime = 0;
-      let weightedAvailability = 0;
-      let weightedEfficiency = 0;
-      let weightedThroughput = 0;
-      let weightedOEE = 0;
-  
-      for (const [machineSerial, group] of Object.entries(groupedStates)) {
-        const machineStates = group.states.filter(s => {
-          const ts = new Date(s.timestamp);
-          return ts >= interval.start && ts < interval.end;
-        });
-  
-        if (!machineStates.length) continue;
-  
-        const cycles = extractAllCyclesFromStates(machineStates, interval.start, interval.end);
-        const runtime = cycles.running.reduce((sum, c) => sum + c.duration, 0);
-        if (!runtime) continue;
-  
-        const counts = await getValidCounts(db, parseInt(machineSerial), interval.start, interval.end);
-        const validCounts = counts.filter(c => !c.misfeed);
-        const misfeedCounts = counts.filter(c => c.misfeed);
-  
-        const availability = runtime / (interval.end - interval.start);
-        const throughput = validCounts.length > 0 ? validCounts.length / (validCounts.length + misfeedCounts.length) : 0;
-        const efficiency = calculateEfficiency(runtime, validCounts.length, validCounts);
-        const oee = calculateOEE(availability, efficiency, throughput);
-  
-        totalRuntime += runtime;
-        weightedAvailability += availability * runtime;
-        weightedEfficiency += efficiency * runtime;
-        weightedThroughput += throughput * runtime;
-        weightedOEE += oee * runtime;
-      }
-  
-      if (totalRuntime === 0) {
-        hourlyMetrics.push({
-          hour: interval.start.getHours(),
-          availability: 0,
-          efficiency: 0,
-          throughput: 0,
-          oee: 0
-        });
-      } else {
-        hourlyMetrics.push({
-          hour: interval.start.getHours(),
-          availability: (weightedAvailability / totalRuntime) * 100,
-          efficiency: (weightedEfficiency / totalRuntime) * 100,
-          throughput: (weightedThroughput / totalRuntime) * 100,
-          oee: (weightedOEE / totalRuntime) * 100
-        });
-      }
+  const intervals = getHourlyIntervals(start, end);
+  const allStates = await fetchStatesForMachine(db, null, start, end);
+  const groupedStates = groupStatesByMachine(allStates);
+
+  const hourlyMetrics = [];
+
+  for (const interval of intervals) {
+    let totalRuntime = 0;
+    let weightedAvailability = 0;
+    let weightedEfficiency = 0;
+    let weightedThroughput = 0;
+    let weightedOEE = 0;
+
+    for (const [machineSerial, group] of Object.entries(groupedStates)) {
+      const machineStates = group.states.filter(s => {
+        const ts = new Date(s.timestamp);
+        return ts >= interval.start && ts < interval.end;
+      });
+
+      if (!machineStates.length) continue;
+
+      const cycles = extractAllCyclesFromStates(machineStates, interval.start, interval.end);
+      const runtime = cycles.running.reduce((sum, c) => sum + c.duration, 0);
+      if (!runtime) continue;
+
+      const counts = await getValidCounts(db, parseInt(machineSerial), interval.start, interval.end);
+      const validCounts = counts.filter(c => !c.misfeed);
+      const misfeedCounts = counts.filter(c => c.misfeed);
+
+      const availability = runtime / (interval.end - interval.start);
+      const throughput = validCounts.length > 0
+        ? validCounts.length / (validCounts.length + misfeedCounts.length)
+        : 0;
+      const efficiency = calculateEfficiency(runtime, validCounts.length, validCounts);
+      const oee = calculateOEE(availability, efficiency, throughput);
+
+      totalRuntime += runtime;
+      weightedAvailability += availability * runtime;
+      weightedEfficiency += efficiency * runtime;
+      weightedThroughput += throughput * runtime;
+      weightedOEE += oee * runtime;
     }
-  
-    return hourlyMetrics;
+
+    if (totalRuntime > 0) {
+      const availability = (weightedAvailability / totalRuntime) * 100;
+      const efficiency = (weightedEfficiency / totalRuntime) * 100;
+      const throughput = (weightedThroughput / totalRuntime) * 100;
+      const oee = (weightedOEE / totalRuntime) * 100;
+
+      // ⛔ Filter out if all metrics are 0
+      if (availability === 0 && efficiency === 0 && throughput === 0 && oee === 0) {
+        continue;
+      }
+
+      hourlyMetrics.push({
+        hour: interval.start.getHours(),
+        availability,
+        efficiency,
+        throughput,
+        oee
+      });
+    }
   }
+
+  return hourlyMetrics;
+}
+
 
 
   async function buildDailyMachineStatus(db, start, end) {
@@ -379,59 +385,63 @@ async function buildPlantwideMetricsByHour(db, start, end) {
   
 
   
-
-async function buildDailyCountTotals(db, start, end) {
-  try {
-    const pipeline = [
-      {
-        $match: {
-          timestamp: { $gte: start, $lte: end },
-          misfeed: { $ne: true },
-          'operator.id': { $exists: true, $ne: -1 }
+  async function buildDailyCountTotals(db, _start, end) {
+    try {
+      const endDate = new Date(end);
+      const startDate = new Date(endDate);
+      startDate.setDate(endDate.getDate() - 27); // include 28 total days including endDate
+      startDate.setHours(0, 0, 0, 0); // set to 12:00 AM
+  
+      const pipeline = [
+        {
+          $match: {
+            timestamp: { $gte: startDate, $lte: endDate },
+            misfeed: { $ne: true },
+            'operator.id': { $exists: true, $ne: -1 }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$timestamp" },
+              month: { $month: "$timestamp" },
+              day: { $dayOfMonth: "$timestamp" }
+            },
+            count: { $sum: 1 },
+            date: { $first: "$timestamp" }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            date: {
+              $dateFromParts: {
+                year: "$_id.year",
+                month: "$_id.month",
+                day: "$_id.day"
+              }
+            },
+            count: 1
+          }
+        },
+        {
+          $sort: { date: 1 }
         }
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$timestamp" },
-            month: { $month: "$timestamp" },
-            day: { $dayOfMonth: "$timestamp" }
-          },
-          count: { $sum: 1 },
-          date: { $first: "$timestamp" }
-        }
-      },
-      {
-        $project: {
-          _id: 0,
-          date: {
-            $dateFromParts: {
-              year: "$_id.year",
-              month: "$_id.month",
-              day: "$_id.day"
-            }
-          },
-          count: 1
-        }
-      },
-      {
-        $sort: { date: 1 }
-      }
-    ];
-
-    const results = await db.collection('count').aggregate(pipeline).toArray();
-
-    // Format the results for the frontend
-    return results.map(entry => ({
-      date: entry.date.toISOString().split('T')[0],
-      count: entry.count
-    }));
-
-  } catch (error) {
-    console.error('Error in buildDailyCountTotals:', error);
-    throw error;
+      ];
+  
+      const results = await db.collection('count').aggregate(pipeline).toArray();
+  
+      return results.map(entry => ({
+        date: entry.date.toISOString().split('T')[0],
+        count: entry.count
+      }));
+  
+    } catch (error) {
+      console.error('Error in buildDailyCountTotals:', error);
+      throw error;
+    }
   }
-}
+  
 
 module.exports = {
   buildMachineOEE,
