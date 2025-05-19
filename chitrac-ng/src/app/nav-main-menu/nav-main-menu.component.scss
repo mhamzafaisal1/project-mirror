@@ -38,3 +38,14 @@
 .spacer {
   flex: 1 1 auto;
 }
+
+.nav-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 8px 16px 4px;
+  color: var(--theme-color-on-surface-variant);
+}
+
+.dark-theme .nav-section-title {
+  color: rgba(255, 255, 255, 0.7);
+}

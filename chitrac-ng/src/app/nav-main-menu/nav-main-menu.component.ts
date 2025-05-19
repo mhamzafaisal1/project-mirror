@@ -17,9 +17,7 @@ import { trigger, state, style, animate, transition, query, group } from '@angul
 import { Observable } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 
-/*** Service Imports */
 import { UserService } from '../user.service';
-
 
 const left = [
   query(':enter, :leave', style({ position: 'absolute', width: '15em' })),
@@ -52,21 +50,16 @@ const right = [
     MatListModule,
     MatIconModule,
     MatSlideToggleModule
-  ], animations: [
+  ],
+  animations: [
     trigger('menuSlider', [
       transition(':increment', right),
       transition(':decrement', left),
     ]),
-    trigger(
-      'menuSwap',
-      [
-        transition(':enter', [style({ transform: 'translateX(-15em)', position: 'absolute' }), animate('.3s ease-out', style({ transform: 'translateX(0%)', position: 'absolute' }))]
-        ),
-        transition(
-          ':leave', [style({ transform: 'translateX(0%)', position: 'absolute' }), animate('.3s ease-out', style({ transform: 'translateX(-15em)', position: 'absolute' }))]
-        )
-      ]
-    )
+    trigger('menuSwap', [
+      transition(':enter', [style({ transform: 'translateX(-15em)', position: 'absolute' }), animate('.3s ease-out', style({ transform: 'translateX(0%)', position: 'absolute' }))]),
+      transition(':leave', [style({ transform: 'translateX(0%)', position: 'absolute' }), animate('.3s ease-out', style({ transform: 'translateX(-15em)', position: 'absolute' }))])
+    ])
   ]
 })
 export class NavMainMenuComponent {
@@ -104,12 +97,10 @@ export class NavMainMenuComponent {
     });
   }
 
-  constructor(private userService: UserService, private router: Router) {
-    
-  }
+  constructor(private userService: UserService, private router: Router) {}
 
   ngOnInit() {
-    this.userService.getCurrentUser().subscribe(x => x); 
+    this.userService.getCurrentUser().subscribe(x => x);
     this.subscribeToUser();
   }
 
@@ -123,11 +114,7 @@ export class NavMainMenuComponent {
   }
 
   toggleMenu() {
-    if (this.shownMenu === '') {
-      this.shownMenu = 'main';
-    } else {
-      this.shownMenu = '';
-    }
+    this.shownMenu = this.shownMenu === '' ? 'main' : '';
   }
 
   closeMenu() {

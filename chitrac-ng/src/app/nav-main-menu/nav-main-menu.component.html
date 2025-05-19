@@ -1,30 +1,122 @@
 <mat-sidenav-container class="sidenav-container">
-  <mat-sidenav #drawer class="sidenav" fixedInViewport [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'" [mode]="(isHandset$ | async) ? 'over' : 'side'" [opened]="(((isHandset$ | async) === false) && shownMenu != '') || shownMenu != ''" (closedStart)="closeMenu()" >
+  <mat-sidenav
+    #drawer
+    class="sidenav"
+    fixedInViewport
+    [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
+    [mode]="(isHandset$ | async) ? 'over' : 'side'"
+    [opened]="((isHandset$ | async) === false && shownMenu != '') || shownMenu != ''"
+    (closedStart)="closeMenu()"
+  >
     <mat-toolbar>
-      <span><button *ngIf="(isHandset$ | async) == true" (click)="toggleMenu()" mat-icon-button>
-        <mat-icon>chevron_left</mat-icon>
-      </button>
-      <span>Main Menu</span></span>
+      <span>
+        <button
+          *ngIf="(isHandset$ | async) == true"
+          (click)="toggleMenu()"
+          mat-icon-button
+        >
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        <span>Main Menu</span>
+      </span>
     </mat-toolbar>
+
+    <!-- Main Menu -->
     <mat-nav-list *ngIf="shownMenu == 'main'" [@menuSwap]>
-      <a mat-list-item *ngIf="user.username" routerLink="/"><mat-icon>home</mat-icon><span>Home</span></a>
-      <a mat-list-item *ngIf="user.username && false" href="#"><mat-icon>local_laundry_service</mat-icon><span>Machines</span></a>
-      <a mat-list-item *ngIf="user.username && false" href="#"><mat-icon>person</mat-icon><span>Operators</span></a>
-      <a mat-list-item *ngIf="user.username" (click)="openMenu('settings')"><mat-icon>settings</mat-icon>Settings</a>
-      <a mat-list-item *ngIf="!user.username" routerLink="/ng/login"><mat-icon>login</mat-icon>Log In</a>
-      <a mat-list-item *ngIf="user.username" (click)="logout()"><mat-icon>logout</mat-icon>Log Out as {{user.username}}</a>
+      <a mat-list-item *ngIf="user.username" routerLink="/">
+        <mat-icon>home</mat-icon><span>Home</span>
+      </a>
+      <a mat-list-item *ngIf="user.username && false" href="#">
+        <mat-icon>local_laundry_service</mat-icon><span>Machines</span>
+      </a>
+      <a mat-list-item *ngIf="user.username && false" href="#">
+        <mat-icon>person</mat-icon><span>Operators</span>
+      </a>
+      <a mat-list-item *ngIf="user.username" (click)="openMenu('settings')">
+        <mat-icon>settings</mat-icon><span>Settings</span>
+      </a>
+      <a mat-list-item (click)="openMenu('dashboards')">
+        <mat-icon>dashboard</mat-icon><span>Dashboards</span>
+      </a>
+      <a mat-list-item (click)="openMenu('reports')">
+        <mat-icon>bar_chart</mat-icon><span>Reports</span>
+      </a>
+      <a mat-list-item *ngIf="!user.username" routerLink="/ng/login">
+        <mat-icon>login</mat-icon><span>Log In</span>
+      </a>
+      <a mat-list-item *ngIf="user.username" (click)="logout()">
+        <mat-icon>logout</mat-icon><span>Log Out as {{ user.username }}</span>
+      </a>
     </mat-nav-list>
+
+    <!-- Dashboards Submenu -->
+    <mat-nav-list *ngIf="shownMenu == 'dashboards'" [@menuSwap]>
+      <a mat-list-item (click)="prevMenu()">
+        <mat-icon>arrow_back</mat-icon><span>Back</span>
+      </a>
+      <a mat-list-item routerLink="/ng/daily-analytics">
+        <mat-icon>slow_motion_video</mat-icon><span>Daily</span>
+      </a>
+      <a mat-list-item routerLink="/ng/machineAnalytics">
+        <mat-icon>local_laundry_service</mat-icon><span>Machine</span>
+      </a>
+      <a mat-list-item routerLink="/ng/operatorAnalytics">
+        <mat-icon>person</mat-icon><span>Operator</span>
+      </a>
+      <a mat-list-item routerLink="/ng/itemAnalytics">
+        <mat-icon>dry_cleaning</mat-icon><span>Item</span>
+      </a>
+      <a mat-list-item routerLink="/ng/daily-summary">
+        <mat-icon>view_column</mat-icon><span>Summary</span>
+      </a>
+    </mat-nav-list>
+    
+
+    <!-- Reports Submenu -->
+    <mat-nav-list *ngIf="shownMenu == 'reports'" [@menuSwap]>
+      <a mat-list-item (click)="prevMenu()">
+        <mat-icon>arrow_back</mat-icon><span>Back</span>
+      </a>
+      <a mat-list-item href="#">
+        <mat-icon>local_laundry_service</mat-icon><span>Machine Report</span>
+      </a>
+      <a mat-list-item href="#">
+        <mat-icon>person</mat-icon><span>Operator Report</span>
+      </a>
+      <a mat-list-item href="#">
+        <mat-icon>dry_cleaning</mat-icon><span>Item Report</span>
+      </a>
+    </mat-nav-list>
+
+    <!-- Settings Submenu -->
     <mat-nav-list *ngIf="shownMenu == 'settings'" [@menuSwap]>
-      <a mat-list-item (click)="prevMenu()"><mat-icon>arrow_back</mat-icon><span>Back</span></a>
-      <a mat-list-item *ngIf="false" href="#"><mat-icon>local_laundry_service</mat-icon><span>Machines</span></a>
-      <a mat-list-item routerLink="/ng/settings/operators" (click)="closeMenu()"><mat-icon>person</mat-icon><span>Operators</span></a>
-      <a mat-list-item *ngIf="false" routerLink="/ng/settings/items" (click)="closeMenu()"><mat-icon>dry_cleaning</mat-icon><span>Items</span></a>
-      <a mat-list-item *ngIf="false" href="#"><mat-icon>punch_clock</mat-icon><span>Shifts</span></a>
-      <a mat-list-item *ngIf="false" href="#"><mat-icon>storefront</mat-icon><span>Accounts</span></a>
-      <a mat-list-item *ngIf="false" href="#"><mat-icon>my_location</mat-icon><span>Locations / Lines</span></a>
-      <a mat-list-item *ngIf="false" href="#"><mat-icon>notifications_active</mat-icon><span>Faults / Statuses</span></a>
+      <a mat-list-item (click)="prevMenu()">
+        <mat-icon>arrow_back</mat-icon><span>Back</span>
+      </a>
+      <a mat-list-item *ngIf="false" href="#">
+        <mat-icon>local_laundry_service</mat-icon><span>Machines</span>
+      </a>
+      <a mat-list-item routerLink="/ng/settings/operators" (click)="closeMenu()">
+        <mat-icon>person</mat-icon><span>Operators</span>
+      </a>
+      <a mat-list-item *ngIf="false" routerLink="/ng/settings/items" (click)="closeMenu()">
+        <mat-icon>dry_cleaning</mat-icon><span>Items</span>
+      </a>
+      <a mat-list-item *ngIf="false" href="#">
+        <mat-icon>punch_clock</mat-icon><span>Shifts</span>
+      </a>
+      <a mat-list-item *ngIf="false" href="#">
+        <mat-icon>storefront</mat-icon><span>Accounts</span>
+      </a>
+      <a mat-list-item *ngIf="false" href="#">
+        <mat-icon>my_location</mat-icon><span>Locations / Lines</span>
+      </a>
+      <a mat-list-item *ngIf="false" href="#">
+        <mat-icon>notifications_active</mat-icon><span>Faults / Statuses</span>
+      </a>
     </mat-nav-list>
   </mat-sidenav>
+
   <mat-sidenav-content>
     <mat-toolbar>
       <button (click)="toggleMenu()" mat-icon-button>
@@ -33,10 +125,10 @@
       </button>
       <span><a href="/">ChiTrac V2</a></span>
       <span class="spacer"></span>
-      <mat-icon style="padding-right:0.25em;">light_mode</mat-icon>
+      <mat-icon style="padding-right: 0.25em">light_mode</mat-icon>
       <mat-slide-toggle (click)="darkModeToggle()" [checked]="isDarkMode">
       </mat-slide-toggle>
-      <mat-icon style="padding-left:0.25em;">dark_mode</mat-icon>
+      <mat-icon style="padding-left: 0.25em">dark_mode</mat-icon>
     </mat-toolbar>
     <div class="sidenav-content">
       <router-outlet />
