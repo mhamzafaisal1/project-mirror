@@ -70,11 +70,12 @@ export class MultipleBarAndLineChartComponent implements OnChanges, OnDestroy, A
     const isDarkTheme = document.body.classList.contains('dark-theme');
     const textColor = isDarkTheme ? 'white' : 'black';
     const seriesColors = {
-      Availability: '#28a745',
-      Efficiency: '#ffc107',
-      Throughput: '#dc3545',
-      OEE: '#9C27B0'
+      Availability: '#66bb6a',
+      Efficiency: '#ffca28',
+      Throughput: '#ef5350',
+      OEE: '#ab47bc'
     };
+    
 
     const svg = d3.select(element)
       .append('svg')
@@ -114,9 +115,12 @@ export class MultipleBarAndLineChartComponent implements OnChanges, OnDestroy, A
         .attr('y', d => y(this.data!.data.series[metric][this.data!.data.hours.indexOf(d)]))
         .attr('width', subBarWidth)
         .attr('height', d => height - y(this.data!.data.series[metric][this.data!.data.hours.indexOf(d)]))
-        .attr('fill', seriesColors[metric as keyof typeof seriesColors]);
+        .attr('rx', 4)
+        .attr('ry', 4)
+        .attr('fill', seriesColors[metric as keyof typeof seriesColors])
+        .style('filter', 'drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1))');
     });
-
+    
     // Add line for OEE
     if (this.data.data.series['OEE']) {
       const line = d3.line<number>()

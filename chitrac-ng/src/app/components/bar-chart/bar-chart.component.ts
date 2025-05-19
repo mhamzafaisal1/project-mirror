@@ -1,4 +1,13 @@
-import { Component, Input, ElementRef, ViewChild, OnChanges, SimpleChanges, OnDestroy, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  Input,
+  ElementRef,
+  ViewChild,
+  OnChanges,
+  SimpleChanges,
+  OnDestroy,
+  AfterViewInit
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
 
@@ -32,11 +41,11 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    this.observer = new MutationObserver(() => {
-      this.renderChart();
+    this.observer = new MutationObserver(() => this.renderChart());
+    this.observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
     });
-
-    this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   }
 
   ngOnDestroy(): void {
@@ -47,21 +56,23 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
 
   renderChart(): void {
     const element = this.chartContainer.nativeElement;
-    element.innerHTML = ''; // Clear existing chart
+    element.innerHTML = '';
 
-    const margin = { top: 40, right: 40, bottom: 80, left: 40 }; // increased bottom
+    const margin = { top: 40, right: 40, bottom: 120, left: 40 };
     const width = this.chartWidth - margin.left - margin.right;
     const height = this.chartHeight - margin.top - margin.bottom;
-    
+
     const isDarkTheme = document.body.classList.contains('dark-theme');
-    const textColor = isDarkTheme ? 'white' : 'black';
+    const textColor = isDarkTheme ? '#e0e0e0' : '#333';
 
     const svg = d3.select(element)
       .append('svg')
-      .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .style('font-family', `'Inter', sans-serif`)
+        .style('font-size', '0.875rem')
       .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
+        .attr('transform', `translate(${margin.left},${margin.top})`);
 
     const xLabels = this.mode === 'time'
       ? this.data.map(d => this.formatHour(d.hour))
@@ -81,24 +92,29 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x))
       .selectAll('text')
-      .attr('transform', 'rotate(-45)')
-      .style('text-anchor', 'end')
-      .style('fill', textColor);
+        .attr('transform', 'rotate(-45)')
+        .style('text-anchor', 'end')
+        .style('fill', textColor);
 
     svg.append('g')
       .call(d3.axisLeft(y))
       .selectAll('text')
-      .style('fill', textColor);
+        .style('fill', textColor);
 
     svg.selectAll('.bar')
       .data(this.data)
       .enter()
       .append('rect')
-      .attr('x', (d, i) => x(this.mode === 'time' ? this.formatHour(d.hour) : (d.label || `#${i + 1}`))!)
-      .attr('y', d => y(d.counts))
-      .attr('width', x.bandwidth())
-      .attr('height', d => height - y(d.counts))
-      .attr('fill', d => this.getBarColor(d.counts));
+        .attr('class', 'bar')
+        .attr('x', (d, i) =>
+          x(this.mode === 'time' ? this.formatHour(d.hour) : (d.label || `#${i + 1}`))!
+        )
+        .attr('y', d => y(d.counts))
+        .attr('width', x.bandwidth())
+        .attr('height', d => height - y(d.counts))
+        .attr('rx', 4)
+        .attr('ry', 4)
+        .attr('fill', d => this.getBarColor(d.counts));
 
     svg.append('text')
       .attr('x', width / 2)
@@ -109,21 +125,20 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
       .text(this.title);
   }
 
-  formatHour(hour: number): string {
+  private formatHour(hour: number): string {
     if (hour === 0) return '12am';
     if (hour === 12) return '12pm';
     if (hour < 12) return `${hour}am`;
     return `${hour - 12}pm`;
   }
 
-  getBarColor(value: number): string {
+  private getBarColor(value: number): string {
+    // unified, cohesive palette + thresholds
     if (this.mode === 'count') {
-      // For count mode, use a single color
-      return '#2196F3'; // Blue color for count bars
+      return '#42a5f5';    // primary blue
     }
-    // Color based on efficiency thresholds (same as dashboard)
-    if (value >= 85) return '#4CAF50'; // green
-    if (value >= 60) return '#FFC107'; // yellow
-    return '#F44336'; // red
+    if (value >= 85) return '#66bb6a';   // green
+    if (value >= 60) return '#ffca28';   // amber
+    return '#ef5350';                    // softened red
   }
 }

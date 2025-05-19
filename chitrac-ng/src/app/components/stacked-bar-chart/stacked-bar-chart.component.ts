@@ -22,6 +22,15 @@ export interface StackedBarChartData {
 
 export type StackedBarChartMode = 'time' | 'machine';
 
+interface StackedBarPoint {
+  key: string;
+  isTop: boolean;
+  0: number;
+  1: number;
+  data: { [key: string]: number };
+  machineName?: string;
+}
+
 @Component({
   selector: 'app-stacked-bar-chart',
   standalone: true,
@@ -42,26 +51,18 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
   private height = 400;
 
   ngAfterViewInit(): void {
-    this.observer = new MutationObserver(() => {
-      this.renderChart();
-    });
+    this.observer = new MutationObserver(() => this.renderChart());
     this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
-    if (this.data) {
-      this.renderChart();
-    }
+    if (this.data) this.renderChart();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['data'] && this.data) {
-      this.renderChart();
-    }
+    if (changes['data'] && this.data) this.renderChart();
   }
 
   ngOnDestroy(): void {
-    if (this.observer) {
-      this.observer.disconnect();
-    }
+    if (this.observer) this.observer.disconnect();
   }
 
   private formatHour(hour: number): string {
@@ -84,9 +85,10 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
       const legendRow = legend.append('g')
         .attr('transform', `translate(${col * 120}, ${row * rowHeight})`);
 
-      legendRow.append('rect')
-        .attr('width', 10)
-        .attr('height', 10)
+      legendRow.append('circle')
+        .attr('r', 5)
+        .attr('cx', 5)
+        .attr('cy', 5)
         .attr('fill', this.getColorScale(keys)(key));
 
       legendRow.append('text')
@@ -101,9 +103,8 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
   }
 
   private getColorScale(keys: string[]) {
-    return d3.scaleOrdinal<string>()
-      .domain(keys)
-      .range(d3.schemeTableau10.concat(d3.schemeSet3, d3.schemePaired));
+    const customPalette = ['#66bb6a', '#42a5f5', '#ffca28', '#ab47bc', '#ef5350', '#29b6f6', '#ffa726', '#7e57c2', '#26c6da', '#ec407a'];
+    return d3.scaleOrdinal<string>().domain(keys).range(customPalette);
   }
 
   renderChart(): void {
@@ -121,15 +122,15 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
       .attr('width', this.width)
       .attr('height', this.height)
       .style('display', 'block')
-      .style('margin', '0 auto');
+      .style('margin', '0 auto')
+      .style('font-family', "'Inter', sans-serif")
+      .style('font-size', '0.875rem');
 
     const isDarkTheme = document.body.classList.contains('dark-theme');
-    const textColor = isDarkTheme ? '#e0e0e0' : '#000000';
+    const textColor = isDarkTheme ? '#e0e0e0' : '#333';
 
     const keys = Object.keys(this.data.data.operators);
     const colorScale = this.getColorScale(keys);
-
-    // Add legend and compute space used
     const legendHeight = this.renderLegend(svg, keys, textColor);
     const chartTop = this.margin.top + legendHeight;
 
@@ -162,12 +163,43 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
         .join('g')
         .attr('fill', d => colorScale(d.key))
         .selectAll('rect')
-        .data((d, i) => d.map((point, j) => ({ ...point, machineName: machineNames[j] })))
-        .join('rect')
-        .attr('x', d => x(d.machineName)!)
-        .attr('y', d => y(d[1]))
-        .attr('height', d => y(d[0]) - y(d[1]))
-        .attr('width', x.bandwidth());
+        .data((d, i) => d.map((point, j) => ({
+          ...point,
+          key: d.key,
+          isTop: i === stackedData.length - 1,
+          machineName: this.mode === 'machine' ? machineNames[j] : undefined
+        } as StackedBarPoint)))
+        .join('path')
+        .attr('d', d => {
+          const xPos = x(this.mode === 'machine' ? d.machineName! : String(d.data['hour']))!;
+          const barWidth = x.bandwidth();
+          const yTop = y(d[1]);
+          const barHeight = y(d[0]) - y(d[1]);
+          const radius = d.isTop ? 4 : 0;
+      
+          if (d.isTop) {
+            return `
+              M${xPos},${yTop + radius}
+              a${radius},${radius} 0 0 1 ${radius},-${radius}
+              h${barWidth - 2 * radius}
+              a${radius},${radius} 0 0 1 ${radius},${radius}
+              v${barHeight - radius}
+              h${-barWidth}
+              Z
+            `;
+          } else {
+            return `
+              M${xPos},${yTop}
+              h${barWidth}
+              v${barHeight}
+              h${-barWidth}
+              Z
+            `;
+          }
+        })
+        .style('fill', d => colorScale(d.key))
+        .style('filter', d => d.isTop ? 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' : null);
+      
 
       svg.append('g')
         .attr('transform', `translate(0,${this.height - this.margin.bottom})`)
@@ -213,12 +245,42 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
         .join('g')
         .attr('fill', d => colorScale(d.key))
         .selectAll('rect')
-        .data(d => d)
-        .join('rect')
-        .attr('x', d => x(String(d.data['hour']))!)
-        .attr('y', d => y(d[1]))
-        .attr('height', d => y(d[0]) - y(d[1]))
-        .attr('width', x.bandwidth());
+        .data((d, i) => d.map(point => ({
+          ...point,
+          key: d.key,
+          isTop: i === stackedData.length - 1
+        } as StackedBarPoint)))
+        .join('path')
+        .attr('d', d => {
+          const xPos = x(this.mode === 'machine' ? d.machineName! : String(d.data['hour']))!;
+          const barWidth = x.bandwidth();
+          const yTop = y(d[1]);
+          const barHeight = y(d[0]) - y(d[1]);
+          const radius = d.isTop ? 4 : 0;
+      
+          if (d.isTop) {
+            return `
+              M${xPos},${yTop + radius}
+              a${radius},${radius} 0 0 1 ${radius},-${radius}
+              h${barWidth - 2 * radius}
+              a${radius},${radius} 0 0 1 ${radius},${radius}
+              v${barHeight - radius}
+              h${-barWidth}
+              Z
+            `;
+          } else {
+            return `
+              M${xPos},${yTop}
+              h${barWidth}
+              v${barHeight}
+              h${-barWidth}
+              Z
+            `;
+          }
+        })
+        .style('fill', d => colorScale(d.key))
+        .style('filter', d => d.isTop ? 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' : null);
+      
 
       svg.append('g')
         .attr('transform', `translate(0,${this.height - this.margin.bottom})`)
@@ -240,7 +302,6 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
         .style('fill', textColor);
     }
 
-    // Chart title
     svg.append('text')
       .attr('x', this.width / 2)
       .attr('y', this.margin.top / 2)
