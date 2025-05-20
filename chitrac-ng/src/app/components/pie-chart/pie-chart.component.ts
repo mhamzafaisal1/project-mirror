@@ -25,6 +25,8 @@ export interface PieChartDataPoint {
 export class PieChartComponent implements OnChanges, AfterViewInit {
   @Input() data: PieChartDataPoint[] = [];
   @Input() title: string = '';
+  @Input() chartWidth!: number;
+  @Input() chartHeight!: number;
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
   ngAfterViewInit(): void {
@@ -32,7 +34,7 @@ export class PieChartComponent implements OnChanges, AfterViewInit {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['data'] && this.chartContainer) {
+    if ((changes['data'] || changes['chartWidth'] || changes['chartHeight']) && this.chartContainer) {
       this.renderChart();
     }
   }
@@ -41,9 +43,9 @@ export class PieChartComponent implements OnChanges, AfterViewInit {
     const element = this.chartContainer.nativeElement;
     element.innerHTML = '';
 
-    const width = 900;
-    const height = 600;
-    const margin = { top: 40, right: 260, bottom: 100, left: 260 };
+    const width = this.chartWidth;
+    const height = this.chartHeight;
+    const margin = { top: 40, right: 40, bottom: 100, left: 40 };
     const radius = Math.min(width - margin.left - margin.right, height - margin.top - margin.bottom) / 2;
     const isDark = document.body.classList.contains('dark-theme');
     const textColor = isDark ? 'white' : 'black';
@@ -51,12 +53,14 @@ export class PieChartComponent implements OnChanges, AfterViewInit {
     const svg = d3.select(element)
       .append('svg')
       .attr('viewBox', `0 0 ${width} ${height}`)
-      .attr('preserveAspectRatio', 'xMidYMid meet')
+      .attr('width', width)
+      .attr('height', height)
+      .style('display', 'block')
+      .style('margin', '0 auto')
+      .style('font-family', "'Inter', sans-serif")
+      .style('font-size', '0.875rem')
       .append('g')
-      .attr('transform', `translate(${width / 2}, ${height / 2.5}) scale(0.8)`);
-
-
-
+      .attr('transform', `translate(${width / 2}, ${height / 2})`);
 
     const color = d3.scaleOrdinal()
       .domain(this.data.map(d => d.name))
@@ -117,5 +121,15 @@ export class PieChartComponent implements OnChanges, AfterViewInit {
         .style('text-anchor', align)
         .text(`${d.data.name} (${d.data.value}%)`);
     });
+
+    // Title
+    // d3.select(element).select('svg')
+    //   .append('text')
+    //   .attr('x', width / 2)
+    //   .attr('y', margin.top / 2)
+    //   .attr('text-anchor', 'middle')
+    //   .style('fill', textColor)
+    //   .style('font-size', '16px')
+    //   .text(this.title);
   }
 }

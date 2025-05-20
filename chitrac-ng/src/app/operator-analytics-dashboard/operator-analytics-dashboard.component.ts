@@ -180,7 +180,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
           endTime: this.endTime,
           operatorId: operatorId,
           isModal: true,
-          chartHeight: this.chartHeight,
+          chartHeight: (this.chartHeight - 200),
           chartWidth: this.chartWidth
         }
       },

@@ -28,8 +28,8 @@ import { DateTimePickerComponent } from '../components/date-time-picker/date-tim
   styleUrls: ['./operator-performance-chart.component.scss']
 })
 export class OperatorPerformanceChartComponent implements OnInit, OnDestroy {
-  @Input() chartWidth: number = 1000;
-  @Input() chartHeight: number = 700;
+  @Input() chartWidth: number;
+  @Input() chartHeight: number;
   @Input() isModal: boolean = false;
 
   startTime = '';

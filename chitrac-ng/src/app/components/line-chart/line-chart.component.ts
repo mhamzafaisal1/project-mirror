@@ -27,6 +27,10 @@ export class LineChartComponent implements OnChanges, AfterViewInit, OnDestroy {
   @ViewChild('chartContainer') private chartContainer!: ElementRef;
   @Input() data: LineChartDataPoint[] = [];
   @Input() title: string = '';
+  @Input() chartWidth!: number;
+  @Input() chartHeight!: number;
+
+  private margin = { top: 40, right: 40, bottom: 100, left: 40 };
 
   ngAfterViewInit(): void {
     if (this.data.length > 0) {
@@ -35,64 +39,76 @@ export class LineChartComponent implements OnChanges, AfterViewInit, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['data'] && this.chartContainer && this.data.length > 0) {
+    if ((changes['data'] || changes['chartWidth'] || changes['chartHeight']) &&
+      this.chartContainer &&
+      this.data.length > 0) {
       this.renderChart();
     }
   }
 
   ngOnDestroy(): void {
-    // Optional cleanup
+    // optional cleanup
   }
 
   renderChart(): void {
     const element = this.chartContainer.nativeElement;
     element.innerHTML = '';
 
-    const margin = { top: 40, right: 50, bottom: 60, left: 60 };
-    const width = 900;
-    const height = 400;
+    const width = this.chartWidth;
+    const height = this.chartHeight;
 
     const isDark = document.body.classList.contains('dark-theme');
-    const textColor = isDark ? 'white' : 'black';
+    const textColor = isDark ? '#e0e0e0' : '#333';
 
     const svg = d3.select(element)
       .append('svg')
-      .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
-      .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('width', width)
+      .attr('height', height)
+      .style('display', 'block')
+      .style('margin', '0 auto')
+      .style('font-family', "'Inter', sans-serif")
+      .style('font-size', '0.875rem');
+
+    const chartTop = this.margin.top;
+    const chartBottom = height - this.margin.bottom;
+    const chartLeft = this.margin.left;
+    const chartRight = width - this.margin.right;
 
     const x = d3.scalePoint()
       .domain(this.data.map(d => d.label))
-      .range([0, width])
-      .padding(0.5); // ✅ Center spacing
+      .range([chartLeft, chartRight])
+      .padding(0.5);
+
+    const rawYMax = d3.max(this.data, d => d.value) ?? 100;
+    const yMax = Math.ceil(rawYMax * 1.05);
 
     const y = d3.scaleLinear()
-      .domain([0, Math.max(100, d3.max(this.data, d => d.value) || 0)]) // ✅ Cap at at least 100
-      .range([height, 0]);
+      .domain([0, yMax])
+      .range([chartBottom, chartTop])
+      .nice();
 
     const line = d3.line<LineChartDataPoint>()
       .x(d => x(d.label)!)
       .y(d => y(d.value));
 
-    const xAxis = d3.axisBottom(x)
-      .tickFormat((d, i) => (i % 4 === 0 ? d : ''));
-
     svg.append('g')
-      .attr('transform', `translate(0,${height})`)
-      .call(xAxis)
+      .attr('transform', `translate(0,${chartBottom})`)
+      .call(d3.axisBottom(x).tickSizeOuter(0))
       .selectAll('text')
-      .style('fill', textColor)
-      .style('font-size', '12px')
       .attr('transform', 'rotate(-45)')
-      .attr('text-anchor', 'end')
-      .attr('dx', '-.8em')
-      .attr('dy', '.15em');
+      .style('text-anchor', 'end')
+      .style('fill', textColor);
 
     svg.append('g')
+      .attr('transform', `translate(${chartLeft},0)`)
       .call(d3.axisLeft(y))
       .selectAll('text')
       .style('fill', textColor);
+
+    svg.selectAll('.tick line')
+      .style('stroke', textColor)
+      .style('stroke-opacity', 0.2);
 
     svg.append('path')
       .datum(this.data)
@@ -112,10 +128,32 @@ export class LineChartComponent implements OnChanges, AfterViewInit, OnDestroy {
 
     svg.append('text')
       .attr('x', width / 2)
-      .attr('y', -20)
+      .attr('y', this.margin.top / 2)
       .attr('text-anchor', 'middle')
       .style('fill', textColor)
       .style('font-size', '16px')
       .text(this.title);
+
+    // Legend (same styling as stacked bar chart — left aligned, single item)
+    // const legend = svg.append("g")
+    //   .attr("font-size", 10)
+    //   .attr("text-anchor", "start")
+    //   .attr("transform", `translate(${this.margin.left}, ${this.margin.top})`);
+
+
+    // legend.append("g")
+    //   .attr("transform", `translate(0, 0)`)
+    //   .each(function () {
+    //     const g = d3.select(this);
+    //     g.append("rect")
+    //       .attr("width", 14)
+    //       .attr("height", 14)
+    //       .attr("fill", '#4c2c92');
+    //     g.append("text")
+    //       .attr("x", 20)
+    //       .attr("y", 11)
+    //       .style("fill", textColor)
+    //       .text("Data");
+    //   });
   }
 }

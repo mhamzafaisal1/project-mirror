@@ -26,7 +26,10 @@ import { OperatorAnalyticsService } from '../services/operator-analytics.service
 export class OperatorCyclePieChartComponent implements OnInit, OnDestroy {
   @Input() startTime: string = '';
   @Input() endTime: string = '';
-  @Input() operatorId?: number;
+  @Input() operatorId: number;
+  @Input() isModal: boolean = false;
+  @Input() chartWidth: number;
+  @Input() chartHeight: number;
 
   pieData: PieChartDataPoint[] = [];
   title = 'Operator Machine Time Breakdown';

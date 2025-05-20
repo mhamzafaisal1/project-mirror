@@ -1,4 +1,5 @@
-<div class="dashboard-container" [class.dark-mode]="isDarkTheme">
+<div class="scroll-wrapper">
+  <div class="container" [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }">
     <div class="controls">
       <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
       <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
@@ -19,4 +20,5 @@
       [class.light]="!isDarkTheme"
     ></base-table>
   </div>
+</div>
   

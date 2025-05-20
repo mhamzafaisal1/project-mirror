@@ -39,6 +39,7 @@ export class OperatorFaultHistoryComponent implements OnInit, OnDestroy, OnChang
   @Input() startTime: string = '';
   @Input() endTime: string = '';
   @Input() operatorId: string = '';
+  @Input() isModal: boolean = false;
 
   columns: string[] = [];
   rows: any[] = [];
