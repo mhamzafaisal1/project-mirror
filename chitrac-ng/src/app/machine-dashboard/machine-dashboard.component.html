@@ -10,7 +10,7 @@
       [(value)]="endTime">
     </app-date-time-picker>
 
-    <button mat-raised-button color="primary" (click)="fetchAnalyticsData()" [disabled]="isLoading">
+    <button mat-flat-button color="primary" (click)="fetchAnalyticsData()" [disabled]="isLoading">
       <mat-icon>refresh</mat-icon>
       {{ isLoading ? 'Loading...' : 'Fetch Data' }}
     </button>

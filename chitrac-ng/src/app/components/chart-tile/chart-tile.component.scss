@@ -1,0 +1,66 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.chart-tile-container {
+  // animation: glassFadeIn 0.4s ease-in-out both;
+  // backdrop-filter: blur(12px);
+  // -webkit-backdrop-filter: blur(12px);
+  // background-color: rgba(255, 255, 255, 0.08);
+  // border-radius: 12px;
+  // height: 100%;
+  // width: 100%;
+  // padding: 0.25rem;
+  // display: flex;
+  // flex-direction: column;
+  // box-sizing: border-box;
+
+  // &:hover {
+  //   transform: translateY(-2px);
+  //   box-shadow: 0 6px 32px rgba(0, 0, 0, 0.3);
+  // }
+
+  body.light-theme & {
+    background-color: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.chart-content {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.chart-tile-header {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.chart-icon {
+  margin-right: 0.5rem;
+  font-size: 20px;
+}
+
+:host-context(.dark-theme) {
+  background: #1e1e1e;
+}

@@ -1,13 +1,13 @@
 <div class="chart-container" [class.dark-mode]="isDarkTheme">
-  <div class="controls">
+  <div class="controls" *ngIf="!isModal">
     <app-date-time-picker [(value)]="startTime" label="Start Time"></app-date-time-picker>
     <app-date-time-picker [(value)]="endTime" label="End Time"></app-date-time-picker>
     <mat-form-field>
       <mat-label>Operator ID</mat-label>
-      <input matInput type="number" [(ngModel)]="operatorId" placeholder="Enter operator ID">
+      <input matInput type="number" [(ngModel)]="operatorId" placeholder="Enter operator ID" style="margin-top: 8px;">
     </mat-form-field>
     <div class="button-group">
-      <button  mat-flat-button color="primary" (click)="fetchData()" [disabled]="!startTime || !endTime">
+      <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="!startTime || !endTime">
         Fetch Data
       </button>
     </div>
@@ -20,7 +20,12 @@
     <div *ngIf="!loading && !error && pieData.length > 0" class="data-display">
       <div class="chart-wrapper">
         <h3 class="chart-title">{{ title }}</h3>
-        <pie-chart [data]="pieData" [title]="title"></pie-chart>
+        <pie-chart 
+          [data]="pieData" 
+          [title]="title"
+          [chartWidth]="chartWidth"
+          [chartHeight]="chartHeight">
+        </pie-chart>
       </div>
     </div>
   </div>

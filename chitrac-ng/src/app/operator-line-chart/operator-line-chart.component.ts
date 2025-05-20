@@ -6,7 +6,8 @@ import {
   Renderer2,
   Input,
   SimpleChanges,
-  OnChanges
+  OnChanges,
+  ViewChild
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -44,6 +45,11 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
   @Input() startTime: string = '';
   @Input() endTime: string = '';
   @Input() operatorId: string = '';
+  @Input() isModal: boolean = false;
+  @Input() chartWidth: number;
+  @Input() chartHeight: number;
+
+  @ViewChild('chartContainer') private chartContainer!: ElementRef;
 
   pickerStartTime: string = '';
   pickerEndTime: string = '';
@@ -55,6 +61,7 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
   isDarkTheme = false;
 
   private observer!: MutationObserver;
+  private resizeObserver!: ResizeObserver;
 
   constructor(
     private oeeService: OeeDataService,
@@ -65,6 +72,7 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
   ngOnInit(): void {
     this.detectTheme();
     this.observeTheme();
+    this.observeResize();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -86,6 +94,7 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
 
   ngOnDestroy(): void {
     this.observer?.disconnect();
+    this.resizeObserver?.disconnect();
   }
 
   private observeTheme(): void {
@@ -98,6 +107,20 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
     const el = this.elRef.nativeElement;
     this.renderer.setStyle(el, 'background-color', this.isDarkTheme ? '#121212' : '#ffffff');
     this.renderer.setStyle(el, 'color', this.isDarkTheme ? '#e0e0e0' : '#000000');
+  }
+
+  private observeResize(): void {
+    this.resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const container = entry.target as HTMLElement;
+        this.chartWidth = container.clientWidth - 120; // Account for margins
+        this.chartHeight = Math.min(400, container.clientHeight - 120); // Max height of 400px
+      }
+    });
+
+    if (this.chartContainer?.nativeElement) {
+      this.resizeObserver.observe(this.chartContainer.nativeElement);
+    }
   }
 
   fetchData(): void {

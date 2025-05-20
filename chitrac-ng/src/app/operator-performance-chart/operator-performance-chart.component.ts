@@ -1,10 +1,11 @@
-import { Component, OnInit, OnDestroy, ElementRef, Renderer2, Inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, Renderer2, Inject, Input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 
 import { OeeDataService } from '../services/oee-data.service';
 import { MultipleLineChartComponent } from '../components/multiple-line-chart/multiple-line-chart.component';
@@ -19,6 +20,7 @@ import { DateTimePickerComponent } from '../components/date-time-picker/date-tim
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
+    MatIconModule,
     MultipleLineChartComponent,
     DateTimePickerComponent
   ],
@@ -26,6 +28,10 @@ import { DateTimePickerComponent } from '../components/date-time-picker/date-tim
   styleUrls: ['./operator-performance-chart.component.scss']
 })
 export class OperatorPerformanceChartComponent implements OnInit, OnDestroy {
+  @Input() chartWidth: number;
+  @Input() chartHeight: number;
+  @Input() isModal: boolean = false;
+
   startTime = '';
   endTime = '';
   machineSerial = '';
@@ -45,6 +51,9 @@ export class OperatorPerformanceChartComponent implements OnInit, OnDestroy {
     this.startTime = data?.startTime ?? '';
     this.endTime = data?.endTime ?? '';
     this.machineSerial = data?.machineSerial ?? '';
+    this.chartWidth = data?.chartWidth ?? this.chartWidth;
+    this.chartHeight = data?.chartHeight ?? this.chartHeight;
+    this.isModal = data?.isModal ?? this.isModal;
   }
 
   ngOnInit(): void {
@@ -79,8 +88,12 @@ export class OperatorPerformanceChartComponent implements OnInit, OnDestroy {
     this.renderer.setStyle(el, 'color', this.isDarkTheme ? '#e0e0e0' : '#000000');
   }
 
+  isValidInput(): boolean {
+    return !!this.startTime && !!this.endTime && !!this.machineSerial;
+  }
+
   fetchData(): void {
-    if (!this.startTime || !this.endTime || !this.machineSerial) {
+    if (!this.isValidInput()) {
       this.error = 'All fields are required';
       return;
     }

@@ -1,45 +1,43 @@
 :host {
-  display: flex;
+  display: inline-flex;
   flex-direction: column;
-  flex: 1 1 220px;
-  max-width: 320px;
-  min-width: 200px;
-  margin: 0 8px;
-  box-sizing: border-box;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  margin: 8px;
 }
 
 .date-time-picker {
   display: flex;
   flex-direction: column;
+  padding: 8px 12px;
+  background-color: inherit;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+  max-width: 240px;
   width: 100%;
 }
 
-label {
-  font-size: 0.9rem;
+.date-time-label {
+  font-size: 0.85rem;
   font-weight: 600;
   margin-bottom: 6px;
   color: inherit;
 }
 
 input[type='datetime-local'] {
-  width: 100%;
-  height: 42px;
-  padding: 0 12px;
+  height: 36px;
+  padding: 0 10px;
   font-size: 0.85rem;
   font-family: inherit;
-  border: 1px solid;
-  border-color: currentColor;
   border-radius: 6px;
+  border: 1px solid currentColor;
   background-color: inherit;
   color: inherit;
   transition: border-color 0.2s ease;
   box-sizing: border-box;
 
-  &::-webkit-calendar-picker-indicator {
-    opacity: 0.001;
-    cursor: pointer;
-  }
+  // Always show custom icon
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 20px 20px;
 
   &:focus {
     outline: none;
@@ -47,29 +45,29 @@ input[type='datetime-local'] {
     box-shadow: 0 0 0 1px #3f51b5;
   }
 
-  &::placeholder {
-    color: #999;
+  &::-webkit-calendar-picker-indicator {
+    background: transparent;
+    color: transparent;
+    opacity: 1;
+    cursor: pointer;
   }
+  
 }
 
-/* Dark Theme */
+/* Dark Mode */
 :host-context(.dark-theme) input[type='datetime-local'] {
   background-color: #1e1e1e;
   color: #e0e0e0;
   border-color: #666;
+
   background-image: url("data:image/svg+xml;utf8,<svg fill='white' xmlns='http://www.w3.org/2000/svg' height='20' viewBox='0 0 24 24' width='20'><path d='M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 18px 18px;
 }
 
-/* Light Theme */
+/* Light Mode */
 :host-context(.light-theme) input[type='datetime-local'] {
   background-color: #fff;
   color: #000;
   border-color: #ccc;
+
   background-image: url("data:image/svg+xml;utf8,<svg fill='black' xmlns='http://www.w3.org/2000/svg' height='20' viewBox='0 0 24 24' width='20'><path d='M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 18px 18px;
 }

@@ -1,5 +1,5 @@
 <div class="table-wrapper">
-    <div class="controls">
+    <div class="controls" *ngIf="!isModal">
       <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
       <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
       
@@ -9,20 +9,21 @@
       </mat-form-field>
   
       <div class="button-group">
-        <button mat-flat-button color="primary" (click)="fetchItemSummary()" [disabled]="!startTime || !endTime">
-          Fetch Data
+        <button mat-flat-button color="primary" (click)="fetchItemSummary()" [disabled]="loading || !startTime || !endTime">
+          <mat-icon>refresh</mat-icon>
+          {{ loading ? 'Loading...' : 'Fetch Data' }}
         </button>
       </div>
     </div>
   
-    <div *ngIf="loading" class="loading">Loading item summary...</div>
-  
-    <base-table
-      *ngIf="!loading && itemRows.length"
-      [columns]="itemColumns"
-      [rows]="itemRows"
-      [class.dark]="isDarkTheme"
-      [class.light]="!isDarkTheme"
-    ></base-table>
+    <div class="table-container" [class.loading]="loading">
+      <base-table
+        *ngIf="!loading && itemRows.length"
+        [columns]="itemColumns"
+        [rows]="itemRows"
+        [class.dark]="isDarkTheme"
+        [class.light]="!isDarkTheme"
+      ></base-table>
+    </div>
   </div>
   

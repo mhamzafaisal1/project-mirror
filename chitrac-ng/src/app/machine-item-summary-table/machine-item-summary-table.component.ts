@@ -18,6 +18,7 @@ export class MachineItemSummaryTableComponent implements OnInit {
   @Input() endTime: string = '';
   @Input() selectedMachineSerial: number | null = null;
   @Input() itemSummaryData: any = null;
+  @Input() isModal: boolean = false;
 
   itemColumns: string[] = ['Item Name', 'Total Count', 'Worked Time', 'PPH', 'Standard', 'Efficiency'];
   itemRows: any[] = [];

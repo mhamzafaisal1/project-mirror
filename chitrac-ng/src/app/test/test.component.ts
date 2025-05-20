@@ -14,7 +14,11 @@ import { OperatorCyclePieChartComponent } from "../operator-cycle-pie-chart/oper
 import { OperatorFaultHistoryComponent } from "../operator-fault-history/operator-fault-history.component";
 import { OperatorLineChartComponent } from "../operator-line-chart/operator-line-chart.component";
 import { MachineDashboardComponent } from "../machine-dashboard/machine-dashboard.component";
-
+import { DailyMachineStackedBarChartComponent } from "../daily-machine-stacked-bar-chart/daily-machine-stacked-bar-chart.component";
+import { DailyMachineOeeBarChartComponent } from "../daily-machine-oee-bar-chart/daily-machine-oee-bar-chart.component";
+import { DailyMachineItemStackedBarChartComponent } from "../daily-machine-item-stacked-bar-chart/daily-machine-item-stacked-bar-chart.component";
+import { RankedOperatorBarChartComponent } from "../ranked-operator-bar-chart/ranked-operator-bar-chart.component";
+import { PlantwideMetricsChartComponent } from "../plantwide-metrics-chart/plantwide-metrics-chart.component";
 @Component({
   selector: "app-test",
   standalone: true,
@@ -33,8 +37,13 @@ import { MachineDashboardComponent } from "../machine-dashboard/machine-dashboar
     OperatorCyclePieChartComponent,
     OperatorFaultHistoryComponent,
     OperatorLineChartComponent,
-    MachineDashboardComponent
-  ],
+    MachineDashboardComponent,
+    DailyMachineStackedBarChartComponent,
+    DailyMachineOeeBarChartComponent,
+    DailyMachineItemStackedBarChartComponent,
+    RankedOperatorBarChartComponent,
+    PlantwideMetricsChartComponent
+    ],
   templateUrl: "./test.component.html",
   styleUrls: ["./test.component.scss"],
 })
@@ -51,25 +60,45 @@ export class TestComponent {
       label: "Machine Item Stacked Bar Chart",
       component: MachineItemStackedBarChartComponent,
     },
+    // {
+    //   label: "Operator Item Summary",
+    //   component: OperatorItemSummaryTableComponent,
+    // },
+    // {
+    //   label: "Operator Cycle Pie Chart",
+    //   component: OperatorCyclePieChartComponent,
+    // },
+    // {
+    //   label: "Operator Fault History",
+    //   component: OperatorFaultHistoryComponent,
+    // },
+    // {
+    //   label: "Operator Performance Chart",
+    //   component: OperatorLineChartComponent
+    // },
+    // {
+    //   label: "Machine Dashboard",
+    //   component: MachineDashboardComponent
+    // },
     {
-      label: "Operator Item Summary",
-      component: OperatorItemSummaryTableComponent,
+      label: "Daily Machine Stacked Bar Chart",
+      component: DailyMachineStackedBarChartComponent
     },
     {
-      label: "Operator Cycle Pie Chart",
-      component: OperatorCyclePieChartComponent,
+      label: "Daily Machine OEE Bar Chart",
+      component: DailyMachineOeeBarChartComponent
     },
     {
-      label: "Operator Fault History",
-      component: OperatorFaultHistoryComponent,
+      label: "Daily Machine Item Stacked Bar Chart",
+      component: DailyMachineItemStackedBarChartComponent
     },
     {
-      label: "Operator Performance Chart",
-      component: OperatorLineChartComponent
+      label: "Ranked Operator Bar Chart",
+      component: RankedOperatorBarChartComponent
     },
     {
-      label: "Machine Dashboard",
-      component: MachineDashboardComponent
+      label: "Plantwide Metrics Chart",
+      component: PlantwideMetricsChartComponent
     }
   ];
 }

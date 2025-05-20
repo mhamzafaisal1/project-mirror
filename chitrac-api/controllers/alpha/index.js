@@ -62,6 +62,11 @@ const {
   calculatePiecesPerHour,
   calculateOperatorTimes,
 } = require("../../utils/analytics");
+const {
+  buildMachineOEE,
+  buildDailyItemHourlyStack,
+  buildTopOperatorEfficiency
+} = require("../../utils/dailyDashboardBuilder");
 
 module.exports = function (server) {
   return constructor(server);
@@ -75,6 +80,14 @@ function constructor(server) {
   // Import machine-related routes
   const machineRoutes = require("./machineRoutes")(server);
   router.use("/analytics", machineRoutes);
+
+  // Import operator-related routes
+  const operatorRoutes = require("./operatorRoutes")(server);
+  router.use("/", operatorRoutes);
+
+  // Import daily dashboard-related routes
+  const dailyDashboardRoutes = require("./dailyDashboardRoutes")(server);
+  router.use("/", dailyDashboardRoutes);
 
 
   router.get("/timestamp", (req, res, next) => {
@@ -3180,6 +3193,7 @@ function constructor(server) {
   });
 
   //API route for item Dashboard end
+
 
   return router;
 }

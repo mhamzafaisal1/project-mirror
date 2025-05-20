@@ -47,6 +47,11 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
   isLoading: boolean = false;
   private observer!: MutationObserver;
 
+  // Add chart dimensions
+  chartWidth: number = 1000;
+  chartHeight: number = 700;
+  isModal: boolean = true;  // New property for modal context
+
   constructor(
     private analyticsService: MachineAnalyticsService,
     private renderer: Renderer2,
@@ -153,7 +158,8 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
           startTime: this.startTime,
           endTime: this.endTime,
           selectedMachineSerial: row['Serial Number'],
-          itemSummaryData: itemSummaryData
+          itemSummaryData: itemSummaryData,
+          isModal: this.isModal
         }
       },
       { 
@@ -162,7 +168,10 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           startTime: this.startTime,
           endTime: this.endTime,
-          machineSerial: row['Serial Number']
+          machineSerial: row['Serial Number'],
+          chartWidth: this.chartWidth,
+          chartHeight: this.chartHeight,
+          isModal: this.isModal
         }
       },
       { 
@@ -172,7 +181,8 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
           viewType: 'summary',
           startTime: this.startTime,
           endTime: this.endTime,
-          machineSerial: row['Serial Number']
+          machineSerial: row['Serial Number'],
+          isModal: this.isModal
         }
       },
       { 
@@ -182,7 +192,8 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
           viewType: 'cycles',
           startTime: this.startTime,
           endTime: this.endTime,
-          machineSerial: row['Serial Number']
+          machineSerial: row['Serial Number'],
+          isModal: this.isModal
         }
       },
       { 
@@ -191,7 +202,10 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           startTime: this.startTime,
           endTime: this.endTime,
-          machineSerial: row['Serial Number']
+          machineSerial: row['Serial Number'],
+          chartWidth: (this.chartWidth),
+          chartHeight: (this.chartHeight),
+          isModal: this.isModal
         }
       }
     ];

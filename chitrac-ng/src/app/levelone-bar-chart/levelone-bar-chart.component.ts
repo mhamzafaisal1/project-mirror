@@ -17,6 +17,8 @@ export class LeveloneBarChartComponent {
   singleChartTitle: string = '';
   multipleChartData: BarChartData | null = null;
   stackedChartData: StackedBarChartData | null = null;
+  chartWidth: number = 600;
+  chartHeight: number = 400;
 
   constructor(private http: HttpClient) {
     // Load data for single bar chart

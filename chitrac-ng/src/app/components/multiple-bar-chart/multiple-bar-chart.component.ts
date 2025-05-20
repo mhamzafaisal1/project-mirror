@@ -28,6 +28,9 @@ export interface BarChartData {
 export class MultipleBarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
   @Input() data: BarChartData | null = null;
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
+  @Input() chartWidth: number = 900;
+  @Input() chartHeight: number = 400;
+  @Input() title: string = '';
 
   private observer!: MutationObserver;
 
@@ -58,8 +61,8 @@ export class MultipleBarChartComponent implements OnChanges, OnDestroy, AfterVie
     element.innerHTML = ''; // Clear existing chart
 
     const margin = { top: 40, right: 120, bottom: 50, left: 80 };
-    const width = 900 - margin.left - margin.right;
-    const height = 400 - margin.top - margin.bottom;
+    const width = this.chartWidth - margin.left - margin.right;
+    const height = this.chartHeight - margin.top - margin.bottom;
 
     const isDarkTheme = document.body.classList.contains('dark-theme');
     const textColor = isDarkTheme ? 'white' : 'black';

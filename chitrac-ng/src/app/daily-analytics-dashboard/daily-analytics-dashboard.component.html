@@ -1,0 +1,36 @@
+<div class="dashboard-container" [class.dark-mode]="isDarkTheme">
+  <div class="dashboard-wrapper" *ngIf="fullDashboardData">
+    <app-chart-tile
+      *ngFor="let chart of chartComponents"
+      [title]="chart.title"
+      [icon]="chart.icon"
+      [chartWidth]="chartWidth"
+      [chartHeight]="chartHeight"
+    >
+      <ng-container *ngIf="fullDashboardData[chart.dataKey]">
+        <ng-container
+          [ngComponentOutlet]="chart.component"
+          [ndcDynamicInputs]="{ data: fullDashboardData[chart.dataKey], chartWidth: chartWidth, chartHeight: chartHeight }"
+        ></ng-container>
+      </ng-container>
+    </app-chart-tile>
+  </div>
+  <div class="controls">
+    <app-date-time-picker
+      label="Start Time"
+      [(value)]="startTime"
+    ></app-date-time-picker>
+    <app-date-time-picker
+      label="End Time"
+      [(value)]="endTime"
+    ></app-date-time-picker>
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="fetchDashboardData()"
+      [disabled]="!startTime || !endTime"
+    >
+      Fetch Data
+    </button>
+  </div>
+</div>

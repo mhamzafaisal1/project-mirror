@@ -6,6 +6,7 @@ import { MatButtonModule } from "@angular/material/button";
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
+import { MatIconModule } from '@angular/material/icon';
 
 import { BaseTableComponent } from '../components/base-table/base-table.component';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
@@ -34,7 +35,8 @@ import { OperatorLineChartComponent } from '../operator-line-chart/operator-line
     MatSortModule,
     MatButtonModule,
     OperatorPerformanceChartComponent,
-    OperatorLineChartComponent
+    OperatorLineChartComponent,
+    MatIconModule
   ],
   templateUrl: './operator-analytics-dashboard.component.html',
   styleUrl: './operator-analytics-dashboard.component.scss'
@@ -48,6 +50,11 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   columns: string[] = [];
   rows: any[] = [];
   selectedRow: any = null;
+  isLoading = false;
+
+  // Chart dimensions
+  chartHeight = 700;
+  chartWidth = 1000;
 
   constructor(
     private analyticsService: OperatorAnalyticsService,
@@ -85,31 +92,38 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     this.renderer.setStyle(element, 'color', isDark ? '#e0e0e0' : '#000000');
   }
 
-  fetchAnalyticsData(): void {
+  async fetchAnalyticsData(): Promise<void> {
     if (!this.startTime || !this.endTime) return;
 
-    this.analyticsService.getOperatorPerformance(this.startTime, this.endTime, this.operatorId)
-      .subscribe((data: any) => {  
-        const responses = Array.isArray(data) ? data : [data];
-        
-        this.rows = responses.map(response => ({
-          'Status': getStatusDotByCode(response.currentStatus?.code),
-          'Operator Name': response.operator.name,
-          'Operator ID': response.operator.id,
-          'Runtime': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
-          'Paused Time': `${response.metrics.pausedTime.formatted.hours}h ${response.metrics.pausedTime.formatted.minutes}m`,
-          'Fault Time': `${response.metrics.faultTime.formatted.hours}h ${response.metrics.faultTime.formatted.minutes}m`,
-          'Total Count': response.metrics.output.totalCount,
-          'Misfeed Count': response.metrics.output.misfeedCount,
-          'Valid Count': response.metrics.output.validCount,
-          'Pieces Per Hour': response.metrics.performance.piecesPerHour.formatted,
-          'Efficiency': response.metrics.performance.efficiency.percentage,
-          'Time Range': `${response.timeRange.start} to ${response.timeRange.end}`
-        }));
+    try {
+      this.isLoading = true;
+      this.analyticsService.getOperatorPerformance(this.startTime, this.endTime, this.operatorId)
+        .subscribe((data: any) => {  
+          const responses = Array.isArray(data) ? data : [data];
+          
+          this.rows = responses.map(response => ({
+            'Status': getStatusDotByCode(response.currentStatus?.code),
+            'Operator Name': response.operator.name,
+            'Operator ID': response.operator.id,
+            'Runtime': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
+            'Paused Time': `${response.metrics.pausedTime.formatted.hours}h ${response.metrics.pausedTime.formatted.minutes}m`,
+            'Fault Time': `${response.metrics.faultTime.formatted.hours}h ${response.metrics.faultTime.formatted.minutes}m`,
+            'Total Count': response.metrics.output.totalCount,
+            'Misfeed Count': response.metrics.output.misfeedCount,
+            'Valid Count': response.metrics.output.validCount,
+            'Pieces Per Hour': response.metrics.performance.piecesPerHour.formatted,
+            'Efficiency': response.metrics.performance.efficiency.percentage,
+            'Time Range': `${response.timeRange.start} to ${response.timeRange.end}`
+          }));
 
-        const allColumns = Object.keys(this.rows[0]);
-        this.columns = allColumns.filter(col => col !== 'Time Range');
-      });
+          const allColumns = Object.keys(this.rows[0]);
+          this.columns = allColumns.filter(col => col !== 'Time Range');
+        });
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   onRowSelected(row: any): void {
@@ -142,7 +156,8 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           startTime: this.startTime,
           endTime: this.endTime,
-          operatorId: operatorId
+          operatorId: operatorId,
+          isModal: true
         }
       },
       {
@@ -151,7 +166,10 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           startTime: this.startTime,
           endTime: this.endTime,
-          operatorId: operatorId
+          operatorId: operatorId,
+          isModal: true,
+          chartHeight: this.chartHeight,
+          chartWidth: this.chartWidth
         }
       },
       {
@@ -160,7 +178,10 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           startTime: this.startTime,
           endTime: this.endTime,
-          operatorId: operatorId
+          operatorId: operatorId,
+          isModal: true,
+          chartHeight: (this.chartHeight - 200),
+          chartWidth: this.chartWidth
         }
       },
       {
@@ -169,7 +190,8 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           startTime: this.startTime,
           endTime: this.endTime,
-          operatorId: operatorId.toString()
+          operatorId: operatorId.toString(),
+          isModal: true
         }
       },
       {
@@ -178,7 +200,10 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           startTime: startTimeStr,
           endTime: endTimeStr,
-          operatorId: operatorId.toString()
+          operatorId: operatorId.toString(),
+          isModal: true,
+          chartHeight: this.chartHeight,
+          chartWidth: this.chartWidth
         }
       }
     ];
@@ -203,5 +228,4 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
       }
     });
   }
-  
 }

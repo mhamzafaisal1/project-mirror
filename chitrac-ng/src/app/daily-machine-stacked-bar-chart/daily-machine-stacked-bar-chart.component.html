@@ -1,0 +1,11 @@
+<div class="chart-container" [class.dark-mode]="isDarkTheme">
+  <div class="chart-content">
+    <app-stacked-bar-chart
+      *ngIf="chartData"
+      [data]="chartData"
+      mode="machine"
+      [chartWidth]="chartWidth"
+      [chartHeight]="chartHeight">
+    </app-stacked-bar-chart>
+  </div>
+</div>

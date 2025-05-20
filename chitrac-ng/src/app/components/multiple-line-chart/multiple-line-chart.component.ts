@@ -3,7 +3,7 @@ import {
   Input,
   ElementRef,
   ViewChild,
-  AfterViewInit,
+  AfterViewInit
 } from "@angular/core";
 import * as d3 from "d3";
 
@@ -51,165 +51,145 @@ export class MultipleLineChartComponent implements AfterViewInit {
   @ViewChild("chartContainer") private chartContainer!: ElementRef;
   @Input() data!: ChartData;
   @Input() isDarkTheme: boolean = false;
+  @Input() chartWidth!: number;
+  @Input() chartHeight!: number;
 
-  private margin = { top: 40, right: 150, bottom: 50, left: 60 };
-  private width = 900;
-  private height = 400;
+  private margin = { top: 40, right: 150, bottom: 60, left: 50 };
 
   ngAfterViewInit() {
-    if (this.data) {
+    if (this.data && this.chartWidth && this.chartHeight) {
       this.createChart();
     }
   }
 
+  private transformData(data: ChartData): TransformedData[] {
+    return data.hourlyData.map(hour => ({
+      date: new Date(hour.hour),
+      oee: hour.oee,
+      operators: hour.operators
+    }));
+  }
+
+  private getColorScale(keys: string[]) {
+    const palette = ['#66bb6a', '#42a5f5', '#ffca28', '#ab47bc', '#ef5350', '#29b6f6', '#ffa726', '#7e57c2', '#26c6da', '#ec407a'];
+    return d3.scaleOrdinal<string>().domain(keys).range(palette);
+  }
+
   private createChart() {
     d3.select(this.chartContainer.nativeElement).selectAll("*").remove();
-    const textColor = this.isDarkTheme ? "#e0e0e0" : "#000000";
+    const textColor = this.isDarkTheme ? "#e0e0e0" : "#333";
+
     const transformedData = this.transformData(this.data);
+    const keys = ["OEE", ...new Set(transformedData.flatMap(d => d.operators.map(op => op.name)))];
+    const color = this.getColorScale(keys);
 
-    const svg = d3
-      .select(this.chartContainer.nativeElement)
+    const svg = d3.select(this.chartContainer.nativeElement)
       .append("svg")
-      .attr("viewBox", `0 0 ${this.width} ${this.height}`)
-      .attr("preserveAspectRatio", "xMidYMid meet")
-      .style("width", "100%")
-      .style("max-width", "100%")
-      .style("height", "auto")
-      .style("font-family", "sans-serif");
+      .attr("viewBox", `0 0 ${this.chartWidth} ${this.chartHeight}`)
+      .attr("width", this.chartWidth)
+      .attr("height", this.chartHeight)
+      .style("display", "block")
+      .style("margin", "0 auto")
+      .style("font-family", "'Inter', sans-serif")
+      .style("font-size", "0.875rem");
 
-    const x = d3
-      .scaleTime()
-      .domain(d3.extent(transformedData, (d) => d.date) as [Date, Date])
-      .range([this.margin.left, this.width - this.margin.right]);
+    // Dynamic Y max with buffer
+    const rawMax = d3.max(transformedData, d =>
+      Math.max(d.oee, ...d.operators.map(op => op.efficiency))
+    ) ?? 100;
+    const yMax = Math.ceil(rawMax * 1.05); // 5% buffer
 
-    const y = d3
-      .scaleLinear()
-      .domain([0, 100])
-      .range([this.height - this.margin.bottom, this.margin.top]);
+    const x = d3.scaleTime()
+      .domain(d3.extent(transformedData, d => d.date) as [Date, Date])
+      .range([this.margin.left, this.chartWidth - this.margin.right]);
 
-    svg
-      .append("g")
-      .attr("transform", `translate(0,${this.height - this.margin.bottom})`)
-      .call(
-        d3
-          .axisBottom(x)
-          .ticks(this.width / 80)
-          .tickSizeOuter(0)
-      );
+    const y = d3.scaleLinear()
+      .domain([0, yMax])
+      .range([this.chartHeight - this.margin.bottom, this.margin.top])
+      .nice();
 
-    svg
-      .append("g")
+    svg.append("g")
+      .attr("transform", `translate(0,${this.chartHeight - this.margin.bottom})`)
+      .call(d3.axisBottom(x).ticks(this.chartWidth / 80).tickSizeOuter(0))
+      .selectAll("text")
+      .attr("transform", "rotate(-45)")
+      .style("text-anchor", "end")
+      .style("fill", textColor);
+
+    svg.append("g")
       .attr("transform", `translate(${this.margin.left},0)`)
       .call(d3.axisLeft(y))
-      .call((g) => g.select(".domain").remove())
-      .call((g) =>
-        g
-          .selectAll(".tick line")
-          .clone()
-          .attr("x2", this.width - this.margin.left - this.margin.right)
-          .attr("stroke-opacity", 0.1)
-      )
-      .call((g) =>
-        g
-          .append("text")
-          .attr("x", -this.margin.left)
-          .attr("y", 10)
-          .attr("fill", textColor)
-          .attr("text-anchor", "start")
-          .text("↑ Efficiency (%)")
-      );
+      .selectAll("text")
+      .style("fill", textColor);
 
-    svg.selectAll(".tick text").style("fill", textColor);
-    svg
-      .selectAll(".tick line")
+    svg.selectAll(".tick line")
       .style("stroke", textColor)
       .style("stroke-opacity", 0.2);
 
-    const color = d3
-      .scaleOrdinal<string, string>()
-      .domain([
-        "OEE",
-        ...new Set(
-          transformedData.flatMap((d) => d.operators.map((op) => op.name))
-        ),
-      ])
-      .range(d3.schemeCategory10);
-
-    const line = d3
-      .line<DataPoint>()
-      .x((d) => x(d.date))
-      .y((d) => y(d.value));
+    const line = d3.line<DataPoint>()
+      .x(d => x(d.date))
+      .y(d => y(d.value));
 
     const drawLineWithPeak = (label: string, points: DataPoint[]) => {
-      svg
-        .append("path")
+      svg.append("path")
         .datum(points)
         .attr("fill", "none")
         .attr("stroke", color(label))
         .attr("stroke-width", 1.8)
         .attr("d", line);
 
-      const peak = points.reduce(
-        (max, p) => (p.value > max.value ? p : max),
-        points[0]
-      );
+      const peak = points.reduce((max, p) => p.value > max.value ? p : max, points[0]);
 
-      svg
-        .append("circle")
+      svg.append("circle")
         .attr("cx", x(peak.date))
         .attr("cy", y(peak.value))
         .attr("r", 3)
         .attr("fill", color(label));
     };
 
-    const oeePoints = transformedData.map((d) => ({
-      date: d.date,
-      value: d.oee,
-    }));
-    drawLineWithPeak("OEE", oeePoints);
+    // Draw OEE line
+    drawLineWithPeak("OEE", transformedData.map(d => ({ date: d.date, value: d.oee })));
 
-    const operators = new Set(
-      transformedData.flatMap((d) => d.operators.map((op) => op.name))
-    );
-    operators.forEach((operator) => {
-      const points = transformedData.map((d) => ({
+    // Draw each operator's line
+    const operatorNames = new Set(transformedData.flatMap(d => d.operators.map(op => op.name)));
+    operatorNames.forEach(name => {
+      const points = transformedData.map(d => ({
         date: d.date,
-        value: d.operators.find((op) => op.name === operator)?.efficiency ?? 0,
+        value: d.operators.find(op => op.name === name)?.efficiency ?? 0
       }));
-      drawLineWithPeak(operator, points);
+      drawLineWithPeak(name, points);
     });
 
-    const legend = svg
-      .append("g")
+    // Title
+    svg.append("text")
+      .attr("x", this.chartWidth / 2)
+      .attr("y", this.margin.top / 2)
+      .attr("text-anchor", "middle")
+      .style("font-size", "16px")
+      .style("fill", textColor)
+      .text(`Efficiency Over Time: ${this.data.machine.name}`);
+
+    // Legend (on right side, vertically stacked)
+    const legend = svg.append("g")
       .attr("font-size", 10)
       .attr("text-anchor", "start")
-      .selectAll("g")
-      .data(["OEE", ...operators])
+      .attr("transform", `translate(${this.chartWidth - this.margin.right + 10}, ${this.margin.top})`);
+
+    legend.selectAll("g")
+      .data(keys)
       .join("g")
-      .attr('transform', (d, i) => 
-        `translate(${this.width - this.margin.right + 30},${this.margin.top + i * 20})`
-      );
-      
-
-    legend
-      .append("rect")
-      .attr("width", 14)
-      .attr("height", 14)
-      .attr("fill", (d) => color(d));
-
-    legend
-      .append("text")
-      .attr("x", 20)
-      .attr("y", 11)
-      .style("fill", textColor)
-      .text((d) => d);
-  }
-
-  private transformData(data: ChartData): TransformedData[] {
-    return data.hourlyData.map((hour) => ({
-      date: new Date(hour.hour),
-      oee: hour.oee,
-      operators: hour.operators,
-    }));
+      .attr("transform", (_d, i) => `translate(0, ${i * 20})`)
+      .each(function (d) {
+        const g = d3.select(this);
+        g.append("rect")
+          .attr("width", 14)
+          .attr("height", 14)
+          .attr("fill", color(d));
+        g.append("text")
+          .attr("x", 20)
+          .attr("y", 11)
+          .style("fill", textColor)
+          .text(d);
+      });
   }
 }

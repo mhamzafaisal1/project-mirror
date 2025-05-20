@@ -1,5 +1,5 @@
 <div class="chart-container" [class.dark-mode]="isDarkTheme">
-  <div class="controls">
+  <div class="controls" *ngIf="!isModal">
     <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
     <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
     
@@ -20,7 +20,13 @@
   <div class="chart-content">
     <div *ngIf="loading" class="loading">Loading chart data...</div>
     <div *ngIf="error" class="error">{{ error }}</div>
-    <app-stacked-bar-chart *ngIf="chartData" [data]="chartData"></app-stacked-bar-chart>
+    <app-stacked-bar-chart
+      *ngIf="chartData"
+      [data]="chartData"
+      [chartWidth]="chartWidth"
+      [chartHeight]="chartHeight"
+      mode="time"
+    ></app-stacked-bar-chart>
   </div>
 </div>
   

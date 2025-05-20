@@ -3,7 +3,7 @@
     class="container"
     [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }"
   >
-    <div class="controls">
+    <div class="controls" *ngIf="!isModal">
       <!-- View Type Toggle -->
       <div class="view-type-toggle">
         <mat-form-field appearance="fill">

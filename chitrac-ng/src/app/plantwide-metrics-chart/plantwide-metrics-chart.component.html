@@ -1,0 +1,11 @@
+<div class="chart-container" [class.dark-mode]="isDarkTheme">
+  <div class="chart-content">
+    <app-multiple-bar-and-line-chart
+      *ngIf="chartInputData"
+      [data]="chartInputData"
+      [title]="'Plantwide Metrics by Hour'"
+      [chartWidth]="chartWidth"
+      [chartHeight]="chartHeight"
+    ></app-multiple-bar-and-line-chart>
+  </div>
+</div>

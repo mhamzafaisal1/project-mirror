@@ -55,6 +55,10 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   selectedOperator: any = null;
   loading: boolean = false;
   
+  // Add chart dimensions and isModal property
+  chartWidth: number = 1000;
+  chartHeight: number = 700;
+  isModal: boolean = true;
 
   constructor(
     private renderer: Renderer2,
@@ -228,16 +232,36 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       {
         label: 'Fault Summaries',
         component: MachineFaultHistoryComponent,
-        componentInputs: { viewType: 'summary' }
+        componentInputs: { 
+          viewType: 'summary',
+          startTime: this.startTime,
+          endTime: this.endTime,
+          machineSerial: row.serial,
+          isModal: this.isModal
+        }
       },
       {
         label: 'Fault Cycles',
         component: MachineFaultHistoryComponent,
-        componentInputs: { viewType: 'cycles' }
+        componentInputs: { 
+          viewType: 'cycles',
+          startTime: this.startTime,
+          endTime: this.endTime,
+          machineSerial: row.serial,
+          isModal: this.isModal
+        }
       },
       {
         label: 'Performance Chart',
-        component: OperatorPerformanceChartComponent
+        component: OperatorPerformanceChartComponent,
+        componentInputs: {
+          startTime: this.startTime,
+          endTime: this.endTime,
+          machineSerial: row.serial,
+          chartWidth: this.chartWidth,
+          chartHeight: this.chartHeight,
+          isModal: this.isModal
+        }
       }
     ];
   
@@ -258,7 +282,6 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       }
     });
     
-  
     dialogRef.afterClosed().subscribe(() => {
       if (this.selectedMachine === row) {
         this.selectedMachine = null;
@@ -276,10 +299,15 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       maxHeight: '90vh',
       panelClass: 'performance-chart-dialog',
       data: {
-        component: OperatorCountbyitemChartComponent, // or OperatorCountbyitemChartComponent if preferred
-        operatorId: row.operatorId,
-        startTime: this.startTime,
-        endTime: this.endTime
+        component: OperatorCountbyitemChartComponent,
+        componentInputs: {
+          operatorId: row.operatorId,
+          startTime: this.startTime,
+          endTime: this.endTime,
+          chartWidth: this.chartWidth,
+          chartHeight: this.chartHeight,
+          isModal: this.isModal
+        }
       }
     });
   

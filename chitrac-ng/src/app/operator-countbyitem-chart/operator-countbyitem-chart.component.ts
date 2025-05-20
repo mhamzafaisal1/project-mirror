@@ -5,6 +5,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
 
 import { OperatorCountbyitemService } from '../services/operator-countbyitem.service';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
@@ -37,6 +38,7 @@ interface StackedBarChartData {
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    MatIconModule,
     DateTimePickerComponent, 
     StackedBarChartComponent
   ],
@@ -47,6 +49,9 @@ export class OperatorCountbyitemChartComponent implements OnInit, OnDestroy {
   @Input() operatorId?: number;
   @Input() startTime: string = '';
   @Input() endTime: string = '';
+  @Input() isModal: boolean = false;
+  @Input() chartHeight: number = 400;
+  @Input() chartWidth: number = 800;
 
   chartData: StackedBarChartData | null = null;
   loading = false;

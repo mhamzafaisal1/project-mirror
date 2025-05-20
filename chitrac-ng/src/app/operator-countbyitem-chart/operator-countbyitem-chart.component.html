@@ -1,5 +1,5 @@
 <div class="chart-container" [class.dark-mode]="isDarkTheme">
-  <div class="controls">
+  <div class="controls" *ngIf="!isModal">
     <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
     <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
     
@@ -9,8 +9,9 @@
     </mat-form-field>
 
     <div class="button-group">
-      <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="!isValidInput()">
-        Fetch Data
+      <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="loading || !isValidInput()">
+        <mat-icon>refresh</mat-icon>
+        {{ loading ? 'Loading...' : 'Fetch Data' }}
       </button>
     </div>
   </div>
@@ -24,7 +25,11 @@
     </div>
 
     <div *ngIf="!loading && !error && chartData" class="data-display">
-      <app-stacked-bar-chart [data]="chartData"></app-stacked-bar-chart>
+      <app-stacked-bar-chart 
+        [data]="chartData"
+        [chartHeight]="chartHeight"
+        [chartWidth]="chartWidth">
+      </app-stacked-bar-chart>
     </div>
   </div>
 </div>

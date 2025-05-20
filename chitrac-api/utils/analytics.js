@@ -84,12 +84,12 @@ function calculateTotalTimeCredit(countRecords) {
 /***  Efficiency Calculation Start */
 function calculateEfficiency(runtimeMs, totalCount, counts) {
   if (!runtimeMs || !totalCount) return 0;
-  // Convert runtime to seconds for efficiency calculation
-  const runtimeSeconds = runtimeMs / (1000);
+  const runtimeSeconds = runtimeMs / 1000;
   const totalTimeCredit = calculateTotalTimeCredit(counts);
   const efficiency = totalTimeCredit / runtimeSeconds;
-  return Math.min(Math.max(efficiency, 0), 1);
+  return Math.max(efficiency, 0); // Allow >100%
 }
+
 /***  Efficiency Calculation End */
 function calculateOEE(availability, efficiency, throughput) {
   return availability * efficiency * throughput;
