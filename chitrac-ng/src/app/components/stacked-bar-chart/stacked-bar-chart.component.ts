@@ -6,7 +6,9 @@ import {
   OnChanges,
   SimpleChanges,
   OnDestroy,
-  AfterViewInit
+  AfterViewInit,
+  OnInit,
+  Renderer2
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
@@ -38,19 +40,25 @@ interface StackedBarPoint {
   templateUrl: './stacked-bar-chart.component.html',
   styleUrl: './stacked-bar-chart.component.scss'
 })
-export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDestroy {
+export class StackedBarChartComponent implements OnInit, OnDestroy {
   @Input() data: StackedBarChartData | null = null;
   @Input() mode: StackedBarChartMode = 'time';
-  @Input() chartWidth: number = 600;
-  @Input() chartHeight: number = 400;
+  @Input() chartWidth!: number;
+  @Input() chartHeight!: number;
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
   private observer!: MutationObserver;
   private margin = { top: 40, right: 40, bottom: 100, left: 40 };
-  private width = 600;
-  private height = 400;
+  private svg: any;
+  private isDarkTheme = false;
 
-  ngAfterViewInit(): void {
+  constructor(
+    private elRef: ElementRef,
+    private renderer: Renderer2
+  ) {}
+
+  ngOnInit() {
+    this.detectTheme();
     this.observer = new MutationObserver(() => this.renderChart());
     this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
@@ -58,11 +66,24 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['data'] && this.data) this.renderChart();
+    if ((changes['data'] || changes['chartWidth'] || changes['chartHeight']) && this.data) {
+      this.renderChart();
+    }
   }
 
   ngOnDestroy(): void {
     if (this.observer) this.observer.disconnect();
+    if (this.svg) {
+      this.svg.remove();
+    }
+  }
+
+  private detectTheme() {
+    const dark = document.body.classList.contains('dark-theme');
+    this.isDarkTheme = dark;
+    const el = this.elRef.nativeElement;
+    this.renderer.setStyle(el, 'background-color', dark ? '#121212' : '#ffffff');
+    this.renderer.setStyle(el, 'color', dark ? '#e0e0e0' : '#000000');
   }
 
   private formatHour(hour: number): string {
@@ -113,14 +134,11 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
     const element = this.chartContainer.nativeElement;
     element.innerHTML = '';
 
-    this.width = this.chartWidth;
-    this.height = this.chartHeight;
-
     const svg = d3.select(element)
       .append('svg')
-      .attr('viewBox', `0 0 ${this.width} ${this.height}`)
-      .attr('width', this.width)
-      .attr('height', this.height)
+      .attr('viewBox', `0 0 ${this.chartWidth} ${this.chartHeight}`)
+      .attr('width', this.chartWidth)
+      .attr('height', this.chartHeight)
       .style('display', 'block')
       .style('margin', '0 auto')
       .style('font-family', "'Inter', sans-serif")
@@ -141,7 +159,7 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
 
       const x = d3.scaleBand()
         .domain(machineNames)
-        .range([this.margin.left, this.width - this.margin.right])
+        .range([this.margin.left, this.chartWidth - this.margin.right])
         .padding(0.2);
 
       const stackedData = d3.stack()
@@ -155,7 +173,7 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
       const y = d3.scaleLinear()
         .domain([0, d3.max(stackedData[stackedData.length - 1], d => d[1]) || 0])
         .nice()
-        .range([this.height - this.margin.bottom, chartTop]);
+        .range([this.chartHeight - this.margin.bottom, chartTop]);
 
       svg.append('g')
         .selectAll('g')
@@ -202,7 +220,7 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
       
 
       svg.append('g')
-        .attr('transform', `translate(0,${this.height - this.margin.bottom})`)
+        .attr('transform', `translate(0,${this.chartHeight - this.margin.bottom})`)
         .call(d3.axisBottom(x))
         .selectAll('text')
         .attr('transform', 'rotate(-45)')
@@ -222,7 +240,7 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
 
       const x = d3.scaleBand()
         .domain(this.data.data.hours.map(String))
-        .range([this.margin.left, this.width - this.margin.right])
+        .range([this.margin.left, this.chartWidth - this.margin.right])
         .padding(0.2);
 
       const stackedData = d3.stack()
@@ -237,7 +255,7 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
       const y = d3.scaleLinear()
         .domain([0, d3.max(stackedData[stackedData.length - 1], d => d[1]) || 0])
         .nice()
-        .range([this.height - this.margin.bottom, chartTop]);
+        .range([this.chartHeight - this.margin.bottom, chartTop]);
 
       svg.append('g')
         .selectAll('g')
@@ -283,7 +301,7 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
       
 
       svg.append('g')
-        .attr('transform', `translate(0,${this.height - this.margin.bottom})`)
+        .attr('transform', `translate(0,${this.chartHeight - this.margin.bottom})`)
         .call(
           d3.axisBottom(x)
             .tickValues(x.domain().filter((_, i) => i % 4 === 0))
@@ -303,7 +321,7 @@ export class StackedBarChartComponent implements OnChanges, AfterViewInit, OnDes
     }
 
     svg.append('text')
-      .attr('x', this.width / 2)
+      .attr('x', this.chartWidth / 2)
       .attr('y', this.margin.top / 2)
       .attr('text-anchor', 'middle')
       .style('font-size', '16px')

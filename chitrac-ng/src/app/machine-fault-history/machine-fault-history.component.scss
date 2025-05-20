@@ -30,21 +30,26 @@
 .controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  justify-content: flex-start;
-  align-items: flex-end;
-  padding-bottom: 16px;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 4px;
+  margin-bottom: 1rem;
 
-  > * {
-    flex-shrink: 1;
-    min-width: 0;
+  app-date-time-picker {
+    flex: 1;
+    max-width: fit-content;
+    min-width: 200px;
   }
 
   .view-type-toggle {
-    display: flex;
-    flex-direction: column;
+    flex: 1;
+    max-width: fit-content;
     min-width: 200px;
-    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    margin-left: 1rem;
 
     mat-form-field {
       width: 100%;
@@ -56,14 +61,13 @@
     flex-wrap: nowrap;
     align-items: flex-end;
     gap: 12px;
-    flex: 1;
+    margin-left: 1rem;
 
     .form-group {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      flex: 1;
-      min-width: 200px;
+      width: 200px;
 
       label {
         font-weight: 500;
@@ -80,6 +84,7 @@
         font-size: 14px;
         box-sizing: border-box;
         transition: border-color 0.3s ease;
+        width: 100%;
 
         &:focus {
           outline: none;
@@ -90,15 +95,21 @@
     }
 
     button {
-      height: 40px;
-      padding: 0 16px;
-      font-size: 13px;
-      font-weight: 600;
-      border-radius: 4px;
+      height: 2.5rem;
+      padding: 0 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
       white-space: nowrap;
-      margin-top: 20px;
+      min-width: fit-content;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
   }
+}
+
+.dark-mode .controls {
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .error {

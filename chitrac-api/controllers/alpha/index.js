@@ -79,7 +79,7 @@ function constructor(server) {
 
   // Import machine-related routes
   const machineRoutes = require("./machineRoutes")(server);
-  router.use("/", machineRoutes);
+  router.use("/analytics", machineRoutes);
 
   // Import operator-related routes
   const operatorRoutes = require("./operatorRoutes")(server);

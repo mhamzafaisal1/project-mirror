@@ -1,5 +1,5 @@
 <div class="summary-table-container">
-  <div class="controls">
+  <div class="controls" *ngIf="!isModal">
     <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
     <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
 

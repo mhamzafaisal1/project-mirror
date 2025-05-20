@@ -2,6 +2,7 @@ import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { BaseTableComponent } from '../components/base-table/base-table.component';
@@ -15,6 +16,7 @@ import { OperatorSummaryService } from '../services/operator-summary.service';
     CommonModule, 
     FormsModule, 
     MatButtonModule, 
+    MatIconModule,
     MatInputModule,
     MatFormFieldModule,
     DateTimePickerComponent, 
@@ -27,6 +29,7 @@ export class OperatorItemSummaryTableComponent implements OnInit {
   @Input() startTime: string = '';
   @Input() endTime: string = '';
   @Input() operatorId?: number;
+  @Input() isModal: boolean = false;
 
   itemColumns: string[] = ['Machine', 'Item', 'Worked Time', 'Count', 'Misfeed', 'PPH', 'Standard', 'Efficiency'];
   itemRows: any[] = [];

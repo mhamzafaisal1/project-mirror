@@ -23,6 +23,9 @@ export class MachineItemStackedBarChartComponent implements OnChanges {
   @Input() startTime: string = '';
   @Input() endTime: string = '';
   @Input() machineSerial: number | null = null;
+  @Input() chartWidth!: number;
+  @Input() chartHeight!: number;
+  @Input() isModal: boolean = false;
 
   chartData: StackedBarChartData | null = null;
   loading = false;

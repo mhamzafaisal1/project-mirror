@@ -43,6 +43,7 @@ export class MachineFaultHistoryComponent implements OnInit, OnChanges, OnDestro
   @Input() startTime: string = '';
   @Input() endTime: string = '';
   @Input() serial: string = '';
+  @Input() isModal: boolean = false;
 
   private _viewType: 'summary' | 'cycles' = 'summary';
   @Input()
