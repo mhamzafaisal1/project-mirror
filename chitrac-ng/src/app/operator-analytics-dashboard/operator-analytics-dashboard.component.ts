@@ -51,6 +51,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   rows: any[] = [];
   selectedRow: any = null;
   isLoading = false;
+  operatorData: any[] = []; // Store the raw dashboard data
 
   // Chart dimensions
   chartHeight = 700;
@@ -97,23 +98,24 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
 
     try {
       this.isLoading = true;
-      this.analyticsService.getOperatorPerformance(this.startTime, this.endTime, this.operatorId)
+      this.analyticsService.getOperatorDashboard(this.startTime, this.endTime, this.operatorId)
         .subscribe((data: any) => {  
-          const responses = Array.isArray(data) ? data : [data];
+          // Store the raw data for later use
+          this.operatorData = Array.isArray(data) ? data : [data];
           
-          this.rows = responses.map(response => ({
+          this.rows = this.operatorData.map(response => ({
             'Status': getStatusDotByCode(response.currentStatus?.code),
             'Operator Name': response.operator.name,
             'Operator ID': response.operator.id,
-            'Runtime': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
-            'Paused Time': `${response.metrics.pausedTime.formatted.hours}h ${response.metrics.pausedTime.formatted.minutes}m`,
-            'Fault Time': `${response.metrics.faultTime.formatted.hours}h ${response.metrics.faultTime.formatted.minutes}m`,
-            'Total Count': response.metrics.output.totalCount,
-            'Misfeed Count': response.metrics.output.misfeedCount,
-            'Valid Count': response.metrics.output.validCount,
-            'Pieces Per Hour': response.metrics.performance.piecesPerHour.formatted,
-            'Efficiency': response.metrics.performance.efficiency.percentage,
-            'Time Range': `${response.timeRange.start} to ${response.timeRange.end}`
+            'Runtime': `${response.performance.runtime.formatted.hours}h ${response.performance.runtime.formatted.minutes}m`,
+            'Paused Time': `${response.performance.pausedTime.formatted.hours}h ${response.performance.pausedTime.formatted.minutes}m`,
+            'Fault Time': `${response.performance.faultTime.formatted.hours}h ${response.performance.faultTime.formatted.minutes}m`,
+            'Total Count': response.performance.output.totalCount,
+            'Misfeed Count': response.performance.output.misfeedCount,
+            'Valid Count': response.performance.output.validCount,
+            'Pieces Per Hour': response.performance.performance.piecesPerHour.formatted,
+            'Efficiency': response.performance.performance.efficiency.percentage,
+            'Time Range': `${this.startTime} to ${this.endTime}`
           }));
 
           const allColumns = Object.keys(this.rows[0]);
@@ -148,14 +150,21 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   
     const startTimeStr = selectedStart.toISOString();
     const endTimeStr = selectedEnd.toISOString();
-  
+
+    // Find the operator data from the stored dashboard data
+    const operatorData = this.operatorData?.find((o: any) => o.operator?.id === operatorId);
+    if (!operatorData) {
+      console.error('Operator data not found for ID:', operatorId);
+      return;
+    }
+
     const carouselTabs = [
       {
         label: 'Item Summary',
         component: OperatorItemSummaryTableComponent,
         componentInputs: {
-          startTime: this.startTime,
-          endTime: this.endTime,
+          mode: 'dashboard',
+          dashboardData: this.operatorData,
           operatorId: operatorId,
           isModal: true
         }
@@ -164,8 +173,8 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         label: 'Item Stacked Chart',
         component: OperatorCountbyitemChartComponent,
         componentInputs: {
-          startTime: this.startTime,
-          endTime: this.endTime,
+          mode: 'dashboard',
+          dashboardData: this.operatorData,
           operatorId: operatorId,
           isModal: true,
           chartHeight: this.chartHeight,
@@ -176,8 +185,8 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         label: 'Running/Paused/Fault Pie Chart',
         component: OperatorCyclePieChartComponent,
         componentInputs: {
-          startTime: this.startTime,
-          endTime: this.endTime,
+          mode: 'dashboard',
+          dashboardData: this.operatorData,
           operatorId: operatorId,
           isModal: true,
           chartHeight: (this.chartHeight - 200),
@@ -188,8 +197,8 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         label: 'Fault History',
         component: OperatorFaultHistoryComponent,
         componentInputs: {
-          startTime: this.startTime,
-          endTime: this.endTime,
+          mode: 'dashboard',
+          dashboardData: this.operatorData,
           operatorId: operatorId.toString(),
           isModal: true
         }
@@ -198,11 +207,11 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         label: 'Daily Efficiency Chart',
         component: OperatorLineChartComponent,
         componentInputs: {
-          startTime: startTimeStr,
-          endTime: endTimeStr,
+          mode: 'dashboard',
+          dashboardData: this.operatorData,
           operatorId: operatorId.toString(),
           isModal: true,
-          chartHeight: this.chartHeight,
+          chartHeight: (this.chartHeight - 50),
           chartWidth: this.chartWidth
         }
       }

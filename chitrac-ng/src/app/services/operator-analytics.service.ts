@@ -9,6 +9,18 @@ export class OperatorAnalyticsService {
 
   constructor(private http: HttpClient) { }
 
+  getOperatorDashboard(startTime: string, endTime: string, operatorId?: number): Observable<any> {
+    let params = new HttpParams()
+      .set('startTime', startTime)
+      .set('endTime', endTime);
+
+    if (operatorId) {
+      params = params.set('operatorId', operatorId.toString());
+    }
+
+    return this.http.get('/api/alpha/analytics/operator-dashboard', { params });
+  }
+
   getOperatorPerformance(startTime: string, endTime: string, operatorId?: number): Observable<any> {
     let params = new HttpParams()
       .set('startTime', startTime)

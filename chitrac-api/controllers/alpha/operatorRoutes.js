@@ -6,37 +6,135 @@ module.exports = function (server) {
   const db = server.db;
   const logger = server.logger;
 
-const {
-  parseAndValidateQueryParams,
-  createPaddedTimeRange,
-  formatDuration
-} = require('../../utils/time');
+  const {
+    parseAndValidateQueryParams,
+    createPaddedTimeRange,
+    formatDuration,
+  } = require("../../utils/time");
 
-const {
-  buildTopOperatorEfficiency
-} = require('../../utils/dailyDashboardBuilder');
+  const {
+    fetchStatesForOperator,
+    groupStatesByOperator,
+    getCompletedCyclesForOperator,
+    extractAllCyclesFromStates,
+    extractFaultCycles,
+    fetchAllStates,
+    groupStatesByOperatorAndSerial,
+  } = require("../../utils/state");
 
+  const {
+    getCountsForOperator,
+    getValidCountsForOperator,
+    getOperatorNameFromCount,
+    processCountStatistics,
+    groupCountsByItem,
+    extractItemNamesFromCounts,
+    groupCountsByOperatorAndMachine,
+    getCountsForOperatorMachinePairs,
+    groupCountsByOperator,
+  } = require("../../utils/count");
 
-router.get("/daily-dashboard/operator-efficiency-top10", async (req, res) => {
+  const {
+    buildTopOperatorEfficiency,
+  } = require("../../utils/dailyDashboardBuilder");
+
+  const {
+    getAllOperatorIds,
+    buildOperatorPerformance,
+    buildOperatorItemSummary,
+    buildOperatorCountByItem,
+    buildOperatorCyclePie,
+    buildOperatorFaultHistory,
+    buildOperatorEfficiencyLine,
+  } = require("../../utils/operatorDashboardBuilder");
+
+  router.get("/daily-dashboard/operator-efficiency-top10", async (req, res) => {
     try {
       const { start, end } = parseAndValidateQueryParams(req);
       const operators = await buildTopOperatorEfficiency(db, start, end);
-  
+
       res.json({
         timeRange: {
           start,
           end,
-          total: formatDuration(new Date(end) - new Date(start))
+          total: formatDuration(new Date(end) - new Date(start)),
         },
-        operators
+        operators,
       });
     } catch (err) {
       logger.error("Error in /daily-dashboard/operator-efficiency-top10:", err);
-      res.status(500).json({ error: "Failed to fetch top operator efficiencies" });
+      res
+        .status(500)
+        .json({ error: "Failed to fetch top operator efficiencies" });
     }
   });
-  
-  
+
+  router.get("/analytics/operator-dashboard", async (req, res) => {
+    try {
+      const { start, end } = parseAndValidateQueryParams(req);
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+
+      const operatorIds = await getAllOperatorIds(db); // <- you'll implement this helper
+
+      const results = [];
+
+      for (const operatorId of operatorIds) {
+        const states = await fetchStatesForOperator(
+          db,
+          operatorId,
+          paddedStart,
+          paddedEnd
+        );
+        const counts = await getCountsForOperator(
+          db,
+          operatorId,
+          paddedStart,
+          paddedEnd
+        );
+        const validCounts = counts.filter((c) => !c.misfeed);
+
+        if (!states.length && !counts.length) continue;
+
+        const performance = await buildOperatorPerformance(
+          states,
+          counts,
+          start,
+          end
+        );
+          const itemSummary = await buildOperatorItemSummary(states, counts, start, end);
+          const countByItem = await buildOperatorCountByItem(states, counts, start, end);
+          const cyclePie = await buildOperatorCyclePie(states, start, end);
+          const faultHistory = await buildOperatorFaultHistory(states, start, end);
+          const dailyEfficiency = await buildOperatorEfficiencyLine(validCounts, states, start, end);
+
+        const operatorName = await getOperatorNameFromCount(db, operatorId);
+
+        results.push({
+          operator: {
+            id: operatorId,
+            name: operatorName || "Unknown",
+          },
+          currentStatus: {
+            code: states[states.length - 1]?.status?.code || 0,
+            name: states[states.length - 1]?.status?.name || "Unknown",
+          },
+          performance,
+          itemSummary,
+          countByItem,
+          cyclePie,
+          faultHistory,
+          dailyEfficiency
+        });
+      }
+
+      res.json(results);
+    } catch (err) {
+      logger.error("Error in /analytics/operator-dashboard route:", err);
+      res
+        .status(500)
+        .json({ error: "Failed to fetch operator dashboard data" });
+    }
+  });
 
   return router;
-}
+};

@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, OnDestroy, ElementRef, Renderer2 } from '@angular/core';
+import { Component, OnInit, Input, OnDestroy, ElementRef, Renderer2, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -45,13 +45,15 @@ interface StackedBarChartData {
   templateUrl: './operator-countbyitem-chart.component.html',
   styleUrl: './operator-countbyitem-chart.component.scss'
 })
-export class OperatorCountbyitemChartComponent implements OnInit, OnDestroy {
+export class OperatorCountbyitemChartComponent implements OnInit, OnDestroy, OnChanges {
   @Input() operatorId?: number;
   @Input() startTime: string = '';
   @Input() endTime: string = '';
   @Input() isModal: boolean = false;
   @Input() chartHeight: number = 400;
   @Input() chartWidth: number = 800;
+  @Input() mode: 'standalone' | 'dashboard' = 'standalone';
+  @Input() dashboardData?: any[];
 
   chartData: StackedBarChartData | null = null;
   loading = false;
@@ -70,7 +72,16 @@ export class OperatorCountbyitemChartComponent implements OnInit, OnDestroy {
     this.observer = new MutationObserver(() => this.detectTheme());
     this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
-    if (this.isValidInput()) {
+    if (this.mode === 'standalone' && this.isValidInput()) {
+      this.fetchData();
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (this.mode === 'dashboard' && changes['dashboardData']?.currentValue) {
+      this.processDashboardData(changes['dashboardData'].currentValue);
+    } else if (this.mode === 'standalone' && 
+              (changes['startTime']?.currentValue || changes['endTime']?.currentValue)) {
       this.fetchData();
     }
   }
@@ -89,6 +100,30 @@ export class OperatorCountbyitemChartComponent implements OnInit, OnDestroy {
 
   isValidInput(): boolean {
     return !!this.operatorId && !!this.startTime && !!this.endTime;
+  }
+
+  private processDashboardData(data: any[]): void {
+    this.loading = true;
+    try {
+      // Find the operator data from the dashboard data
+      const operatorData = data.find(item => item.operator?.id === this.operatorId);
+      if (!operatorData?.countByItem) {
+        this.error = 'No count by item data available';
+        return;
+      }
+
+      // Transform the dashboard data to match the chart format
+      const countByItemData = operatorData.countByItem;
+      this.chartData = {
+        title: `Operator ${this.operatorId} - Count by Item`,
+        data: countByItemData.data
+      };
+    } catch (error) {
+      console.error('Error processing dashboard data:', error);
+      this.error = 'Failed to process dashboard data';
+    } finally {
+      this.loading = false;
+    }
   }
 
   private transformData(rawData: CountByItemData[]): StackedBarChartData {
@@ -137,6 +172,8 @@ export class OperatorCountbyitemChartComponent implements OnInit, OnDestroy {
   }
 
   onTimeRangeChange(): void {
-    this.fetchData();
+    if (this.mode === 'standalone') {
+      this.fetchData();
+    }
   }
 }

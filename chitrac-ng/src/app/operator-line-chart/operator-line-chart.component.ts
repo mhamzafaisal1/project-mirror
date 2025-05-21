@@ -48,6 +48,8 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
   @Input() isModal: boolean = false;
   @Input() chartWidth: number;
   @Input() chartHeight: number;
+  @Input() mode: 'standalone' | 'dashboard' = 'standalone';
+  @Input() dashboardData?: any[];
 
   @ViewChild('chartContainer') private chartContainer!: ElementRef;
 
@@ -73,22 +75,28 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
     this.detectTheme();
     this.observeTheme();
     this.observeResize();
+
+    if (this.mode === 'standalone' && this.isValidInput()) {
+      this.fetchData();
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['startTime'] && this.startTime) {
-      this.pickerStartTime = toDateTimeLocalString(this.startTime);
-    }
-    if (changes['endTime'] && this.endTime) {
-      this.pickerEndTime = toDateTimeLocalString(this.endTime);
-    }
-    if (
-      (changes['startTime'] || changes['endTime'] || changes['operatorId']) &&
-      this.startTime &&
-      this.endTime &&
-      this.operatorId
-    ) {
-      this.fetchData();
+    if (this.mode === 'dashboard' && changes['dashboardData']?.currentValue) {
+      this.processDashboardData(changes['dashboardData'].currentValue);
+    } else if (this.mode === 'standalone') {
+      if (changes['startTime'] && this.startTime) {
+        this.pickerStartTime = toDateTimeLocalString(this.startTime);
+      }
+      if (changes['endTime'] && this.endTime) {
+        this.pickerEndTime = toDateTimeLocalString(this.endTime);
+      }
+      if (
+        (changes['startTime'] || changes['endTime'] || changes['operatorId']) &&
+        this.isValidInput()
+      ) {
+        this.fetchData();
+      }
     }
   }
 
@@ -123,8 +131,31 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
     }
   }
 
+  private isValidInput(): boolean {
+    return !!this.startTime && !!this.endTime && !!this.operatorId;
+  }
+
+  private processDashboardData(data: any[]): void {
+    try {
+      const operatorData = data.find(item => item.operator?.id === parseInt(this.operatorId));
+      if (!operatorData?.dailyEfficiency) {
+        this.error = 'No daily efficiency data available';
+        return;
+      }
+
+      this.operatorName = operatorData.dailyEfficiency.operator.name;
+      this.efficiencyData = operatorData.dailyEfficiency.data.map((entry: any) => ({
+        label: new Date(entry.date).toLocaleDateString(),
+        value: entry.efficiency
+      }));
+    } catch (error) {
+      console.error('Error processing dashboard data:', error);
+      this.error = 'Failed to process dashboard data';
+    }
+  }
+
   fetchData(): void {
-    if (!this.startTime || !this.endTime || !this.operatorId) {
+    if (!this.isValidInput()) {
       this.error = 'All fields are required';
       return;
     }
@@ -150,14 +181,18 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
   }
 
   onStartTimeChange(newValue: string) {
-    this.pickerStartTime = newValue;
-    this.startTime = new Date(newValue).toISOString();
-    this.fetchData();
+    if (this.mode === 'standalone') {
+      this.pickerStartTime = newValue;
+      this.startTime = new Date(newValue).toISOString();
+      this.fetchData();
+    }
   }
 
   onEndTimeChange(newValue: string) {
-    this.pickerEndTime = newValue;
-    this.endTime = new Date(newValue).toISOString();
-    this.fetchData();
+    if (this.mode === 'standalone') {
+      this.pickerEndTime = newValue;
+      this.endTime = new Date(newValue).toISOString();
+      this.fetchData();
+    }
   }
 }
