@@ -41,11 +41,13 @@ function calculateThroughput(totalCount, misfeedCount) {
 
 /***  Time Credit Calculation Start */
 function calculateTimeCreditsByItem(countRecords) {
+  if (!Array.isArray(countRecords)) return [];
+
   const itemMap = {};
 
   for (const record of countRecords) {
     const item = record.item;
-    const key = `${item.id}-${item.name}`; // use both ID + name for uniqueness
+    const key = `${item.id}-${item.name}`;
 
     if (!itemMap[key]) {
       itemMap[key] = {
@@ -59,24 +61,22 @@ function calculateTimeCreditsByItem(countRecords) {
     itemMap[key].count += 1;
   }
 
-  const itemsWithTimeCredit = Object.values(itemMap).map(item => {
-    const { count, standard } = item;
-    // Convert standard to per hour if it's in per minute (standard < 60)
-    const standardPerHour = standard < 60 ? standard * 60 : standard;
-    const timeCredit = standardPerHour > 0 ? count / (standardPerHour / 3600) : 0;
+  return Object.values(itemMap).map(item => {
+    const standardPerHour = item.standard < 60 ? item.standard * 60 : item.standard;
+    const timeCredit = standardPerHour > 0 ? item.count / (standardPerHour / 3600) : 0;
     return {
       ...item,
       timeCredit: parseFloat(timeCredit.toFixed(2))
     };
   });
-
-  return itemsWithTimeCredit;
 }
 
+
 function calculateTotalTimeCredit(countRecords) {
+  if (!Array.isArray(countRecords)) return 0;
+
   const itemCredits = calculateTimeCreditsByItem(countRecords);
-  const totalTimeCredit = itemCredits.reduce((sum, item) => sum + item.timeCredit, 0);
-  return parseFloat(totalTimeCredit.toFixed(2));
+  return itemCredits.reduce((sum, item) => sum + item.timeCredit, 0);
 }
 
 /***  Time Credit Calculation End */

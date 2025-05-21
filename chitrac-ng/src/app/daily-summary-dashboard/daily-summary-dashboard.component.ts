@@ -23,6 +23,7 @@ import { MachineAnalyticsService } from "../services/machine-analytics.service";
 import { OperatorAnalyticsService } from '../services/operator-analytics.service';
 import { OperatorCountbyitemChartComponent } from "../operator-countbyitem-chart/operator-countbyitem-chart.component";
 import { getStatusDotByCode } from '../../utils/status-utils';
+import { DailyDashboardService } from '../services/daily-dashboard.service';
 
 @Component({
   selector: "app-daily-summary-dashboard",
@@ -63,8 +64,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   constructor(
     private renderer: Renderer2,
     private elRef: ElementRef,
-    private machineAnalyticsService: MachineAnalyticsService,
-    private operatorAnalyticsService: OperatorAnalyticsService,
+    private dailyDashboardService: DailyDashboardService,
     private dialog: MatDialog
   ) {}
 
@@ -114,108 +114,42 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   
     this.loading = true;
   
-    forkJoin({
-      machines: this.machineAnalyticsService.getMachinePerformance(formattedStart, formattedEnd, undefined),
-      operators: this.operatorAnalyticsService.getOperatorPerformance(formattedStart, formattedEnd, undefined),
-      items: this.machineAnalyticsService.getItemSummary(formattedStart, formattedEnd)
-    }).subscribe({
-      next: ({ machines, operators, items }) => {
-        // Populate machine rows
-        const machineResponses = Array.isArray(machines) ? machines : [machines];
-        this.machineRows = machineResponses.map((response: any) => ({
-          Status: getStatusDotByCode(response.currentStatus),
-          'Machine Name': response.machine.name,
-          'OEE': `${response.metrics.performance.oee.percentage}%`,
-          'Total Count': response.metrics.output.totalCount,
-          serial: response.machine.serial
-        }));
-  
-        // Populate operator rows
-        const operatorResponses = Array.isArray(operators) ? operators : [operators];
-        this.operatorRows = operatorResponses.map((response: any) => ({
-          Status: getStatusDotByCode(response.currentStatus),
-          'Operator Name': response.operator.name,
-          'Worked Time': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
-          'Efficiency': `${response.metrics.performance.efficiency.percentage}%`,
-          operatorId: response.operator.id
-        }));
-  
-        // Populate item rows
-        this.itemRows = items
-          .filter((item: any) => item.count > 0)
-          .map((item: any) => ({
-            'Item Name': item.itemName,
-            'Total Count': item.count
+    this.dailyDashboardService.getDailySummaryDashboard(formattedStart, formattedEnd)
+      .subscribe({
+        next: (data: any) => {
+          // Machines
+          this.machineRows = (data.machines || []).map((response: any) => ({
+            Status: getStatusDotByCode(response.currentStatus?.code),
+            'Machine Name': response.machine.name,
+            'OEE': response.metrics.performance.oee.percentage,
+            'Total Count': response.metrics.output.totalCount,
+            serial: response.machine.serial
           }));
-  
-        this.loading = false;
-      },
-      error: (err) => {
-        console.error('Error fetching summary data:', err);
-        this.loading = false;
-      }
-    });
-  }
-  
-  
 
-  fetchMachineSummaryData(): void {
-    if (!this.startTime || !this.endTime) return;
-  
-    const formattedStart = new Date(this.startTime).toISOString();
-    const formattedEnd = new Date(this.endTime).toISOString();
-  
-    this.machineAnalyticsService.getMachinePerformance(formattedStart, formattedEnd, undefined).subscribe((data: any) => {
-      const responses = Array.isArray(data) ? data : [data];
-  
-      this.machineRows = responses.map((response: any) => ({
-        Status: getStatusDotByCode(response.currentStatus),
-        'Machine Name': response.machine.name,
-        'OEE': `${response.metrics.performance.oee.percentage}%`,
-        'Total Count': response.metrics.output.totalCount,
-        serial: response.machine.serial // keep for row click later
-      }));
-    });
-  }
-
-  fetchOperatorSummaryData(): void {
-    if (!this.startTime || !this.endTime) return;
-  
-    const formattedStart = new Date(this.startTime).toISOString();
-    const formattedEnd = new Date(this.endTime).toISOString();
-  
-    this.operatorAnalyticsService.getOperatorPerformance(formattedStart, formattedEnd, undefined).subscribe((data: any) => {
-      const responses = Array.isArray(data) ? data : [data];
-  
-      this.operatorRows = responses.map((response: any) => ({
-        Status: getStatusDotByCode(response.currentStatus), // assumes .code
-        'Operator Name': response.operator.name,
-        'Worked Time': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
-        'Efficiency': `${response.metrics.performance.efficiency.percentage}%`,
-        operatorId: response.operator.id
-      }));
-    });
-  }
-  
-  fetchItemSummaryData(): void {
-    if (!this.startTime || !this.endTime) return;
-  
-    const formattedStart = new Date(this.startTime).toISOString();
-    const formattedEnd = new Date(this.endTime).toISOString();
-  
-    this.machineAnalyticsService.getItemSummary(formattedStart, formattedEnd).subscribe({
-      next: (data: any[]) => {
-        this.itemRows = data
-          .filter(item => item.count > 0)
-          .map(item => ({
-            'Item Name': item.itemName,
-            'Total Count': item.count
+          // Operators
+          this.operatorRows = (data.operators || []).map((response: any) => ({
+            Status: getStatusDotByCode(response.currentStatus?.code),
+            'Operator Name': response.operator.name,
+            'Worked Time': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
+            'Efficiency': response.metrics.performance.efficiency.percentage,
+            operatorId: response.operator.id
           }));
-      },
-      error: (err) => {
-        console.error('Error fetching item summary:', err);
-      }
-    });
+
+          // Items
+          this.itemRows = (data.items || [])
+            .filter((item: any) => item.count > 0)
+            .map((item: any) => ({
+              'Item Name': item.itemName,
+              'Total Count': item.count
+            }));
+
+          this.loading = false;
+        },
+        error: (err: any) => {
+          console.error('Error fetching summary data:', err);
+          this.loading = false;
+        }
+      });
   }
   
   
@@ -339,5 +273,18 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     const hours = date.getHours().toString().padStart(2, "0");
     const minutes = date.getMinutes().toString().padStart(2, "0");
     return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
+  // Add this helper for dynamic color coding
+  getPerformanceClass(value: any, column?: string): string {
+    if (column !== 'OEE' && column !== 'Efficiency') return '';
+    let num = value;
+    if (typeof value === 'string') {
+      num = parseFloat(value.replace('%', ''));
+    }
+    if (isNaN(num)) return '';
+    if (num >= 85) return 'green';
+    if (num >= 60) return 'yellow';
+    return 'red';
   }
 }

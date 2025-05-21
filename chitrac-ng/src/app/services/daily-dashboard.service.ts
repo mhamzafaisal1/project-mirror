@@ -47,4 +47,10 @@ export class DailyDashboardService {
     const params = new HttpParams().set('start', start).set('end', end);
     return this.http.get(`${this.apiUrl}/analytics/daily-dashboard/full`, { params });
   }
+
+  /** ✅ New summary dashboard route for machines, operators, and items */
+  getDailySummaryDashboard(start: string, end: string): Observable<any> {
+    const params = new HttpParams().set('start', start).set('end', end);
+    return this.http.get(`${this.apiUrl}/analytics/daily-summary-dashboard`, { params });
+  }
 }
