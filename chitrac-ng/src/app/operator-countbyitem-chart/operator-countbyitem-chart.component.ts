@@ -112,11 +112,10 @@ export class OperatorCountbyitemChartComponent implements OnInit, OnDestroy, OnC
         return;
       }
 
-      // Transform the dashboard data to match the chart format
-      const countByItemData = operatorData.countByItem;
+      // The data is already in the correct format, just use it directly
       this.chartData = {
-        title: `Operator ${this.operatorId} - Count by Item`,
-        data: countByItemData.data
+        title: `Operator ${operatorData.operator?.name || this.operatorId} - Count by Item`,
+        data: operatorData.countByItem.data
       };
     } catch (error) {
       console.error('Error processing dashboard data:', error);

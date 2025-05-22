@@ -56,6 +56,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   selectedOperator: any = null;
   loading: boolean = false;
   rawMachineData: any[] = []; // store full API response for machines
+  rawOperatorData: any[] = []; // store full API response for operators
 
   
   // Add chart dimensions and isModal property
@@ -120,6 +121,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (data: any) => {
           this.rawMachineData = data.machineResults || [];
+          this.rawOperatorData = data.operatorResults || [];
 
         //Machines
           this.machineRows = this.rawMachineData.map((response: any) => ({
@@ -131,12 +133,12 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
           }));
 
           // Operators
-          this.operatorRows = (data.operators || []).map((response: any) => ({
+          this.operatorRows = this.rawOperatorData.map((response: any) => ({
             Status: getStatusDotByCode(response.currentStatus?.code),
-            'Operator Name': response.operator.name,
-            'Worked Time': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
-            'Efficiency': response.metrics.performance.efficiency.percentage,
-            operatorId: response.operator.id
+            'Operator Name': response.operator?.name ?? 'Unknown',
+            'Worked Time': `${response.metrics?.runtime?.formatted?.hours ?? 0}h ${response.metrics?.runtime?.formatted?.minutes ?? 0}m`,
+            'Efficiency': response.metrics?.performance?.efficiency?.percentage ?? '0%',
+            operatorId: response.operator?.id
           }));
 
           // Items
@@ -263,7 +265,6 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
 
   onOperatorClick(row: any): void {
     this.selectedOperator = row;
-  
     const dialogRef = this.dialog.open(ModalWrapperComponent, {
       width: '95vw',
       height: '90vh',
@@ -278,7 +279,9 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
           endTime: this.endTime,
           chartWidth: this.chartWidth,
           chartHeight: this.chartHeight,
-          isModal: this.isModal
+          isModal: this.isModal,
+          mode: 'dashboard',
+          dashboardData: this.rawOperatorData
         }
       }
     });

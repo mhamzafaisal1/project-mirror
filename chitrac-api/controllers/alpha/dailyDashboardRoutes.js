@@ -48,7 +48,8 @@ module.exports = function (server) {
     fetchAllStates,
     groupStatesByOperatorAndSerial,
     fetchStatesForMachine,
-    getAllMachineSerials
+    getAllMachineSerials,
+    fetchStatesForOperator
   } = require("../../utils/state");
 
   const {
@@ -164,108 +165,89 @@ module.exports = function (server) {
         });
       }
   
-      // // === Operators ===
-      // const operatorIds = Object.keys(groupedOperatorStates).map((id) => parseInt(id));
-      // const operators = [];
-      
-      // for (const operatorId of operatorIds) {
-      //   const states = groupedOperatorStates[operatorId]?.states || [];
-      //   const counts = allCounts.filter((c) => c.operator?.id === operatorId);
-      //   const valid = validCounts.filter((c) => c.operator?.id === operatorId);
-      
-      //   if (!states.length && !counts.length) continue;
-      
-      //   const performance = await buildOperatorPerformance(states, counts, start, end);
-      //   const countByItem = await buildOperatorCountByItem(states, counts, start, end);
-      //   const cyclePie = await buildOperatorCyclePie(states, start, end);
-      //   const faultHistory = await buildOperatorFaultHistory(states, start, end);
-      //   const dailyEfficiency = await buildOperatorEfficiencyLine(valid, states, start, end);
-      
-      //   const name = await getOperatorNameFromCount(db, operatorId);
-      //   const latest = states[states.length - 1] || {};
-      
-      //   operators.push({
-      //     operator: { id: operatorId, name: name || "Unknown" },
-      //     currentStatus: {
-      //       code: latest.status?.code || 0,
-      //       name: latest.status?.name || "Unknown",
-      //     },
-      //     metrics: {
-      //       runtime: {
-      //         total: performance.runtime,
-      //         formatted: formatDuration(performance.runtime),
-      //       },
-      //       performance: {
-      //         efficiency: {
-      //           value: performance.efficiency,
-      //           percentage: (performance.efficiency * 100).toFixed(2) + "%",
-      //         },
-      //       },
-      //     },
-      //     countByItem,
-      //     cyclePie,
-      //     faultHistory,
-      //     dailyEfficiency
-      //   });
-      // }
-      
+      // === Operators ===
+      const operatorIds = await getAllOperatorIds(db); // Get unique operator IDs
+      const operators = [];
+      const operatorResults = [];
+
+      for (const operatorId of operatorIds) {
+        const states = await fetchStatesForOperator(db, operatorId, paddedStart, paddedEnd);
+        const counts = await getCountsForOperator(db, operatorId, paddedStart, paddedEnd);
+        const valid = counts.filter((c) => !c.misfeed);
+
+        if (!states.length && !counts.length) continue;
+
+        const performance = await buildOperatorPerformance(states, counts, start, end);
+        const countByItem = await buildOperatorCountByItem(states, counts, start, end);
+
+        const name = await getOperatorNameFromCount(db, operatorId);
+        const latest = states[states.length - 1] || {};
+
+        operatorResults.push({
+          operator: { id: operatorId, name: name || "Unknown" },
+          currentStatus: {
+            code: latest.status?.code || 0,
+            name: latest.status?.name || "Unknown",
+          },
+          metrics: {
+            runtime: {
+              total: performance.runtime.total,
+              formatted: performance.runtime.formatted
+            },
+            performance: {
+              efficiency: {
+                value: performance.performance.efficiency.value,
+                percentage: performance.performance.efficiency.percentage
+              }
+            }
+          },
+          countByItem
+        });
+      }
   
-      // // === Items ===
-      // const groupedByItem = {};
-      // for (const [serial, group] of Object.entries(groupedStatesByMachine)) {
-      //   const machineValidCounts = validCounts.filter(
-      //     (c) => c.machine?.serial === parseInt(serial)
-      //   );
-      //   const runCycles = extractAllCyclesFromStates(group.states, start, end).running;
-  
+      // === Items ===
+      // const items = [];
+      // for (const machineResult of machineResults) {
+      //   const machineSerial = machineResult.machine.serial;
+      //   const machineCounts = counts.filter(c => c.machine?.serial === machineSerial);
+      //   const runCycles = extractAllCyclesFromStates(states, start, end).running;
+
       //   for (const cycle of runCycles) {
-      //     const cycleCounts = machineValidCounts.filter((c) => {
+      //     const cycleCounts = machineCounts.filter(c => {
       //       const ts = new Date(c.timestamp);
       //       return ts >= new Date(cycle.start) && ts <= new Date(cycle.end);
       //     });
+
       //     if (!cycleCounts.length) continue;
-  
-      //     const workedTime = new Date(cycle.end) - new Date(cycle.start);
+
       //     const itemGroups = groupCountsByItem(cycleCounts);
-  
+      //     const workedTime = new Date(cycle.end) - new Date(cycle.start);
+
       //     for (const [itemId, group] of Object.entries(itemGroups)) {
       //       const item = group[0]?.item || {};
       //       const standard = item.standard > 0 ? item.standard : 666;
-  
-      //       if (!groupedByItem[itemId]) {
-      //         groupedByItem[itemId] = {
-      //           itemName: item.name || "Unknown",
-      //           standard,
-      //           count: 0,
-      //           workedTimeMs: 0,
-      //         };
-      //       }
-  
-      //       groupedByItem[itemId].count += group.length;
-      //       groupedByItem[itemId].workedTimeMs += workedTime;
+      //       const hours = workedTime / 3600000;
+      //       const count = group.length;
+      //       const pph = hours > 0 ? count / hours : 0;
+      //       const efficiency = standard > 0 ? pph / standard : 0;
+
+      //       items.push({
+      //         itemName: item.name || "Unknown",
+      //         workedTimeFormatted: formatDuration(workedTime),
+      //         count,
+      //         pph: Math.round(pph * 100) / 100,
+      //         standard,
+      //         efficiency: Math.round(efficiency * 10000) / 100
+      //       });
       //     }
       //   }
       // }
   
-      // const items = Object.values(groupedByItem).map((entry) => {
-      //   const hours = entry.workedTimeMs / 3600000;
-      //   const pph = hours > 0 ? entry.count / hours : 0;
-      //   const efficiency = entry.standard > 0 ? pph / entry.standard : 0;
-      //   return {
-      //     itemName: entry.itemName,
-      //     workedTimeFormatted: formatDuration(entry.workedTimeMs),
-      //     count: entry.count,
-      //     pph: Math.round(pph * 100) / 100,
-      //     standard: entry.standard,
-      //     efficiency: Math.round(efficiency * 10000) / 100,
-      //   };
-      // });
-  
       res.json({
         timeRange: { start, end, total: formatDuration(Date.now() - queryStartTime) },
         machineResults,
-        // operators,
-        // items,
+        operatorResults,
+        // items
       });
     } catch (error) {
       logger.error("Error in /analytics/daily-summary-dashboard:", error);

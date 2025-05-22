@@ -39,7 +39,9 @@
           [columns]="operatorColumns"
           [rows]="operatorRows"
           [selectedRow]="selectedOperator"
-          (rowClicked)="onOperatorClick($event)">
+          [getCellClass]="getPerformanceClass"
+          (rowClicked)="onOperatorClick($event)"
+          >
         </base-table>
       </div>
   
