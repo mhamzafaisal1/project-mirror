@@ -13,10 +13,11 @@ const {
     parseAndValidateQueryParams,
     createPaddedTimeRange,
     formatDuration,
+    getHourlyIntervals
   } = require("./time");
   
   const { extractAllCyclesFromStates, extractFaultCycles } = require('./state');
-  const { getMisfeedCounts, groupCountsByItem, processCountStatistics, groupCountsByOperatorAndMachine } = require('./count');
+  const { getMisfeedCounts, groupCountsByItem, processCountStatistics, groupCountsByOperatorAndMachine, getOperatorNameFromCount } = require('./count');
   
   // ✅ Use module.exports for CommonJS
   async function buildMachinePerformance(db, states, counts, start, end) {
@@ -316,84 +317,75 @@ const {
     }
   }
 
+
+  async function buildOperatorEfficiency(states, counts, start, end, serial) {
+    try {
+      const hourlyIntervals = getHourlyIntervals(new Date(start), new Date(end));
   
-function buildOperatorEfficiency(states, counts, start, end) {
-  try {
-    if (!Array.isArray(states)) {
-      throw new Error('States must be an array');
-    }
-    if (!Array.isArray(counts)) {
-      throw new Error('Counts must be an array');
-    }
-
-    if (!states.length || !counts.length) {
-      return {
-        operators: [],
-        summary: {
-          totalOperators: 0,
-          averageEfficiency: 0,
-          highestEfficiency: 0,
-          lowestEfficiency: 0
-        }
-      };
-    }
-
-    const grouped = groupCountsByOperatorAndMachine(counts);
-    const operators = [];
-
-    for (const key in grouped) {
-      const { operator, counts: opCounts } = grouped[key];
-      const opStates = states.filter(s =>
-        s.operators?.some(o => o.id === operator?.id)
-      );
-
-      const { runtime, downtime } = calculateOperatorTimes(opStates, start, end);
-      const stats = processCountStatistics(opCounts);
-
-      const efficiency = calculateEfficiency(runtime, stats.total, opCounts);
-      const availability = calculateAvailability(runtime, downtime, new Date(end) - new Date(start));
-      const throughput = calculateThroughput(stats.total, stats.misfeeds);
-
-      operators.push({
-        id: operator?.id,
-        name: operator?.name || 'Unknown',
-        metrics: {
-          efficiency: Math.round(efficiency * 10000) / 100,
-          availability: Math.round(availability * 10000) / 100,
-          throughput: Math.round(throughput * 10000) / 100,
-          runtime: {
-            total: runtime,
-            formatted: formatDuration(runtime)
-          },
-          output: {
-            totalCount: stats.total,
-            misfeedCount: stats.misfeeds,
-            pph: stats.pph
+      const hourlyData = await Promise.all(
+        hourlyIntervals.map(async (interval) => {
+          const hourStates = states.filter((s) => {
+            const ts = new Date(s.timestamp);
+            return ts >= interval.start && ts < interval.end;
+          });
+  
+          const hourCounts = counts.filter((c) => {
+            const ts = new Date(c.timestamp);
+            return ts >= interval.start && ts < interval.end;
+          });
+  
+          const groupedCounts = groupCountsByOperatorAndMachine(hourCounts);
+          const operatorIds = new Set(hourCounts.map((c) => c.operator?.id).filter(Boolean));
+  
+          const { runtime: totalRuntime } = calculateOperatorTimes(hourStates, interval.start, interval.end);
+  
+          const operatorMetrics = {};
+  
+          for (const operatorId of operatorIds) {
+            const key = `${operatorId}-${serial}`;
+            const group = groupedCounts[key];
+            if (!group) continue;
+  
+            const stats = processCountStatistics(group.counts);
+            const efficiency = calculateEfficiency(totalRuntime, stats.total, group.validCounts);
+            const name = group.counts[0]?.operator?.name || "Unknown";
+  
+            operatorMetrics[operatorId] = {
+              name,
+              runTime: totalRuntime,
+              validCounts: stats.valid,
+              totalCounts: stats.total,
+              efficiency: efficiency * 100
+            };
           }
-        }
-      });
+  
+          const avgEfficiency = Object.values(operatorMetrics).reduce((sum, op) => sum + op.efficiency, 0) / (Object.keys(operatorMetrics).length || 1);
+          const totalValid = Object.values(operatorMetrics).reduce((sum, op) => sum + op.validCounts, 0);
+          const totalCounts = Object.values(operatorMetrics).reduce((sum, op) => sum + op.totalCounts, 0);
+          const throughput = totalCounts > 0 ? (totalValid / totalCounts) * 100 : 0;
+          const availability = (totalRuntime / (interval.end - interval.start)) * 100;
+          const oee = calculateOEE(availability / 100, avgEfficiency / 100, throughput / 100) * 100;
+  
+          return {
+            hour: interval.start.toISOString(),
+            oee: Math.round(oee * 100) / 100,
+            operators: Object.entries(operatorMetrics).map(([id, m]) => ({
+              id: parseInt(id),
+              name: m.name,
+              efficiency: Math.round(m.efficiency * 100) / 100
+            }))
+          };
+        })
+      );
+  
+      return hourlyData;
+    } catch (err) {
+      console.error("Error in buildOperatorEfficiency:", err);
+      throw err;
     }
-
-    // Calculate summary metrics
-    const efficiencies = operators.map(op => op.metrics.efficiency);
-    const summary = {
-      totalOperators: operators.length,
-      averageEfficiency: Math.round(
-        (efficiencies.reduce((a, b) => a + b, 0) / efficiencies.length) * 100
-      ) / 100,
-      highestEfficiency: Math.max(...efficiencies),
-      lowestEfficiency: Math.min(...efficiencies)
-    };
-
-    return {
-      operators,
-      summary
-    };
-  } catch (error) {
-    console.error('Error in buildOperatorEfficiency:', error);
-    throw error;
   }
-} 
+  
+  
 
 
   

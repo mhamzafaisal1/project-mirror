@@ -135,21 +135,29 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
       this.selectedRow = null;
       return;
     }
-
+  
     this.selectedRow = row;
-
+  
     setTimeout(() => {
       const element = document.querySelector('.mat-row.selected');
       element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 0);
+  
+    const machineSerial = row['Serial Number'];
+    const machineData = this.machineData.find((m: any) => m.machine?.serial === machineSerial);
+  
+    if (!machineData) {
+      console.warn('No machine data found for serial:', machineSerial);
+      return;
+    }
+  
+    const itemSummaryData = machineData.itemSummary?.machineSummary?.itemSummaries || [];
+    const faultSummaryData = machineData.faultData?.faultSummaries || [];
+    const faultCycleData = machineData.faultData?.faultCycles || [];
+    const performanceData = machineData.performance;
 
-    // Find the machine data from the API response
-    const machineData = this.machineData?.find((m: any) => m.machine?.serial === row['Serial Number']);
-    const itemSummaryData = machineData?.itemSummary?.machineSummary?.itemSummaries;
-
-    console.log('Machine Data:', machineData);
-    console.log('Item Summary Data:', itemSummaryData);
-
+    console.log((machineData));
+  
     const carouselTabs = [
       { 
         label: 'Item Summary', 
@@ -157,7 +165,7 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           startTime: this.startTime,
           endTime: this.endTime,
-          selectedMachineSerial: row['Serial Number'],
+          selectedMachineSerial: machineSerial,
           itemSummaryData: itemSummaryData,
           isModal: this.isModal
         }
@@ -168,10 +176,12 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           startTime: this.startTime,
           endTime: this.endTime,
-          machineSerial: row['Serial Number'],
+          machineSerial: machineSerial,
           chartWidth: this.chartWidth,
           chartHeight: this.chartHeight,
-          isModal: this.isModal
+          isModal: this.isModal,
+          mode: 'dashboard',
+          preloadedData: machineData.itemHourlyStack
         }
       },
       { 
@@ -181,8 +191,9 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
           viewType: 'summary',
           startTime: this.startTime,
           endTime: this.endTime,
-          machineSerial: row['Serial Number'],
-          isModal: this.isModal
+          machineSerial: machineSerial,
+          isModal: this.isModal,
+          preloadedData: faultSummaryData // NEW
         }
       },
       { 
@@ -192,24 +203,38 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
           viewType: 'cycles',
           startTime: this.startTime,
           endTime: this.endTime,
-          machineSerial: row['Serial Number'],
-          isModal: this.isModal
+          machineSerial: machineSerial,
+          isModal: this.isModal,
+          preloadedData: faultCycleData // NEW
         }
       },
-      { 
-        label: 'Performance Chart', 
+      {
+        label: 'Performance Chart',
         component: OperatorPerformanceChartComponent,
         componentInputs: {
           startTime: this.startTime,
           endTime: this.endTime,
-          machineSerial: row['Serial Number'],
-          chartWidth: (this.chartWidth),
-          chartHeight: (this.chartHeight),
-          isModal: this.isModal
+          machineSerial: machineSerial,
+          chartWidth: this.chartWidth,
+          chartHeight: this.chartHeight,
+          isModal: this.isModal,
+          mode: 'dashboard',
+          preloadedData: {
+            machine: {
+              serial: machineSerial,
+              name: machineData.machine?.name ?? 'Unknown'
+            },
+            timeRange: {
+              start: this.startTime,
+              end: this.endTime
+            },
+            hourlyData: machineData.operatorEfficiency ?? []
+          }
         }
       }
+      
     ];
-
+  
     const dialogRef = this.dialog.open(ModalWrapperComponent, {
       width: '95vw',
       height: '90vh',
@@ -221,18 +246,19 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           tabData: carouselTabs
         },
-        machineSerial: row['Serial Number'],
+        machineSerial: machineSerial,
         startTime: this.startTime,
         endTime: this.endTime
       }
     });
-
+  
     dialogRef.afterClosed().subscribe(() => {
       if (this.selectedRow === row) {
         this.selectedRow = null;
       }
     });
   }
+  
 
   getEfficiencyClass(value: any): string {
     if (typeof value !== 'string' || !value.includes('%')) return '';

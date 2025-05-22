@@ -55,6 +55,8 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   operatorRows: any[] = [];
   selectedOperator: any = null;
   loading: boolean = false;
+  rawMachineData: any[] = []; // store full API response for machines
+
   
   // Add chart dimensions and isModal property
   chartWidth: number = 1000;
@@ -117,14 +119,16 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     this.dailyDashboardService.getDailySummaryDashboard(formattedStart, formattedEnd)
       .subscribe({
         next: (data: any) => {
-          // Machines
-          this.machineRows = (data.machines || []).map((response: any) => ({
+          //Machines
+          this.rawMachineData = data.machines || []; // <-- store raw machine data
+          this.machineRows = this.rawMachineData.map((response: any) => ({
             Status: getStatusDotByCode(response.currentStatus?.code),
             'Machine Name': response.machine.name,
-            'OEE': response.metrics.performance.oee.percentage,
+            'OEE': this.getPercentageSafe(response.metrics?.performance?.oee?.value),
             'Total Count': response.metrics.output.totalCount,
             serial: response.machine.serial
           }));
+        
 
           // Operators
           this.operatorRows = (data.operators || []).map((response: any) => ({
@@ -151,6 +155,13 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
         }
       });
   }
+
+  getPercentageSafe(value: any): string {
+    const num = typeof value === 'number' ? value : parseFloat(value);
+    if (isNaN(num)) return '0%';
+    return `${(num * 100).toFixed(2)}%`;
+  }
+  
   
   
 
@@ -159,30 +170,44 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       this.selectedRow = null;
       return;
     }
-
+  
     this.selectedRow = row;
+  
+    const serial = row.serial;
+    const fullMachineData = this.rawMachineData.find((m: any) => m.machine?.serial === serial);
+    if (!fullMachineData) {
+      console.warn('Machine data not found for serial:', serial);
+      return;
+    }
+  
+    const faultSummaries = fullMachineData.faultData?.faultSummaries || [];
+    const faultCycles = fullMachineData.faultData?.faultCycles || [];
   
     const carouselTabs = [
       {
         label: 'Fault Summaries',
         component: MachineFaultHistoryComponent,
-        componentInputs: { 
+        componentInputs: {
           viewType: 'summary',
+          mode: 'dashboard',
+          preloadedData: faultSummaries,
+          isModal: this.isModal,
           startTime: this.startTime,
           endTime: this.endTime,
-          machineSerial: row.serial,
-          isModal: this.isModal
+          serial: serial.toString()
         }
       },
       {
         label: 'Fault Cycles',
         component: MachineFaultHistoryComponent,
-        componentInputs: { 
+        componentInputs: {
           viewType: 'cycles',
+          mode: 'dashboard',
+          preloadedData: faultCycles,
+          isModal: this.isModal,
           startTime: this.startTime,
           endTime: this.endTime,
-          machineSerial: row.serial,
-          isModal: this.isModal
+          serial: serial.toString()
         }
       },
       {
@@ -191,7 +216,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           startTime: this.startTime,
           endTime: this.endTime,
-          machineSerial: row.serial,
+          machineSerial: serial,
           chartWidth: this.chartWidth,
           chartHeight: this.chartHeight,
           isModal: this.isModal
@@ -210,18 +235,19 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           tabData: carouselTabs
         },
-        machineSerial: row.serial,
+        machineSerial: serial,
         startTime: this.startTime,
         endTime: this.endTime
       }
     });
-    
+  
     dialogRef.afterClosed().subscribe(() => {
-      if (this.selectedMachine === row) {
-        this.selectedMachine = null;
+      if (this.selectedRow === row) {
+        this.selectedRow = null;
       }
     });
   }
+  
 
   onOperatorClick(row: any): void {
     this.selectedOperator = row;

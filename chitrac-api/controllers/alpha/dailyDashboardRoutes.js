@@ -16,6 +16,24 @@ module.exports = function (server) {
   } = require('../../utils/dailyDashboardBuilder'); 
 
   const {
+    getAllOperatorIds,
+    buildOperatorPerformance,
+    buildOperatorItemSummary,
+    buildOperatorCountByItem,
+    buildOperatorCyclePie,
+    buildOperatorFaultHistory,
+    buildOperatorEfficiencyLine,
+  } = require("../../utils/operatorDashboardBuilder");
+
+  const {
+    buildMachinePerformance,
+    buildMachineItemSummary,
+    buildItemHourlyStack,
+    buildFaultData,
+    buildOperatorEfficiency
+  } = require("../../utils/machineDashboardBuilder");
+
+  const {
     parseAndValidateQueryParams,
     createPaddedTimeRange,
     formatDuration
@@ -127,130 +145,108 @@ module.exports = function (server) {
   
       const groupedMachineStates = groupStatesByMachine(allStates);
       const groupedOperatorStates = groupStatesByOperator(allStates);
+      // Inject operator names into the group (like in /operator-performance)
+for (const [opId, group] of Object.entries(groupedOperatorStates)) {
+  group.operator = group.operator || {};
+  group.operator.name = await getOperatorNameFromCount(db, opId);
+}
+
       const groupedStatesByMachine = groupStatesByMachine(allStates);
   
       // === Machines ===
-      const machines = Object.entries(groupedMachineStates).map(
-        ([serial, group]) => {
-          const name = group.machine?.name || "Unknown";
-          const serialNum = parseInt(serial);
-          const states = group.states;
-          const latest = states[states.length - 1] || {};
-  
-          const cycles = extractAllCyclesFromStates(states, start, end).running;
-          const runtimeMs = cycles.reduce((sum, c) => sum + c.duration, 0);
-          const downtimeMs = totalQueryMs - runtimeMs;
-  
-          const machineValid = validCounts.filter(
-            (c) => c.machine?.serial === serialNum
-          );
-          const machineMisfeeds = misfeedCounts.filter(
-            (c) => c.machine?.serial === serialNum
-          );
-          const totalCount = machineValid.length + machineMisfeeds.length;
-  
-          const availability = calculateAvailability(
-            runtimeMs,
-            downtimeMs,
-            totalQueryMs
-          );
-          const throughput = calculateThroughput(totalCount, machineMisfeeds.length);
-          const efficiency = calculateEfficiency(runtimeMs, totalCount, machineValid);
-          const oee = calculateOEE(availability, efficiency, throughput);
-  
-          return {
-            machine: { name, serial: serialNum },
-            currentStatus: {
-              code: latest.status?.code || 0,
-              name: latest.status?.name || "Unknown",
+      const machineSerials = Object.keys(groupedMachineStates).map((s) => parseInt(s));
+      const machines = [];
+      
+      for (const serial of machineSerials) {
+        const states = groupedMachineStates[serial]?.states || [];
+        if (!states.length) continue;
+      
+        const machineValidCounts = validCounts.filter((c) => c.machine?.serial === serial);
+        const machineMisfeedCounts = misfeedCounts.filter((c) => c.machine?.serial === serial);
+        
+        const performance = await buildMachinePerformance(
+          db,
+          states,
+          machineValidCounts,
+          machineMisfeedCounts,
+          start,
+          end
+        );
+        
+        const faultData = await buildFaultData(states, start, end); // includes summaries and cycles
+      
+        const latest = states[states.length - 1] || {};
+        const name = latest.machine?.name || "Unknown";
+      
+        machines.push({
+          machine: { name, serial },
+          currentStatus: {
+            code: latest.status?.code || 0,
+            name: latest.status?.name || "Unknown",
+          },
+          metrics: {
+            output: {
+              totalCount: performance.output?.totalCount || 0,
             },
-            metrics: {
-              runtime: { total: runtimeMs, formatted: formatDuration(runtimeMs) },
-              downtime: {
-                total: downtimeMs,
-                formatted: formatDuration(downtimeMs),
-              },
-              output: {
-                totalCount,
-                misfeedCount: machineMisfeeds.length,
-              },
-              performance: {
-                availability: {
-                  value: availability,
-                  percentage: (availability * 100).toFixed(2) + "%",
-                },
-                throughput: {
-                  value: throughput,
-                  percentage: (throughput * 100).toFixed(2) + "%",
-                },
-                efficiency: {
-                  value: efficiency,
-                  percentage: (efficiency * 100).toFixed(2) + "%",
-                },
-                oee: { value: oee, percentage: (oee * 100).toFixed(2) + "%" },
-              },
-            },
-            timeRange: { start, end, total: formatDuration(totalQueryMs) },
-          };
-        }
-      );
+            performance: {
+              oee: {
+                value: performance.oee,
+                percentage: (performance.oee * 100).toFixed(2) + "%"
+              }
+            }
+                
+          },
+          faultData,
+          performance,
+        });
+      }
+      
   
       // === Operators ===
-      const operatorCounts = groupCountsByOperator(allCounts);
-      const operators = Object.entries(groupedOperatorStates).map(
-        ([id, group]) => {
-          const operatorId = parseInt(id);
-          const name = group.operator?.name || "Unknown";
-          const states = group.states;
-          const counts = operatorCounts[operatorId] || [];
-          const stats = processCountStatistics(counts);
-  
-          const { runtime, pausedTime, faultTime } = calculateOperatorTimes(
-            states,
-            start,
-            end
-          );
-          const pph = calculatePiecesPerHour(stats.total, runtime);
-          const efficiency = calculateEfficiency(runtime, stats.total, stats.validCounts);
-  
-          const latest = states[states.length - 1] || {};
-  
-          return {
-            operator: { id: operatorId, name },
-            currentStatus: {
-              code: latest.status?.code || 0,
-              name: latest.status?.name || "Unknown",
+      const operatorIds = Object.keys(groupedOperatorStates).map((id) => parseInt(id));
+      const operators = [];
+      
+      for (const operatorId of operatorIds) {
+        const states = groupedOperatorStates[operatorId]?.states || [];
+        const counts = allCounts.filter((c) => c.operator?.id === operatorId);
+        const valid = validCounts.filter((c) => c.operator?.id === operatorId);
+      
+        if (!states.length && !counts.length) continue;
+      
+        const performance = await buildOperatorPerformance(states, counts, start, end);
+        const countByItem = await buildOperatorCountByItem(states, counts, start, end);
+        const cyclePie = await buildOperatorCyclePie(states, start, end);
+        const faultHistory = await buildOperatorFaultHistory(states, start, end);
+        const dailyEfficiency = await buildOperatorEfficiencyLine(valid, states, start, end);
+      
+        const name = await getOperatorNameFromCount(db, operatorId);
+        const latest = states[states.length - 1] || {};
+      
+        operators.push({
+          operator: { id: operatorId, name: name || "Unknown" },
+          currentStatus: {
+            code: latest.status?.code || 0,
+            name: latest.status?.name || "Unknown",
+          },
+          metrics: {
+            runtime: {
+              total: performance.runtime,
+              formatted: formatDuration(performance.runtime),
             },
-            metrics: {
-              runtime: { total: runtime, formatted: formatDuration(runtime) },
-              pausedTime: {
-                total: pausedTime,
-                formatted: formatDuration(pausedTime),
-              },
-              faultTime: {
-                total: faultTime,
-                formatted: formatDuration(faultTime),
-              },
-              output: {
-                totalCount: stats.total,
-                misfeedCount: stats.misfeeds,
-                validCount: stats.valid,
-              },
-              performance: {
-                piecesPerHour: {
-                  value: pph,
-                  formatted: Math.round(pph).toString(),
-                },
-                efficiency: {
-                  value: efficiency,
-                  percentage: (efficiency * 100).toFixed(2) + "%",
-                },
+            performance: {
+              efficiency: {
+                value: performance.efficiency,
+                percentage: (performance.efficiency * 100).toFixed(2) + "%",
               },
             },
-            timeRange: { start, end, total: formatDuration(totalQueryMs) },
-          };
-        }
-      );
+          },
+          countByItem,
+          cyclePie,
+          faultHistory,
+          dailyEfficiency
+        });
+      }
+      
   
       // === Items ===
       const groupedByItem = {};

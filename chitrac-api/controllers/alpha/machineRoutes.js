@@ -39,35 +39,36 @@ module.exports = function (server) {
     buildDailyItemHourlyStack,
     buildPlantwideMetricsByHour
   } = require("../../utils/dailyDashboardBuilder");
-
   router.get("/machine-dashboard", async (req, res) => {
     try {
       const { start, end, serial } = parseAndValidateQueryParams(req);
       const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
-
+  
       const targetSerials = serial
         ? [parseInt(serial)]
         : await getAllMachineSerials(db);
-
+  
       const results = [];
-
+  
       for (const machineSerial of targetSerials) {
         const states = await fetchStatesForMachine(db, machineSerial, paddedStart, paddedEnd);
         const counts = await getCountsForMachine(db, machineSerial, paddedStart, paddedEnd);
-
+  
         if (!states.length) continue;
-
+  
         const performance = await buildMachinePerformance(db, states, counts, start, end);
         const itemSummary = await buildMachineItemSummary(states, counts, start, end);
         const itemHourlyStack = await buildItemHourlyStack(counts, start, end);
         const faultData = await buildFaultData(states, start, end);
-        const operatorEfficiency = await buildOperatorEfficiency(states, counts, start, end);
-
+  
+        // 🔁 Pass machineSerial to align with new function signature
+        const operatorEfficiency = await buildOperatorEfficiency(states, counts, start, end, machineSerial);
+  
         const latestState = states[states.length - 1];
         const machineName = latestState.machine?.name || "Unknown";
         const statusCode = latestState.status?.code || 0;
         const statusName = latestState.status?.name || "Unknown";
-
+  
         results.push({
           machine: {
             serial: machineSerial,
@@ -81,16 +82,17 @@ module.exports = function (server) {
           itemSummary,
           itemHourlyStack,
           faultData,
-          operatorEfficiency
+          operatorEfficiency // ✅ this is now an array of hourly data, same as chart expects
         });
       }
-
+  
       res.json(results);
     } catch (err) {
       logger.error("Error in /machine-dashboard route:", err);
       res.status(500).json({ error: "Failed to fetch dashboard data" });
     }
   });
+  
 
 
   router.get("/daily-dashboard/machine-status", async (req, res) => {

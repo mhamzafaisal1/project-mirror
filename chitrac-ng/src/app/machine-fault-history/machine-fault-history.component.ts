@@ -44,6 +44,9 @@ export class MachineFaultHistoryComponent implements OnInit, OnChanges, OnDestro
   @Input() endTime: string = '';
   @Input() serial: string = '';
   @Input() isModal: boolean = false;
+  @Input() mode: 'standalone' | 'dashboard' = 'standalone';
+  @Input() preloadedData?: any[]; // Either faultSummaries or faultCycles depending on viewType
+
 
   private _viewType: 'summary' | 'cycles' = 'summary';
   @Input()
@@ -79,14 +82,30 @@ export class MachineFaultHistoryComponent implements OnInit, OnChanges, OnDestro
     }
   }
 
+  private handlePreloadedData(data: any) {
+    this.lastFetchedData = {
+      faultSummaries: this.viewType === 'summary' ? data : [],
+      faultCycles: this.viewType === 'cycles' ? data : []
+    };
+    this.updateTable();
+  }
+  
+
   ngOnInit(): void {
     this.detectTheme();
     this.observeTheme();
-    this.checkAndFetch();
+  
+    if (this.isModal && this.preloadedData) {
+      this.handlePreloadedData(this.preloadedData);
+    } else {
+      this.checkAndFetch();
+    }
   }
-
+  
   ngOnChanges(changes: SimpleChanges): void {
-    if (
+    if (this.isModal && changes['preloadedData']?.currentValue) {
+      this.handlePreloadedData(changes['preloadedData'].currentValue);
+    } else if (
       changes['startTime'] ||
       changes['endTime'] ||
       changes['serial'] ||
@@ -95,6 +114,7 @@ export class MachineFaultHistoryComponent implements OnInit, OnChanges, OnDestro
       this.checkAndFetch();
     }
   }
+  
 
   ngOnDestroy() {
     if (this.observer) this.observer.disconnect();
