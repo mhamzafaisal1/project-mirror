@@ -19,7 +19,7 @@ export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit {
   @Input() rows: any[] = [];
   @Input() selectedRow: any | null = null;
   @Input() disableSorting: boolean = false;
-  @Input() getCellClass: ((value: any) => string) | null = null;
+  @Input() getCellClass: ((value: any, column: string) => string) | null = null;
 
   @Output() rowClicked = new EventEmitter<any>();
 
@@ -87,9 +87,8 @@ export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit {
   }
 
   getCellClassForColumn(value: any, column: string): string {
-    if (this.getCellClass) {
-      return this.getCellClass(value);
-    }
-    return '';
+    return this.getCellClass ? this.getCellClass(value, column) : '';
   }
+  
+  
 }

@@ -47,6 +47,8 @@ module.exports = function (server) {
     extractFaultCycles,
     fetchAllStates,
     groupStatesByOperatorAndSerial,
+    fetchStatesForMachine,
+    getAllMachineSerials
   } = require("../../utils/state");
 
   const {
@@ -59,6 +61,7 @@ module.exports = function (server) {
     groupCountsByOperatorAndMachine,
     getCountsForOperatorMachinePairs,
     groupCountsByOperator,
+    getCountsForMachine
   } = require("../../utils/count");
 
   const { calculateAvailability, calculateThroughput, calculateEfficiency, calculateOEE, calculatePiecesPerHour, calculateOperatorTimes } = require("../../utils/analytics");
@@ -116,194 +119,153 @@ module.exports = function (server) {
   
   router.get("/analytics/daily-summary-dashboard", async (req, res) => {
     try {
-      const { start, end } = parseAndValidateQueryParams(req);
+      const queryStartTime = Date.now();
+      const { start, end, serial } = parseAndValidateQueryParams(req);
       const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
-      const totalQueryMs = new Date(end) - new Date(start);
   
-      // === Fetch all states and counts once ===
-      const [allStates, allCounts] = await Promise.all([
-        db.collection("state")
-          .find({
-            timestamp: { $gte: paddedStart, $lte: paddedEnd },
-            "machine.serial": { $exists: true },
-            "status.code": { $exists: true },
-          })
-          .sort({ timestamp: 1 })
-          .toArray(),
+      const targetSerials = serial
+        ? [parseInt(serial)]
+        : await getAllMachineSerials(db);
   
-        db.collection("count")
-          .find({
-            timestamp: { $gte: new Date(start), $lte: new Date(end) },
-            "operator.id": { $exists: true, $ne: -1 },
-          })
-          .sort({ timestamp: 1 })
-          .toArray(),
-      ]);
+      // ✅ MACHINE SECTION (copied from /machine-dashboard)
+      const machineResults = [];
   
-      const validCounts = allCounts.filter((c) => !c.misfeed);
-      const misfeedCounts = allCounts.filter((c) => c.misfeed);
+      for (const machineSerial of targetSerials) {
+        const states = await fetchStatesForMachine(db, machineSerial, paddedStart, paddedEnd);
+        const counts = await getCountsForMachine(db, machineSerial, paddedStart, paddedEnd);
   
-      const groupedMachineStates = groupStatesByMachine(allStates);
-      const groupedOperatorStates = groupStatesByOperator(allStates);
-      // Inject operator names into the group (like in /operator-performance)
-for (const [opId, group] of Object.entries(groupedOperatorStates)) {
-  group.operator = group.operator || {};
-  group.operator.name = await getOperatorNameFromCount(db, opId);
-}
-
-      const groupedStatesByMachine = groupStatesByMachine(allStates);
-  
-      // === Machines ===
-      const machineSerials = Object.keys(groupedMachineStates).map((s) => parseInt(s));
-      const machines = [];
-      
-      for (const serial of machineSerials) {
-        const states = groupedMachineStates[serial]?.states || [];
         if (!states.length) continue;
-      
-        const machineValidCounts = validCounts.filter((c) => c.machine?.serial === serial);
-        const machineMisfeedCounts = misfeedCounts.filter((c) => c.machine?.serial === serial);
-        
-        const performance = await buildMachinePerformance(
-          db,
-          states,
-          machineValidCounts,
-          machineMisfeedCounts,
-          start,
-          end
-        );
-        
-        const faultData = await buildFaultData(states, start, end); // includes summaries and cycles
-      
-        const latest = states[states.length - 1] || {};
-        const name = latest.machine?.name || "Unknown";
-      
-        machines.push({
-          machine: { name, serial },
+  
+        const performance = await buildMachinePerformance(db, states, counts, start, end);
+        const itemSummary = await buildMachineItemSummary(states, counts, start, end);
+        const itemHourlyStack = await buildItemHourlyStack(counts, start, end);
+        const faultData = await buildFaultData(states, start, end);
+        const operatorEfficiency = await buildOperatorEfficiency(states, counts, start, end, machineSerial);
+  
+        const latestState = states[states.length - 1];
+        const machineName = latestState.machine?.name || 'Unknown';
+        const statusCode = latestState.status?.code || 0;
+        const statusName = latestState.status?.name || 'Unknown';
+  
+        machineResults.push({
+          machine: {
+            serial: machineSerial,
+            name: machineName
+          },
           currentStatus: {
-            code: latest.status?.code || 0,
-            name: latest.status?.name || "Unknown",
+            code: statusCode,
+            name: statusName
           },
-          metrics: {
-            output: {
-              totalCount: performance.output?.totalCount || 0,
-            },
-            performance: {
-              oee: {
-                value: performance.oee,
-                percentage: (performance.oee * 100).toFixed(2) + "%"
-              }
-            }
-                
-          },
-          faultData,
           performance,
+          itemSummary,
+          itemHourlyStack,
+          faultData,
+          operatorEfficiency
         });
       }
+  
+      // // === Operators ===
+      // const operatorIds = Object.keys(groupedOperatorStates).map((id) => parseInt(id));
+      // const operators = [];
+      
+      // for (const operatorId of operatorIds) {
+      //   const states = groupedOperatorStates[operatorId]?.states || [];
+      //   const counts = allCounts.filter((c) => c.operator?.id === operatorId);
+      //   const valid = validCounts.filter((c) => c.operator?.id === operatorId);
+      
+      //   if (!states.length && !counts.length) continue;
+      
+      //   const performance = await buildOperatorPerformance(states, counts, start, end);
+      //   const countByItem = await buildOperatorCountByItem(states, counts, start, end);
+      //   const cyclePie = await buildOperatorCyclePie(states, start, end);
+      //   const faultHistory = await buildOperatorFaultHistory(states, start, end);
+      //   const dailyEfficiency = await buildOperatorEfficiencyLine(valid, states, start, end);
+      
+      //   const name = await getOperatorNameFromCount(db, operatorId);
+      //   const latest = states[states.length - 1] || {};
+      
+      //   operators.push({
+      //     operator: { id: operatorId, name: name || "Unknown" },
+      //     currentStatus: {
+      //       code: latest.status?.code || 0,
+      //       name: latest.status?.name || "Unknown",
+      //     },
+      //     metrics: {
+      //       runtime: {
+      //         total: performance.runtime,
+      //         formatted: formatDuration(performance.runtime),
+      //       },
+      //       performance: {
+      //         efficiency: {
+      //           value: performance.efficiency,
+      //           percentage: (performance.efficiency * 100).toFixed(2) + "%",
+      //         },
+      //       },
+      //     },
+      //     countByItem,
+      //     cyclePie,
+      //     faultHistory,
+      //     dailyEfficiency
+      //   });
+      // }
       
   
-      // === Operators ===
-      const operatorIds = Object.keys(groupedOperatorStates).map((id) => parseInt(id));
-      const operators = [];
-      
-      for (const operatorId of operatorIds) {
-        const states = groupedOperatorStates[operatorId]?.states || [];
-        const counts = allCounts.filter((c) => c.operator?.id === operatorId);
-        const valid = validCounts.filter((c) => c.operator?.id === operatorId);
-      
-        if (!states.length && !counts.length) continue;
-      
-        const performance = await buildOperatorPerformance(states, counts, start, end);
-        const countByItem = await buildOperatorCountByItem(states, counts, start, end);
-        const cyclePie = await buildOperatorCyclePie(states, start, end);
-        const faultHistory = await buildOperatorFaultHistory(states, start, end);
-        const dailyEfficiency = await buildOperatorEfficiencyLine(valid, states, start, end);
-      
-        const name = await getOperatorNameFromCount(db, operatorId);
-        const latest = states[states.length - 1] || {};
-      
-        operators.push({
-          operator: { id: operatorId, name: name || "Unknown" },
-          currentStatus: {
-            code: latest.status?.code || 0,
-            name: latest.status?.name || "Unknown",
-          },
-          metrics: {
-            runtime: {
-              total: performance.runtime,
-              formatted: formatDuration(performance.runtime),
-            },
-            performance: {
-              efficiency: {
-                value: performance.efficiency,
-                percentage: (performance.efficiency * 100).toFixed(2) + "%",
-              },
-            },
-          },
-          countByItem,
-          cyclePie,
-          faultHistory,
-          dailyEfficiency
-        });
-      }
-      
+      // // === Items ===
+      // const groupedByItem = {};
+      // for (const [serial, group] of Object.entries(groupedStatesByMachine)) {
+      //   const machineValidCounts = validCounts.filter(
+      //     (c) => c.machine?.serial === parseInt(serial)
+      //   );
+      //   const runCycles = extractAllCyclesFromStates(group.states, start, end).running;
   
-      // === Items ===
-      const groupedByItem = {};
-      for (const [serial, group] of Object.entries(groupedStatesByMachine)) {
-        const machineValidCounts = validCounts.filter(
-          (c) => c.machine?.serial === parseInt(serial)
-        );
-        const runCycles = extractAllCyclesFromStates(group.states, start, end).running;
+      //   for (const cycle of runCycles) {
+      //     const cycleCounts = machineValidCounts.filter((c) => {
+      //       const ts = new Date(c.timestamp);
+      //       return ts >= new Date(cycle.start) && ts <= new Date(cycle.end);
+      //     });
+      //     if (!cycleCounts.length) continue;
   
-        for (const cycle of runCycles) {
-          const cycleCounts = machineValidCounts.filter((c) => {
-            const ts = new Date(c.timestamp);
-            return ts >= new Date(cycle.start) && ts <= new Date(cycle.end);
-          });
-          if (!cycleCounts.length) continue;
+      //     const workedTime = new Date(cycle.end) - new Date(cycle.start);
+      //     const itemGroups = groupCountsByItem(cycleCounts);
   
-          const workedTime = new Date(cycle.end) - new Date(cycle.start);
-          const itemGroups = groupCountsByItem(cycleCounts);
+      //     for (const [itemId, group] of Object.entries(itemGroups)) {
+      //       const item = group[0]?.item || {};
+      //       const standard = item.standard > 0 ? item.standard : 666;
   
-          for (const [itemId, group] of Object.entries(itemGroups)) {
-            const item = group[0]?.item || {};
-            const standard = item.standard > 0 ? item.standard : 666;
+      //       if (!groupedByItem[itemId]) {
+      //         groupedByItem[itemId] = {
+      //           itemName: item.name || "Unknown",
+      //           standard,
+      //           count: 0,
+      //           workedTimeMs: 0,
+      //         };
+      //       }
   
-            if (!groupedByItem[itemId]) {
-              groupedByItem[itemId] = {
-                itemName: item.name || "Unknown",
-                standard,
-                count: 0,
-                workedTimeMs: 0,
-              };
-            }
+      //       groupedByItem[itemId].count += group.length;
+      //       groupedByItem[itemId].workedTimeMs += workedTime;
+      //     }
+      //   }
+      // }
   
-            groupedByItem[itemId].count += group.length;
-            groupedByItem[itemId].workedTimeMs += workedTime;
-          }
-        }
-      }
-  
-      const items = Object.values(groupedByItem).map((entry) => {
-        const hours = entry.workedTimeMs / 3600000;
-        const pph = hours > 0 ? entry.count / hours : 0;
-        const efficiency = entry.standard > 0 ? pph / entry.standard : 0;
-        return {
-          itemName: entry.itemName,
-          workedTimeFormatted: formatDuration(entry.workedTimeMs),
-          count: entry.count,
-          pph: Math.round(pph * 100) / 100,
-          standard: entry.standard,
-          efficiency: Math.round(efficiency * 10000) / 100,
-        };
-      });
+      // const items = Object.values(groupedByItem).map((entry) => {
+      //   const hours = entry.workedTimeMs / 3600000;
+      //   const pph = hours > 0 ? entry.count / hours : 0;
+      //   const efficiency = entry.standard > 0 ? pph / entry.standard : 0;
+      //   return {
+      //     itemName: entry.itemName,
+      //     workedTimeFormatted: formatDuration(entry.workedTimeMs),
+      //     count: entry.count,
+      //     pph: Math.round(pph * 100) / 100,
+      //     standard: entry.standard,
+      //     efficiency: Math.round(efficiency * 10000) / 100,
+      //   };
+      // });
   
       res.json({
-        timeRange: { start, end, total: formatDuration(totalQueryMs) },
-        machines,
-        operators,
-        items,
+        timeRange: { start, end, total: formatDuration(Date.now() - queryStartTime) },
+        machineResults,
+        // operators,
+        // items,
       });
     } catch (error) {
       logger.error("Error in /analytics/daily-summary-dashboard:", error);

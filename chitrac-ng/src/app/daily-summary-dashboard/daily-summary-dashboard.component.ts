@@ -119,16 +119,16 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     this.dailyDashboardService.getDailySummaryDashboard(formattedStart, formattedEnd)
       .subscribe({
         next: (data: any) => {
-          //Machines
-          this.rawMachineData = data.machines || []; // <-- store raw machine data
+          this.rawMachineData = data.machineResults || [];
+
+        //Machines
           this.machineRows = this.rawMachineData.map((response: any) => ({
             Status: getStatusDotByCode(response.currentStatus?.code),
-            'Machine Name': response.machine.name,
-            'OEE': this.getPercentageSafe(response.metrics?.performance?.oee?.value),
-            'Total Count': response.metrics.output.totalCount,
-            serial: response.machine.serial
+            'Machine Name': response.machine?.name ?? 'Unknown',
+            'OEE': response.performance?.performance?.oee?.percentage ?? '0%',
+            'Total Count': response.performance?.output?.totalCount ?? 0,
+            serial: response.machine?.serial
           }));
-        
 
           // Operators
           this.operatorRows = (data.operators || []).map((response: any) => ({
@@ -219,7 +219,19 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
           machineSerial: serial,
           chartWidth: this.chartWidth,
           chartHeight: this.chartHeight,
-          isModal: this.isModal
+          isModal: this.isModal,
+          mode: 'dashboard',
+          preloadedData: {
+            machine: {
+              serial: serial,
+              name: fullMachineData.machine?.name ?? 'Unknown'
+            },
+            timeRange: {
+              start: this.startTime,
+              end: this.endTime
+            },
+            hourlyData: fullMachineData.operatorEfficiency ?? []
+          }
         }
       }
     ];
@@ -313,4 +325,5 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     if (num >= 60) return 'yellow';
     return 'red';
   }
+  
 }

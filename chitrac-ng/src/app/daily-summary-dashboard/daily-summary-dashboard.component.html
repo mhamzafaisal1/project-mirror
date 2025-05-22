@@ -25,7 +25,9 @@
         [columns]="machineColumns"
         [rows]="machineRows"
         [selectedRow]="selectedRow"
-        (rowClicked)="onMachineClick($event)">
+        (rowClicked)="onMachineClick($event)"
+        [getCellClass]="getPerformanceClass"
+        >
       </base-table>          
       </div>
       
