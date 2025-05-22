@@ -130,6 +130,23 @@ function calculatePiecesPerHour(totalCount, runtimeMs) {
   return Math.max(0, piecesPerHour);
 }
 
+function calculateStandardFromCounts(counts) {
+  if (!Array.isArray(counts) || counts.length === 0) return 0;
+
+  const frequencyMap = {};
+  for (const count of counts) {
+    const std = count?.item?.standard;
+    if (typeof std === 'number' && std > 0) {
+      frequencyMap[std] = (frequencyMap[std] || 0) + 1;
+    }
+  }
+
+  // Pick most frequent valid standard
+  const [mostCommon] = Object.entries(frequencyMap).sort((a, b) => b[1] - a[1]);
+  return mostCommon ? parseFloat(mostCommon[0]) : 0;
+}
+
+
 module.exports = {
   calculateRuntime,
   calculateDowntime,
@@ -140,5 +157,6 @@ module.exports = {
   calculateEfficiency,
   calculateOEE,
   calculateOperatorTimes,
-  calculatePiecesPerHour
+  calculatePiecesPerHour,
+  calculateStandardFromCounts
 };
