@@ -206,48 +206,80 @@ module.exports = function (server) {
       }
   
       // === Items ===
-      // const items = [];
-      // for (const machineResult of machineResults) {
-      //   const machineSerial = machineResult.machine.serial;
-      //   const machineCounts = counts.filter(c => c.machine?.serial === machineSerial);
-      //   const runCycles = extractAllCyclesFromStates(states, start, end).running;
+      const items = [];
+      for (const machineResult of machineResults) {
+        const machineSerial = machineResult.machine.serial;
+        const machineStates = await fetchStatesForMachine(db, machineSerial, paddedStart, paddedEnd);
+        const machineCounts = await getCountsForMachine(db, machineSerial, paddedStart, paddedEnd);
+        const runCycles = extractAllCyclesFromStates(machineStates, start, end).running;
 
-      //   for (const cycle of runCycles) {
-      //     const cycleCounts = machineCounts.filter(c => {
-      //       const ts = new Date(c.timestamp);
-      //       return ts >= new Date(cycle.start) && ts <= new Date(cycle.end);
-      //     });
+        const machineSummary = {
+          totalCount: 0,
+          totalWorkedMs: 0,
+          itemSummaries: {}
+        };
 
-      //     if (!cycleCounts.length) continue;
+        for (const cycle of runCycles) {
+          const cycleStart = new Date(cycle.start);
+          const cycleEnd = new Date(cycle.end);
+          const cycleMs = cycleEnd - cycleStart;
 
-      //     const itemGroups = groupCountsByItem(cycleCounts);
-      //     const workedTime = new Date(cycle.end) - new Date(cycle.start);
+          const cycleCounts = machineCounts.filter(c => {
+            const ts = new Date(c.timestamp);
+            return ts >= cycleStart && ts <= cycleEnd;
+          });
 
-      //     for (const [itemId, group] of Object.entries(itemGroups)) {
-      //       const item = group[0]?.item || {};
-      //       const standard = item.standard > 0 ? item.standard : 666;
-      //       const hours = workedTime / 3600000;
-      //       const count = group.length;
-      //       const pph = hours > 0 ? count / hours : 0;
-      //       const efficiency = standard > 0 ? pph / standard : 0;
+          if (!cycleCounts.length) continue;
 
-      //       items.push({
-      //         itemName: item.name || "Unknown",
-      //         workedTimeFormatted: formatDuration(workedTime),
-      //         count,
-      //         pph: Math.round(pph * 100) / 100,
-      //         standard,
-      //         efficiency: Math.round(efficiency * 10000) / 100
-      //       });
-      //     }
-      //   }
-      // }
+          const operators = new Set(cycleCounts.map(c => c.operator?.id).filter(Boolean));
+          const workedTimeMs = cycleMs * Math.max(1, operators.size);
+
+          const itemGroups = groupCountsByItem(cycleCounts);
+
+          for (const [itemId, group] of Object.entries(itemGroups)) {
+            const countTotal = group.length;
+            const standard = group[0].item?.standard > 0 ? group[0].item.standard : 666;
+            const name = group[0].item?.name || "Unknown";
+
+            if (!machineSummary.itemSummaries[itemId]) {
+              machineSummary.itemSummaries[itemId] = {
+                count: 0,
+                standard,
+                workedTimeMs: 0,
+                name
+              };
+            }
+
+            machineSummary.itemSummaries[itemId].count += countTotal;
+            machineSummary.itemSummaries[itemId].workedTimeMs += workedTimeMs;
+            machineSummary.totalCount += countTotal;
+            machineSummary.totalWorkedMs += workedTimeMs;
+          }
+        }
+
+        // Add per-item formatted metrics
+        Object.entries(machineSummary.itemSummaries).forEach(([itemId, summary]) => {
+          const workedTimeFormatted = formatDuration(summary.workedTimeMs);
+          const totalHours = summary.workedTimeMs / 3600000;
+          const pph = totalHours > 0 ? summary.count / totalHours : 0;
+          const efficiency = summary.standard > 0 ? pph / summary.standard : 0;
+
+          items.push({
+            itemName: summary.name,
+            workedTimeFormatted,
+            count: summary.count,
+            pph: Math.round(pph * 100) / 100,
+            standard: summary.standard,
+            efficiency: Math.round(efficiency * 10000) / 100
+          });
+        });
+      }
   
       res.json({
         timeRange: { start, end, total: formatDuration(Date.now() - queryStartTime) },
         machineResults,
         operatorResults,
-        // items
+        items
       });
     } catch (error) {
       logger.error("Error in /analytics/daily-summary-dashboard:", error);
