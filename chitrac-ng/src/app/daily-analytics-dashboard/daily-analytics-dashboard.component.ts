@@ -1,9 +1,14 @@
-import { Component, OnInit, Renderer2, ElementRef, Input } from "@angular/core";
+import { Component, OnInit, Renderer2, ElementRef, Input, OnDestroy } from "@angular/core";
 import { MatIconModule } from '@angular/material/icon';
 import { CommonModule } from "@angular/common";
 import { DailyDashboardService } from "../services/daily-dashboard.service";
 import { DateTimePickerComponent } from "../components/date-time-picker/date-time-picker.component";
 import { ChartTileComponent } from "../components/chart-tile/chart-tile.component";
+import { PollingService } from "../services/polling-service.service";
+import { Subject, Observable } from "rxjs";
+import { takeUntil, tap } from "rxjs/operators";
+import { FormsModule } from '@angular/forms';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { DailyMachineStackedBarChartComponent } from "../daily-machine-stacked-bar-chart/daily-machine-stacked-bar-chart.component";
 import { DailyMachineOeeBarChartComponent } from "../daily-machine-oee-bar-chart/daily-machine-oee-bar-chart.component";
@@ -30,17 +35,23 @@ import { MatButtonModule } from '@angular/material/button';
     ComponentOutletInjectorModule,
     DynamicIoDirective,
     MatIconModule,
-    MatButtonModule
+    MatButtonModule,
+    FormsModule,
+    MatCheckboxModule
   ],
   templateUrl: './daily-analytics-dashboard.component.html',
   styleUrls: ['./daily-analytics-dashboard.component.scss']
 })
-export class DailyAnalyticsDashboardComponent implements OnInit {
+export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
   startTime: string = '';
   endTime: string = '';
   isDarkTheme: boolean = false;
+  liveMode: boolean = false;
+  loading: boolean = false;
+  private pollingSubscription: any;
 
   fullDashboardData: any = null;
+  hasInitialData: boolean = false;
 
   chartWidth: number = 600;
   chartHeight: number = 450;
@@ -87,10 +98,14 @@ export class DailyAnalyticsDashboardComponent implements OnInit {
     // { component: ..., title: ..., icon: ..., dataKey: ... }
   ];
 
+  private destroy$ = new Subject<void>();
+  private readonly POLLING_INTERVAL = 6000; // 6 seconds
+
   constructor(
     private dashboardService: DailyDashboardService,
     private renderer: Renderer2,
-    private elRef: ElementRef
+    private elRef: ElementRef,
+    private pollingService: PollingService
   ) {}
 
   ngOnInit(): void {
@@ -102,20 +117,94 @@ export class DailyAnalyticsDashboardComponent implements OnInit {
     this.detectTheme();
   }
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.stopPolling();
+  }
+
+  private setupPolling(): void {
+    if (this.liveMode) {
+      // Initial data fetch
+      this.fetchDashboardData().subscribe();
+
+      // Setup polling for subsequent updates
+      this.pollingSubscription = this.pollingService.poll(
+        () => {
+          this.endTime = this.pollingService.updateEndTimestampToNow();
+          return this.fetchDashboardData();
+        },
+        this.POLLING_INTERVAL,
+        this.destroy$
+      ).subscribe();
+    }
+  }
+
+  private stopPolling(): void {
+    if (this.pollingSubscription) {
+      this.pollingSubscription.unsubscribe();
+      this.pollingSubscription = null;
+    }
+  }
+
+  onLiveModeChange(checked: boolean): void {
+    this.liveMode = checked;
+  
+    if (this.liveMode) {
+      // Reset startTime to today at 00:00
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      this.startTime = this.formatDateForInput(start);
+  
+      // Reset endTime to now
+      this.endTime = this.pollingService.updateEndTimestampToNow();
+  
+      // Immediately fetch data and begin polling
+      this.fetchDashboardData().subscribe();
+      this.setupPolling();
+    } else {
+      this.stopPolling();
+    }
+  }
+  
+
+  onDateChange(): void {
+    if (this.liveMode) {
+      this.liveMode = false;
+      this.stopPolling();
+    }
+  
+    // Clear previously loaded data so charts disappear until "Fetch Data" is clicked
+    this.hasInitialData = false;
+    this.fullDashboardData = null;
+  }
+  
+
+  fetchDashboardData(): Observable<any> {
+    if (!this.startTime || !this.endTime) {
+      return new Observable(); // or use `EMPTY` if you prefer
+    }
+  
+    this.loading = true;
+  
+    return this.dashboardService.getFullDailyDashboard(this.startTime, this.endTime)
+      .pipe(
+        takeUntil(this.destroy$),
+        tap(data => {
+          this.fullDashboardData = data;
+          this.hasInitialData = true;
+          this.loading = false;
+        })
+      );
+  }
+  
+
   detectTheme() {
     const isDark = document.body.classList.contains('dark-theme');
     this.isDarkTheme = isDark;
     const el = this.elRef.nativeElement;
     this.renderer.setStyle(el, 'background-color', isDark ? '#121212' : '#ffffff');
     this.renderer.setStyle(el, 'color', isDark ? '#e0e0e0' : '#000000');
-  }
-
-  fetchDashboardData() {
-    if (!this.startTime || !this.endTime) return;
-    this.dashboardService.getFullDailyDashboard(this.startTime, this.endTime)
-      .subscribe(data => {
-        this.fullDashboardData = data;
-      });
   }
 
   private formatDateForInput(date: Date): string {

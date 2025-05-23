@@ -9,6 +9,12 @@
   height: 100vh;
   overflow: hidden;
   box-sizing: border-box;
+  position: relative;
+
+  &.loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
 
   > app-chart-tile {
     width: 100%;
@@ -104,6 +110,63 @@
 
     > app-chart-tile:nth-last-child(1) {
       border-bottom: none;
+    }
+  }
+}
+
+.live-mode-container {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  
+  mat-checkbox {
+    font-size: 14px;
+  }
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .loading-text {
+    margin-top: 1rem;
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+:host-context(.dark-theme) {
+  .loading-overlay {
+    background: rgba(255, 255, 255, 0.1);
+
+    .loading-spinner {
+      border-color: #2c2c2c;
+      border-top-color: #3498db;
     }
   }
 }

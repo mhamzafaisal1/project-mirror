@@ -146,8 +146,9 @@ const {
     // Get counts within this cycle
     const cycleCounts = sortedCounts.filter(c => {
       const ts = new Date(c.timestamp);
-      return ts >= cycleStart && ts <= cycleEnd;
+      return ts >= cycleStart && ts <= cycleEnd && !c.misfeed;
     });
+    
   
     if (!cycleCounts.length) return null;
   
@@ -163,7 +164,7 @@ const {
       : 0;
   
     // Optional: breakdown by item (as per original format)
-    const itemGroups = groupCountsByItem(cycleCounts);
+    const itemGroups = groupCountsByItem(cycleCounts.filter(c => c.item));
     const items = Object.entries(itemGroups).map(([itemId, group]) => ({
       id: parseInt(itemId),
       name: group[0]?.item?.name || "Unknown",
