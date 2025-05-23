@@ -163,7 +163,7 @@ const {
       ? parseFloat((piecesPerHour / efficiency).toFixed(2))
       : 0;
   
-    // Optional: breakdown by item (as per original format)
+    // Filter out counts without valid item data before grouping
     const itemGroups = groupCountsByItem(cycleCounts.filter(c => c.item));
     const items = Object.entries(itemGroups).map(([itemId, group]) => ({
       id: parseInt(itemId),
