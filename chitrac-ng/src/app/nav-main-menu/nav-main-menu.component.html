@@ -54,19 +54,19 @@
       <a mat-list-item (click)="prevMenu()">
         <mat-icon>arrow_back</mat-icon><span>Back</span>
       </a>
-      <a mat-list-item routerLink="/ng/daily-analytics">
+      <a mat-list-item routerLink="/ng/daily-analytics" (click)="closeMenu()">
         <mat-icon>slow_motion_video</mat-icon><span>Daily</span>
       </a>
-      <a mat-list-item routerLink="/ng/analytics/machine-dashboard">
+      <a mat-list-item routerLink="/ng/analytics/machine-dashboard" (click)="closeMenu()">
         <mat-icon>local_laundry_service</mat-icon><span>Machine</span>
       </a>
-      <a mat-list-item routerLink="/ng/operatorAnalytics">
+      <a mat-list-item routerLink="/ng/operatorAnalytics" (click)="closeMenu()">
         <mat-icon>person</mat-icon><span>Operator</span>
       </a>
-      <a mat-list-item routerLink="/ng/itemAnalytics">
+      <a mat-list-item routerLink="/ng/itemAnalytics" (click)="closeMenu()">
         <mat-icon>dry_cleaning</mat-icon><span>Item</span>
       </a>
-      <a mat-list-item routerLink="/ng/daily-summary">
+      <a mat-list-item routerLink="/ng/daily-summary" (click)="closeMenu()">
         <mat-icon>view_column</mat-icon><span>Summary</span>
       </a>
     </mat-nav-list>
