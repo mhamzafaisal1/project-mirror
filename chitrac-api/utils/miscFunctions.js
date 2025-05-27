@@ -165,25 +165,16 @@ const {
   
     // Filter out counts without valid item data before grouping
     const itemGroups = groupCountsByItem(cycleCounts.filter(c => c.item));
-    const items = Object.entries(itemGroups).map(([itemId, group]) => ({
-      id: parseInt(itemId),
-      name: group[0]?.item?.name || "Unknown",
-      standard: group[0]?.item?.standard || 0,
-      count: group.length
-    }));
+    const task = Object.entries(itemGroups).map(([_, group]) => 
+      group[0]?.item?.name || "Unknown"
+    );
   
     return {
       startTimestamp: cycleStart.toISOString(),
       endTimestamp: cycleEnd.toISOString(),
       totalCount: stats.total,
-      items,
-      standard,
-      piecesPerHour: Math.round(piecesPerHour),
-      efficiency: parseFloat((efficiency * 100).toFixed(2)), // in %
-      runtime: {
-        total: runtime,
-        formatted: formatDuration(runtime)
-      }
+      task,
+      standard: Math.round(standard)
     };
   }
   
