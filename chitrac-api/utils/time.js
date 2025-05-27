@@ -75,9 +75,6 @@ function validateTimeRange(start, end) {
   if (start > end) {
     throw new Error('Start time must be before end time');
   }
-  if (end > new Date()) {
-    throw new Error('End time cannot be in the future');
-  }
   return true;
 }
 

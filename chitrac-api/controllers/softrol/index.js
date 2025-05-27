@@ -242,7 +242,19 @@ function constructor(server) {
         try {
           // Use centralized time parser
           const { start, end } = parseAndValidateQueryParams(req);
-          const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+    
+          // Get latest state timestamp if end date is in the future
+          const [latestState] = await db.collection('state')
+            .find()
+            .sort({ timestamp: -1 })
+            .limit(1)
+            .toArray();
+    
+          const effectiveEnd = new Date(end) > new Date() 
+            ? (latestState?.timestamp || new Date()) 
+            : end;
+    
+          const { paddedStart, paddedEnd } = createPaddedTimeRange(start, effectiveEnd);
     
           // 1. Fetch and group states by operator and machine
           const allStates = await fetchStatesForOperator(
@@ -319,5 +331,7 @@ function constructor(server) {
         }
       });
       // Softrol Route end
+
+      
     return router;
 }
