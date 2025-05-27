@@ -607,8 +607,16 @@ function extractFaultCycles(states, queryStart, queryEnd) {
  * @param {Db} db - MongoDB database instance
  * @returns {Promise<number[]>} Array of machine serials
  */
-async function getAllMachineSerials(db) {
-  const serials = await db.collection('state').distinct('machine.serial');
+async function getAllMachineSerials(db, start, end) {
+  if (!start || !end) {
+    throw new Error("Start and end timestamps are required");
+  }
+
+  const serials = await db.collection('state').distinct('machine.serial', {
+    timestamp: { $gte: new Date(start), $lte: new Date(end) }
+  });
+
+  // Only return numeric, valid serials
   return serials.filter(s => typeof s === 'number' && !isNaN(s));
 }
 

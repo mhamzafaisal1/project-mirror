@@ -45,8 +45,9 @@ module.exports = function (server) {
       const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
   
       const targetSerials = serial
-        ? [parseInt(serial)]
-        : await getAllMachineSerials(db);
+  ? [parseInt(serial)]
+  : await getAllMachineSerials(db, paddedStart, paddedEnd);
+
   
       const results = [];
   

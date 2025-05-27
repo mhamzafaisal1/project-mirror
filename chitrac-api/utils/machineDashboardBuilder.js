@@ -7,6 +7,7 @@ const {
     calculateThroughput,
     calculateTotalCount,
     calculateOperatorTimes,
+    calculateMisfeeds
   } = require('./analytics');
 
   const {
@@ -17,23 +18,28 @@ const {
   } = require("./time");
   
   const { extractAllCyclesFromStates, extractFaultCycles } = require('./state');
-  const { getMisfeedCounts, groupCountsByItem, processCountStatistics, groupCountsByOperatorAndMachine, getOperatorNameFromCount } = require('./count');
-  
-  // ✅ Use module.exports for CommonJS
+  const { getMisfeedCounts, groupCountsByItem, processCountStatistics, groupCountsByOperatorAndMachine, getValidCounts } = require('./count');
   async function buildMachinePerformance(db, states, counts, start, end) {
-    const runningCycles = extractAllCyclesFromStates(states, start, end).running;
-    const misfeedCounts = await getMisfeedCounts(db, states[0]?.machine?.serial, start, end);
+    const serial = states[0]?.machine?.serial;
   
-    const totalQueryMs = new Date(end) - new Date(start);
+    // ✅ Get filtered counts explicitly
+    const validCounts = await getValidCounts(db, serial, start, end);
+    const misfeedCounts = await getMisfeedCounts(db, serial, start, end);
+  
+    // ✅ Time calculations
+    const runningCycles = extractAllCyclesFromStates(states, start, end).running;
     const runtimeMs = runningCycles.reduce((total, cycle) => total + cycle.duration, 0);
+    const totalQueryMs = new Date(end) - new Date(start);
     const downtimeMs = calculateDowntime(totalQueryMs, runtimeMs);
   
-    const totalCount = calculateTotalCount(counts, misfeedCounts);
-    const misfeedCount = misfeedCounts.length;
+    // ✅ Use valid + misfeeds only, not unfiltered counts
+    const totalCount = calculateTotalCount(validCounts, misfeedCounts);
+    const misfeedCount = calculateMisfeeds(misfeedCounts);
   
+    // ✅ Use filtered counts for performance calculations
     const availability = calculateAvailability(runtimeMs, downtimeMs, totalQueryMs);
-    const throughput = calculateThroughput(totalCount, misfeedCount);
-    const efficiency = calculateEfficiency(runtimeMs, totalCount, counts);
+    const throughput = calculateThroughput(validCounts.length, misfeedCount);
+    const efficiency = calculateEfficiency(runtimeMs, validCounts.length, validCounts);
     const oee = calculateOEE(availability, efficiency, throughput);
   
     return {
@@ -69,6 +75,7 @@ const {
       }
     };
   }
+  
 
   function buildMachineItemSummary(states, counts, start, end) {
     try {
