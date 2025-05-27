@@ -165,9 +165,10 @@ const {
   
     // Filter out counts without valid item data before grouping
     const itemGroups = groupCountsByItem(cycleCounts.filter(c => c.item));
-    const task = Object.entries(itemGroups).map(([_, group]) => 
-      group[0]?.item?.name || "Unknown"
-    );
+    const task = Object.entries(itemGroups)
+    .map(([_, group]) => group[0]?.item?.name || "Unknown")
+    .join(", ");
+  
   
     return {
       startTimestamp: cycleStart.toISOString(),

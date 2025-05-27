@@ -29,7 +29,7 @@ module.exports = function (server) {
   const db = server.db;
   const logger = server.logger;
 
-  router.get("/softrol/get-softrol-data", async (req, res) => {
+  router.get("/historic-data", async (req, res) => {
     try {
       // Use centralized time parser
       const { start, end } = parseAndValidateQueryParams(req);
