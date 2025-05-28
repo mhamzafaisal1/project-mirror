@@ -29,7 +29,7 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     for (const state of states) {
       const serial = state.machine?.serial;
       if (!serial) {
-        console.warn("Skipping state with missing machine.serial:", state);
+        // console.warn("Skipping state with missing machine.serial:", state);
         continue;
       }
   

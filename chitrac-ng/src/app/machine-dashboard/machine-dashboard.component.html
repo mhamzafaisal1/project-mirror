@@ -1,4 +1,11 @@
 <div class="dashboard-container">
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Fetching data...</div>
+    </div>
+  </div>
+  
   <div class="date-range-container">
     <app-date-time-picker
       label="Start Time"

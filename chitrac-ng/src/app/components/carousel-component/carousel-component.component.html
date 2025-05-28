@@ -1,8 +1,4 @@
 <div class="carousel-wrapper">
-  <button class="nav-button left" mat-icon-button (click)="goToPrevious()">
-    <mat-icon>chevron_left</mat-icon>
-  </button>
-
   <div class="tabs-container">
     <mat-tab-group [(selectedIndex)]="selectedIndex">
       <mat-tab *ngFor="let label of tabLabels; let i = index">
@@ -11,8 +7,4 @@
       </mat-tab>
     </mat-tab-group>
   </div>
-
-  <button class="nav-button right" mat-icon-button (click)="goToNext()">
-    <mat-icon>chevron_right</mat-icon>
-  </button>
 </div>

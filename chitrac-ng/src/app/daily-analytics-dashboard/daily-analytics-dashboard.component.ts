@@ -126,13 +126,24 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
   private setupPolling(): void {
     if (this.liveMode) {
       // Initial data fetch
-      this.fetchDashboardData().subscribe();
+      this.dashboardService.getFullDailyDashboard(this.startTime, this.endTime)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(data => {
+          this.fullDashboardData = data;
+          this.hasInitialData = true;
+        });
 
       // Setup polling for subsequent updates
       this.pollingSubscription = this.pollingService.poll(
         () => {
           this.endTime = this.pollingService.updateEndTimestampToNow();
-          return this.fetchDashboardData();
+          return this.dashboardService.getFullDailyDashboard(this.startTime, this.endTime)
+            .pipe(
+              tap(data => {
+                this.fullDashboardData = data;
+                this.hasInitialData = true;
+              })
+            );
         },
         this.POLLING_INTERVAL,
         this.destroy$
@@ -159,8 +170,14 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
       // Reset endTime to now
       this.endTime = this.pollingService.updateEndTimestampToNow();
   
-      // Immediately fetch data and begin polling
-      this.fetchDashboardData().subscribe();
+      // Initial data fetch without loading state
+      this.dashboardService.getFullDailyDashboard(this.startTime, this.endTime)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(data => {
+          this.fullDashboardData = data;
+          this.hasInitialData = true;
+        });
+      
       this.setupPolling();
     } else {
       this.stopPolling();
@@ -182,18 +199,24 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
 
   fetchDashboardData(): Observable<any> {
     if (!this.startTime || !this.endTime) {
-      return new Observable(); // or use `EMPTY` if you prefer
+      return new Observable();
     }
   
+    // Set loading state for manual data fetching
     this.loading = true;
   
     return this.dashboardService.getFullDailyDashboard(this.startTime, this.endTime)
       .pipe(
         takeUntil(this.destroy$),
-        tap(data => {
-          this.fullDashboardData = data;
-          this.hasInitialData = true;
-          this.loading = false;
+        tap({
+          next: (data) => {
+            this.fullDashboardData = data;
+            this.hasInitialData = true;
+            this.loading = false;
+          },
+          error: () => {
+            this.loading = false;
+          }
         })
       );
   }
