@@ -139,9 +139,9 @@ module.exports = function (server) {
         if (!states.length) continue;
   
         const performance = await buildMachinePerformance(db, states, counts, start, end);
-        const itemSummary = await buildMachineItemSummary(states, counts, start, end);
-        const itemHourlyStack = await buildItemHourlyStack(counts, start, end);
-        const faultData = await buildFaultData(states, start, end);
+        const itemSummary =  buildMachineItemSummary(states, counts, start, end);
+        const itemHourlyStack =  buildItemHourlyStack(counts, start, end);
+        const faultData = buildFaultData(states, start, end);
         const operatorEfficiency = await buildOperatorEfficiency(states, counts, start, end, machineSerial);
   
         const latestState = states[states.length - 1];

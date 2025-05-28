@@ -117,7 +117,7 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
           }));
 
           const allColumns = Object.keys(formattedData[0]);
-          const columnsToHide = ['Serial Number'];
+          const columnsToHide = [''];
           this.columns = allColumns.filter(col => !columnsToHide.includes(col));
 
           this.rows = formattedData;

@@ -18,7 +18,8 @@ module.exports = function (server) {
     getAllMachineSerials,
     groupStatesByMachine,
     extractAllCyclesFromStates,
-    getAllMachinesFromStates
+    getAllMachinesFromStates,
+    getAllMachineSerialsAndNames
   } = require("../../utils/state");
 
   const {
@@ -39,51 +40,125 @@ module.exports = function (server) {
     buildDailyItemHourlyStack,
     buildPlantwideMetricsByHour
   } = require("../../utils/dailyDashboardBuilder");
+
+  const {
+    fetchGroupedAnalyticsData
+  } = require("../../utils/fetchData");
+
+
+  
+  // router.get("/machine-dashboard", async (req, res) => {
+  //   try {
+  //     const { start, end, serial } = parseAndValidateQueryParams(req);
+  //     const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+  
+  //     const serialNamePairs = serial
+  // ? [parseInt(serial)]
+  // : await getAllMachineSerialsAndNames(db, paddedStart, paddedEnd);
+
+  
+  // const results = [];
+
+  // for (const { serial: machineSerial, name: machineName } of serialNamePairs) {
+  //   const states = await fetchStatesForMachine(db, machineSerial, paddedStart, paddedEnd);
+  //   const counts = await getCountsForMachine(db, machineSerial, paddedStart, paddedEnd);
+  
+  //   if (!states.length) continue;
+  
+  //   const performance = await buildMachinePerformance(db, states, counts, start, end);
+  //   const itemSummary = await buildMachineItemSummary(states, counts, start, end);
+  //   const itemHourlyStack = await buildItemHourlyStack(counts, start, end);
+  //   const faultData = await buildFaultData(states, start, end);
+  //   const operatorEfficiency = await buildOperatorEfficiency(states, counts, start, end, machineSerial);
+  
+  //   const latestState = states[states.length - 1];
+  //   const statusCode = latestState.status?.code || 0;
+  //   const statusName = latestState.status?.name || "Unknown";
+  
+  //   results.push({
+  //     machine: {
+  //       serial: machineSerial,
+  //       name: machineName,
+  //     },
+  //     currentStatus: {
+  //       code: statusCode,
+  //       name: statusName,
+  //     },
+  //     performance,
+  //     itemSummary,
+  //     itemHourlyStack,
+  //     faultData,
+  //     operatorEfficiency
+  //   });
+  // }
+  
+  
+  //     res.json(results);
+  //   } catch (err) {
+  //     logger.error("Error in /machine-dashboard route:", err);
+  //     res.status(500).json({ error: "Failed to fetch dashboard data" });
+  //   }
+  // });
+  
+
+  
   router.get("/machine-dashboard", async (req, res) => {
     try {
       const { start, end, serial } = parseAndValidateQueryParams(req);
       const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
   
-      const targetSerials = serial
-  ? [parseInt(serial)]
-  : await getAllMachineSerials(db, paddedStart, paddedEnd);
+      const targetSerials = serial ? [serial] : [];
+
+      const groupedData = await fetchGroupedAnalyticsData(
+        db,
+        paddedStart,
+        paddedEnd,
+        "machine",
+        { targetSerials }
+      );
+      
 
   
       const results = [];
-  
-      for (const machineSerial of targetSerials) {
-        const states = await fetchStatesForMachine(db, machineSerial, paddedStart, paddedEnd);
-        const counts = await getCountsForMachine(db, machineSerial, paddedStart, paddedEnd);
+
+      for (const [serial, group] of Object.entries(groupedData)) {
+        const machineSerial = parseInt(serial);
+        const { states, counts } = group;
   
         if (!states.length) continue;
   
-        const performance = await buildMachinePerformance(db, states, counts, start, end);
-        const itemSummary = await buildMachineItemSummary(states, counts, start, end);
-        const itemHourlyStack = await buildItemHourlyStack(counts, start, end);
-        const faultData = await buildFaultData(states, start, end);
-  
-        // 🔁 Pass machineSerial to align with new function signature
-        const operatorEfficiency = await buildOperatorEfficiency(states, counts, start, end, machineSerial);
+        // ✅ Compute performance using pre-filtered counts
+        const performance = await buildMachinePerformance(
+          states,
+          counts.valid,
+          counts.misfeed,
+          start,
+          end
+        );
+        const itemSummary = buildMachineItemSummary(states, counts.valid, start, end);
+        const itemHourlyStack = buildItemHourlyStack(counts.valid, start, end);
+        const faultData = buildFaultData(states, start, end);
+        const operatorEfficiency = await buildOperatorEfficiency(states, counts.valid, start, end, parseInt(serial));
   
         const latestState = states[states.length - 1];
-        const machineName = latestState.machine?.name || "Unknown";
         const statusCode = latestState.status?.code || 0;
         const statusName = latestState.status?.name || "Unknown";
+        const machineName = latestState.machine?.name || "Unknown";
   
         results.push({
           machine: {
             serial: machineSerial,
-            name: machineName,
+            name: machineName
           },
           currentStatus: {
             code: statusCode,
-            name: statusName,
+            name: statusName
           },
           performance,
           itemSummary,
           itemHourlyStack,
           faultData,
-          operatorEfficiency // ✅ this is now an array of hourly data, same as chart expects
+          operatorEfficiency
         });
       }
   
@@ -93,7 +168,6 @@ module.exports = function (server) {
       res.status(500).json({ error: "Failed to fetch dashboard data" });
     }
   });
-  
 
 
   router.get("/daily-dashboard/machine-status", async (req, res) => {

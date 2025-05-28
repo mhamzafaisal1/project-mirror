@@ -601,23 +601,54 @@ function extractFaultCycles(states, queryStart, queryEnd) {
 
 
 /**
- * Returns an array of unique machine serial numbers found in the 'state' collection
- * within the given time range.
+ * Returns an array of unique, valid machine serials found in 'state' collection
+ * between start and end time.
  * 
- * @param {Db} db - MongoDB database instance
- * @returns {Promise<number[]>} Array of machine serials
+ * @param {Db} db - MongoDB instance
+ * @param {Date} start - Start time
+ * @param {Date} end - End time
+ * @returns {Promise<number[]>} Unique machine serials
  */
 async function getAllMachineSerials(db, start, end) {
-  if (!start || !end) {
-    throw new Error("Start and end timestamps are required");
+  const query = {
+    timestamp: { $gte: start, $lte: end },
+    "machine.serial": { $type: "int" }  // Only fetch documents where serial is already stored as integer
+  };
+
+  const serials = await db.collection("state").distinct("machine.serial", query);
+
+  return serials; // No need to filter again — $type guards it
+}
+
+/**
+ * Returns unique machine serial and name pairs from the 'state' collection
+ * within the given time range, without using aggregation.
+ * 
+ * @param {Db} db - MongoDB instance
+ * @param {Date} start - Start time
+ * @param {Date} end - End time
+ * @returns {Promise<{ serial: number, name: string }[]>}
+ */
+async function getAllMachineSerialsAndNames(db, start, end) {
+  const states = await db.collection("state").find({
+    timestamp: { $gte: start, $lte: end },
+    "machine.serial": { $type: "int" },
+    "machine.name": { $exists: true, $ne: null }
+  }).project({ "machine.serial": 1, "machine.name": 1 }).toArray();
+
+  const seen = new Set();
+  const result = [];
+
+  for (const doc of states) {
+    const serial = doc.machine?.serial;
+    const name = doc.machine?.name;
+    if (!seen.has(serial)) {
+      seen.add(serial);
+      result.push({ serial, name });
+    }
   }
 
-  const serials = await db.collection('state').distinct('machine.serial', {
-    timestamp: { $gte: new Date(start), $lte: new Date(end) }
-  });
-
-  // Only return numeric, valid serials
-  return serials.filter(s => typeof s === 'number' && !isNaN(s));
+  return result;
 }
 
 
@@ -656,6 +687,7 @@ async function fetchAllStates(db, start, end) {
     getCompletedCyclesForOperator,
     extractFaultCycles,
     getAllMachineSerials,
+    getAllMachineSerialsAndNames,
     fetchAllStates
   };
   
