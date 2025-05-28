@@ -67,6 +67,7 @@ module.exports = function (server) {
 
   const { calculateAvailability, calculateThroughput, calculateEfficiency, calculateOEE, calculatePiecesPerHour, calculateOperatorTimes } = require("../../utils/analytics");
 
+  const { fetchGroupedAnalyticsData } = require("../../utils/fetchData");
 
   router.get('/analytics/daily-dashboard/full', async (req, res) => {
     try {
@@ -124,31 +125,42 @@ module.exports = function (server) {
       const { start, end, serial } = parseAndValidateQueryParams(req);
       const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
   
-      const targetSerials = serial
-      ? [parseInt(serial)]
-      : await getAllMachineSerials(db, paddedStart, paddedEnd);
-    
-  
-      // ✅ MACHINE SECTION (copied from /machine-dashboard)
+      const targetSerials = serial ? [parseInt(serial)] : [];
+
+      // ✅ MACHINE SECTION
+      const machineGroupedData = await fetchGroupedAnalyticsData(
+        db,
+        paddedStart,
+        paddedEnd,
+        "machine",
+        { targetSerials }
+      );
+
       const machineResults = [];
-  
-      for (const machineSerial of targetSerials) {
-        const states = await fetchStatesForMachine(db, machineSerial, paddedStart, paddedEnd);
-        const counts = await getCountsForMachine(db, machineSerial, paddedStart, paddedEnd);
-  
+
+      for (const [serial, group] of Object.entries(machineGroupedData)) {
+        const machineSerial = parseInt(serial);
+        const { states, counts } = group;
+
         if (!states.length) continue;
-  
-        const performance = await buildMachinePerformance(db, states, counts, start, end);
-        const itemSummary =  buildMachineItemSummary(states, counts, start, end);
-        const itemHourlyStack =  buildItemHourlyStack(counts, start, end);
+
+        const performance = await buildMachinePerformance(
+          states,
+          counts.valid,
+          counts.misfeed,
+          start,
+          end
+        );
+        const itemSummary = buildMachineItemSummary(states, counts.valid, start, end);
+        const itemHourlyStack = buildItemHourlyStack(counts.valid, start, end);
         const faultData = buildFaultData(states, start, end);
-        const operatorEfficiency = await buildOperatorEfficiency(states, counts, start, end, machineSerial);
-  
+        const operatorEfficiency = await buildOperatorEfficiency(states, counts.valid, start, end, machineSerial);
+
         const latestState = states[states.length - 1];
         const machineName = latestState.machine?.name || 'Unknown';
         const statusCode = latestState.status?.code || 0;
         const statusName = latestState.status?.name || 'Unknown';
-  
+
         machineResults.push({
           machine: {
             serial: machineSerial,
@@ -165,27 +177,45 @@ module.exports = function (server) {
           operatorEfficiency
         });
       }
-  
+
       // === Operators ===
-      const operatorIds = await getAllOperatorIds(db); // Get unique operator IDs
-      const operators = [];
+      const operatorGroupedData = await fetchGroupedAnalyticsData(
+        db,
+        paddedStart,
+        paddedEnd,
+        "operator"
+      );
+
       const operatorResults = [];
 
-      for (const operatorId of operatorIds) {
-        const states = await fetchStatesForOperator(db, operatorId, paddedStart, paddedEnd);
-        const counts = await getCountsForOperator(db, operatorId, paddedStart, paddedEnd);
-        const valid = counts.filter((c) => !c.misfeed);
+      for (const [operatorId, group] of Object.entries(operatorGroupedData)) {
+        const numericOperatorId = parseInt(operatorId);
+        const { states, counts } = group;
 
-        if (!states.length && !counts.length) continue;
+        if (!states.length && !counts.all.length) continue;
 
-        const performance = await buildOperatorPerformance(states, counts, start, end);
-        const countByItem = await buildOperatorCountByItem(states, counts, start, end);
+        const performance = await buildOperatorPerformance(
+          states,
+          counts.valid,
+          counts.misfeed,
+          start,
+          end
+        );
 
-        const name = await getOperatorNameFromCount(db, operatorId);
+        const countByItem = await buildOperatorCountByItem(group, start, end);
+
+        const operatorName =
+          counts.valid[0]?.operator?.name ||
+          counts.all[0]?.operator?.name ||
+          "Unknown";
+
         const latest = states[states.length - 1] || {};
 
         operatorResults.push({
-          operator: { id: operatorId, name: name || "Unknown" },
+          operator: { 
+            id: numericOperatorId, 
+            name: operatorName 
+          },
           currentStatus: {
             code: latest.status?.code || 0,
             name: latest.status?.name || "Unknown",
