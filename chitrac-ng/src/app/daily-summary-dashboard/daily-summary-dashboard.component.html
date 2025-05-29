@@ -9,36 +9,7 @@
     </div>
   </div>
 
-    <div class="controls">
-      <div class="live-mode-container">
-        <mat-slide-toggle
-          [(ngModel)]="liveMode"
-          (change)="onLiveModeChange($event.checked)"
-          color="primary"
-          [aria-label]="'Toggle Live Mode'"
-        >
-          Live Mode
-        </mat-slide-toggle>
-      </div>
-
-      <app-date-time-picker 
-        label="Start Time" 
-        [(value)]="startTime"
-        (valueChange)="onDateChange()"
-      ></app-date-time-picker>
-      <app-date-time-picker 
-        label="End Time" 
-        [(value)]="endTime"
-        (valueChange)="onDateChange()"
-      ></app-date-time-picker>
-  
-      <div class="button-group">
-        <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="isLoading || !startTime || !endTime">
-          <mat-icon>refresh</mat-icon>
-          {{ isLoading ? 'Loading...' : 'Fetch Data' }}
-        </button>
-      </div>
-    </div>
+    
   
     <div class="tables-container" [class.loading]="isLoading" *ngIf="machineRows.length || operatorRows.length || itemRows.length">
       <div class="table-section" *ngIf="machineRows.length">
@@ -77,6 +48,37 @@
           [columns]="itemColumns"
           [rows]="itemRows">
         </base-table>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="live-mode-container">
+        <mat-slide-toggle
+          [(ngModel)]="liveMode"
+          (change)="onLiveModeChange($event.checked)"
+          color="primary"
+          [aria-label]="'Toggle Live Mode'"
+        >
+          Live Mode
+        </mat-slide-toggle>
+      </div>
+
+      <app-date-time-picker 
+        label="Start Time" 
+        [(value)]="startTime"
+        (valueChange)="onDateChange()"
+      ></app-date-time-picker>
+      <app-date-time-picker 
+        label="End Time" 
+        [(value)]="endTime"
+        (valueChange)="onDateChange()"
+      ></app-date-time-picker>
+  
+      <div class="button-group">
+        <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="isLoading || !startTime || !endTime">
+          <mat-icon>refresh</mat-icon>
+          {{ isLoading ? 'Loading...' : 'Fetch Data' }}
+        </button>
       </div>
     </div>
   </div>
