@@ -4,7 +4,7 @@
 /** MODULE REQUIRES */
 const express = require('express');
 const router = express.Router();
-const { DateTime, Duration } = require('luxon'); //For handling dates and times
+const { DateTime, Duration, Interval } = require('luxon'); //For handling dates and times
 
 const {
   parseAndValidateQueryParams,
