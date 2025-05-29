@@ -60,98 +60,105 @@ async function buildMachineOEE(db, start, end) {
 }
 
 async function buildDailyItemHourlyStack(db, start, end) {
-    try {
-      const startDate = new Date(start);
-      const endDate = new Date(end);
-  
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        throw new Error('Invalid date range provided');
-      }
-  
-      const pipeline = [
-        {
-          $match: {
-            timestamp: { $gte: startDate, $lte: endDate },
-            misfeed: { $ne: true },
-            'operator.id': { $exists: true, $ne: -1 } // optional: only valid operators
-          }
-        },
-        {
-          $project: {
-            itemName: { $ifNull: ["$item.name", "Unknown"] },
-            hourIndex: {
-              $toInt: {
-                $divide: [
-                  { $subtract: ["$timestamp", startDate] },
-                  1000 * 60 * 60
-                ]
-              }
-            }
-          }
-        },
-        {
-          $group: {
-            _id: { hourIndex: "$hourIndex", itemName: "$itemName" },
-            count: { $sum: 1 }
-          }
-        },
-        {
-          $group: {
-            _id: "$_id.itemName",
-            hourlyCounts: {
-              $push: {
-                hourIndex: "$_id.hourIndex",
-                count: "$count"
-              }
-            }
-          }
-        }
-      ];
-  
-      const results = await db.collection('count').aggregate(pipeline).toArray();
-  
-      // Dynamically collect all hour indexes present in the data
-      const hourSet = new Set();
-      const operators = {};
-  
-      for (const result of results) {
-        const itemName = result._id;
-        operators[itemName] = {};
-  
-        for (const entry of result.hourlyCounts) {
-          hourSet.add(entry.hourIndex);
-          operators[itemName][entry.hourIndex] = entry.count;
-        }
-      }
-  
-      const hours = Array.from(hourSet).sort((a, b) => a - b);
-  
-      // Fill missing hour slots with 0s for all items
-      const finalizedOperators = {};
-      for (const [itemName, hourCounts] of Object.entries(operators)) {
-        finalizedOperators[itemName] = hours.map(h => hourCounts[h] || 0);
-      }
-  
-      if (hours.length === 0) {
-        return {
-          title: "No data",
-          data: { hours: [], operators: {} }
-        };
-      }
-  
-      return {
-        title: "Item Counts by Hour (All Machines)",
-        data: {
-          hours,
-          operators: finalizedOperators
-        }
-      };
-  
-    } catch (error) {
-      console.error('Error in buildDailyItemHourlyStack:', error);
-      throw error;
+  try {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new Error('Invalid date range provided');
     }
+
+    const pipeline = [
+      {
+        $match: {
+          timestamp: { $gte: startDate, $lte: endDate },
+          misfeed: { $ne: true },
+          'operator.id': { $exists: true, $ne: -1 }
+        }
+      },
+      {
+        $project: {
+          itemName: { $ifNull: ["$item.name", "Unknown"] },
+          hourIndex: {
+            $toInt: {
+              $divide: [
+                { $subtract: ["$timestamp", startDate] },
+                1000 * 60 * 60
+              ]
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: { hourIndex: "$hourIndex", itemName: "$itemName" },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { "_id.itemName": 1, "_id.hourIndex": 1 } // Ensure stable order by item
+      },
+      {
+        $group: {
+          _id: "$_id.itemName",
+          hourlyCounts: {
+            $push: {
+              hourIndex: "$_id.hourIndex",
+              count: "$count"
+            }
+          }
+        }
+      },
+      {
+        $sort: { "_id": 1 } // Final sort by item name
+      }
+    ];
+
+    const results = await db.collection('count').aggregate(pipeline).toArray();
+
+    const hourSet = new Set();
+    const operators = {};
+
+    for (const result of results) {
+      const itemName = result._id;
+      operators[itemName] = {};
+
+      for (const entry of result.hourlyCounts) {
+        hourSet.add(entry.hourIndex);
+        operators[itemName][entry.hourIndex] = entry.count;
+      }
+    }
+
+    const hours = Array.from(hourSet).sort((a, b) => a - b);
+
+    const finalizedOperators = {};
+    const sortedItemNames = Object.keys(operators).sort(); // JS-side sorting for extra safety
+    for (const itemName of sortedItemNames) {
+      const hourCounts = operators[itemName];
+      finalizedOperators[itemName] = hours.map(h => hourCounts[h] || 0);
+    }
+
+    if (hours.length === 0) {
+      return {
+        title: "No data",
+        data: { hours: [], operators: {} }
+      };
+    }
+
+    return {
+      title: "Item Counts by Hour (All Machines)",
+      data: {
+        hours,
+        operators: finalizedOperators
+      }
+    };
+
+  } catch (error) {
+    console.error('Error in buildDailyItemHourlyStack:', error);
+    throw error;
   }
+}
+
 
   async function buildTopOperatorEfficiency(db, start, end) {
     const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
