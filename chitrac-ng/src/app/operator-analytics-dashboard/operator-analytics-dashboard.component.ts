@@ -226,13 +226,9 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   
     const operatorId = row['Operator ID'];
   
-    // Use the user-selected `this.endTime` to compute startTime for line chart
-    const selectedEnd = new Date(this.endTime);
-    const selectedStart = new Date(selectedEnd);
-    selectedStart.setDate(selectedStart.getDate() - 28);
-  
-    const startTimeStr = selectedStart.toISOString();
-    const endTimeStr = selectedEnd.toISOString();
+    // Use the actual dashboard time range
+    const startTimeStr = this.startTime;
+    const endTimeStr = this.endTime;
 
     // Find the operator data from the stored dashboard data
     const operatorData = this.operatorData?.find((o: any) => o.operator?.id === operatorId);
@@ -291,7 +287,8 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         component: OperatorLineChartComponent,
         componentInputs: {
           mode: 'dashboard',
-          dashboardData: this.operatorData,
+          startTime: startTimeStr,
+          endTime: endTimeStr,
           operatorId: operatorId.toString(),
           isModal: true,
           chartHeight: (this.chartHeight - 50),

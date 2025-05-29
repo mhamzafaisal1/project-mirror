@@ -192,6 +192,37 @@ function getHourlyIntervals(start, end) {
 }
 
 
+function enforceMinimumTimeRange(start, end, minDays = 7) {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const minDuration = minDays * 24 * 60 * 60 * 1000;
+
+  if (endDate - startDate < minDuration) {
+    startDate.setTime(endDate.getTime() - minDuration);
+  }
+
+  return {
+    start: startDate.toISOString(),
+    end: endDate.toISOString()
+  };
+}
+
+function getDayIntervals(start, end) {
+  const intervals = [];
+  let current = new Date(start);
+  current.setHours(0, 0, 0, 0);
+
+  while (current < end) {
+    const next = new Date(current);
+    next.setDate(current.getDate() + 1);
+    intervals.push({ start: new Date(current), end: new Date(next) });
+    current = next;
+  }
+
+  return intervals;
+}
+
+
 module.exports = {
   TIME_CONSTANTS,
   parseAndValidateQueryParams,
@@ -204,6 +235,8 @@ module.exports = {
   formatDuration,
   createTimeGroupingPipeline,
   getMongoDateFormat,
-  getHourlyIntervals
+  getHourlyIntervals,
+  enforceMinimumTimeRange,
+  getDayIntervals
 };
   

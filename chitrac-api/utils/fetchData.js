@@ -292,10 +292,32 @@ async function fetchGroupedAnalyticsData(db, start, end, groupBy = 'machine', op
     return grouped;
 }
 
+
+async function fetchGroupedAnalyticsDataForOperator(db, adjustedStart, end, operatorId) {
+    const grouped = await fetchGroupedAnalyticsData(
+      db,
+      new Date(adjustedStart),
+      new Date(end),
+      'operator',
+      { operatorId }
+    );
+  
+    return grouped[operatorId] || {
+      states: [],
+      counts: {
+        all: [],
+        valid: [],
+        misfeed: []
+      },
+      machineNames: {}
+    };
+  }
+  
   
 
 
   
   module.exports = {
-    fetchGroupedAnalyticsData
+    fetchGroupedAnalyticsData,
+    fetchGroupedAnalyticsDataForOperator
   };

@@ -2,6 +2,7 @@ const {
     parseAndValidateQueryParams,
     createPaddedTimeRange,
     formatDuration,
+    enforceMinimumTimeRange
   } = require("./time");
 
   const {
@@ -535,6 +536,8 @@ async function getAllOperatorIds(db) {
   // }
 
   async function buildOperatorEfficiencyLine(group, start, end) {
+
+    
     const validCounts = group.counts?.valid || [];
     const states = group.states || [];
   

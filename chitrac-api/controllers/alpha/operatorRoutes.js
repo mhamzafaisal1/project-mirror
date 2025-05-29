@@ -181,7 +181,7 @@ module.exports = function (server) {
         const countByItem = await buildOperatorCountByItem(group, start, end);
         const cyclePie = await buildOperatorCyclePie(group, start, end);
         const faultHistory = await buildOperatorFaultHistory(groupedData, start, end);
-        const dailyEfficiency = await buildOperatorEfficiencyLine(group, start, end);
+        const dailyEfficiency = await buildOperatorEfficiencyLine(group, start, end,db);
   
         const operatorName =
           counts.valid[0]?.operator?.name ||

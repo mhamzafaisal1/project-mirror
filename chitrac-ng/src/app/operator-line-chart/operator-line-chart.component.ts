@@ -49,7 +49,7 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
   @Input() chartWidth: number;
   @Input() chartHeight: number;
   @Input() mode: 'standalone' | 'dashboard' = 'standalone';
-  @Input() dashboardData?: any[];
+  // @Input() dashboardData?: any[];
 
   @ViewChild('chartContainer') private chartContainer!: ElementRef;
 
@@ -82,21 +82,14 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (this.mode === 'dashboard' && changes['dashboardData']?.currentValue) {
-      this.processDashboardData(changes['dashboardData'].currentValue);
-    } else if (this.mode === 'standalone') {
-      if (changes['startTime'] && this.startTime) {
-        this.pickerStartTime = toDateTimeLocalString(this.startTime);
-      }
-      if (changes['endTime'] && this.endTime) {
-        this.pickerEndTime = toDateTimeLocalString(this.endTime);
-      }
-      if (
-        (changes['startTime'] || changes['endTime'] || changes['operatorId']) &&
-        this.isValidInput()
-      ) {
-        this.fetchData();
-      }
+    if (changes['startTime'] && this.startTime) {
+      this.pickerStartTime = toDateTimeLocalString(this.startTime);
+    }
+    if (changes['endTime'] && this.endTime) {
+      this.pickerEndTime = toDateTimeLocalString(this.endTime);
+    }
+    if (this.isValidInput()) {
+      this.fetchData();
     }
   }
 
@@ -135,24 +128,24 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
     return !!this.startTime && !!this.endTime && !!this.operatorId;
   }
 
-  private processDashboardData(data: any[]): void {
-    try {
-      const operatorData = data.find(item => item.operator?.id === parseInt(this.operatorId));
-      if (!operatorData?.dailyEfficiency) {
-        this.error = 'No daily efficiency data available';
-        return;
-      }
+  // private processDashboardData(data: any[]): void {
+  //   try {
+  //     const operatorData = data.find(item => item.operator?.id === parseInt(this.operatorId));
+  //     if (!operatorData?.dailyEfficiency) {
+  //       this.error = 'No daily efficiency data available';
+  //       return;
+  //     }
 
-      this.operatorName = operatorData.dailyEfficiency.operator.name;
-      this.efficiencyData = operatorData.dailyEfficiency.data.map((entry: any) => ({
-        label: new Date(entry.date).toLocaleDateString(),
-        value: entry.efficiency
-      }));
-    } catch (error) {
-      console.error('Error processing dashboard data:', error);
-      this.error = 'Failed to process dashboard data';
-    }
-  }
+  //     this.operatorName = operatorData.dailyEfficiency.operator.name;
+  //     this.efficiencyData = operatorData.dailyEfficiency.data.map((entry: any) => ({
+  //       label: new Date(entry.date).toLocaleDateString(),
+  //       value: entry.efficiency
+  //     }));
+  //   } catch (error) {
+  //     console.error('Error processing dashboard data:', error);
+  //     this.error = 'Failed to process dashboard data';
+  //   }
+  // }
 
   fetchData(): void {
     if (!this.isValidInput()) {
@@ -162,6 +155,8 @@ export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges 
 
     this.loading = true;
     this.error = null;
+
+    console.log(this.startTime, this.endTime, this.operatorId);
 
     this.oeeService.getOperatorDailyEfficiency(this.startTime, this.endTime, this.operatorId).subscribe({
       next: (response) => {
