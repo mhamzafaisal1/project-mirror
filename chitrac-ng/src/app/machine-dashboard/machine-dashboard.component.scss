@@ -163,6 +163,17 @@
   }
 }
 
+.live-mode-container {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  
+  mat-checkbox {
+    font-size: 14px;
+  }
+}
+
+
 .loading-overlay {
   position: absolute;
   top: 0;

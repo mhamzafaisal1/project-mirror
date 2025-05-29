@@ -36,6 +36,16 @@
   width: max-content;
   border-radius: 15px;
 
+  .live-mode-container {
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    
+    mat-slide-toggle {
+      font-size: 14px;
+    }
+  }
+
   app-date-time-picker {
     flex: 1;
     max-width: fit-content;

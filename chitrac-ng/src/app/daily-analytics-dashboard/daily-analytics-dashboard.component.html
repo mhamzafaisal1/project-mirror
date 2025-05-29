@@ -25,13 +25,16 @@
   
   <div class="controls">
     <div class="live-mode-container">
-      <mat-checkbox
+      <mat-slide-toggle
         [(ngModel)]="liveMode"
         (change)="onLiveModeChange($event.checked)"
-        color="primary">
+        color="primary"
+        [aria-label]="'Toggle Live Mode'"
+      >
         Live Mode
-      </mat-checkbox>
+      </mat-slide-toggle>
     </div>
+    
     <app-date-time-picker
       label="Start Time"
       [(value)]="startTime"

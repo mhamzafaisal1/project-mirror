@@ -7,6 +7,17 @@
   </div>
   
   <div class="date-range-container">
+    <div class="live-mode-container">
+      <mat-slide-toggle
+      [(ngModel)]="liveMode"
+      (change)="onLiveModeChange(liveMode)"
+      color="primary"
+    >
+      Live Mode
+    </mat-slide-toggle>
+    
+    </div>
+    
     <app-date-time-picker
       label="Start Time"
       [(value)]="startTime">

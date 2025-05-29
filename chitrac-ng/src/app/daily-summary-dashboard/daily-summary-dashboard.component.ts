@@ -11,12 +11,14 @@ import { FormsModule } from "@angular/forms";
 import { HttpClientModule } from "@angular/common/http";
 import { forkJoin } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { Subject, takeUntil, tap } from 'rxjs';
+
 import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
 import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
 import { MachineFaultHistoryComponent } from '../machine-fault-history/machine-fault-history.component';
 import { OperatorPerformanceChartComponent } from '../operator-performance-chart/operator-performance-chart.component';
-
-
 import { DateTimePickerComponent } from "../components/date-time-picker/date-time-picker.component";
 import { BaseTableComponent } from "../components/base-table/base-table.component";
 import { MachineAnalyticsService } from "../services/machine-analytics.service";
@@ -24,6 +26,7 @@ import { OperatorAnalyticsService } from '../services/operator-analytics.service
 import { OperatorCountbyitemChartComponent } from "../operator-countbyitem-chart/operator-countbyitem-chart.component";
 import { getStatusDotByCode } from '../../utils/status-utils';
 import { DailyDashboardService } from '../services/daily-dashboard.service';
+import { PollingService } from '../services/polling-service.service';
 
 @Component({
   selector: "app-daily-summary-dashboard",
@@ -34,6 +37,8 @@ import { DailyDashboardService } from '../services/daily-dashboard.service';
     FormsModule,
     DateTimePickerComponent,
     MatButtonModule,
+    MatIconModule,
+    MatSlideToggleModule,
     BaseTableComponent,
     MatDialogModule,
   ],
@@ -55,10 +60,13 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   operatorRows: any[] = [];
   selectedOperator: any = null;
   isLoading: boolean = false;
+  liveMode: boolean = false;
   rawMachineData: any[] = []; // store full API response for machines
   rawOperatorData: any[] = []; // store full API response for operators
+  private pollingSubscription: any;
+  private destroy$ = new Subject<void>();
+  private readonly POLLING_INTERVAL = 6000; // 6 seconds
 
-  
   // Add chart dimensions and isModal property
   chartWidth: number = 1000;
   chartHeight: number = 700;
@@ -68,7 +76,8 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     private renderer: Renderer2,
     private elRef: ElementRef,
     private dailyDashboardService: DailyDashboardService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private pollingService: PollingService
   ) {}
 
   ngOnInit(): void {
@@ -94,6 +103,9 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     if (this.observer) {
       this.observer.disconnect();
     }
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.stopPolling();
   }
 
   detectTheme(): void {
@@ -109,6 +121,99 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     this.renderer.setStyle(element, "color", isDark ? "#e0e0e0" : "#000000");
   }
 
+  onLiveModeChange(checked: boolean): void {
+    this.liveMode = checked;
+
+    if (this.liveMode) {
+      // Reset startTime to today at 00:00
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      this.startTime = this.formatDateForInput(start);
+
+      // Reset endTime to now
+      this.endTime = this.pollingService.updateEndTimestampToNow();
+
+      // Initial data fetch
+      this.fetchData();
+      this.setupPolling();
+    } else {
+      this.stopPolling();
+      this.clearData();
+    }
+  }
+
+  private setupPolling(): void {
+    if (this.liveMode) {
+      // Initial data fetch
+      this.dailyDashboardService.getDailySummaryDashboard(this.startTime, this.endTime)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe((data: any) => {
+          this.updateDashboardData(data);
+        });
+
+      // Setup polling for subsequent updates
+      this.pollingSubscription = this.pollingService.poll(
+        () => {
+          this.endTime = this.pollingService.updateEndTimestampToNow();
+          return this.dailyDashboardService.getDailySummaryDashboard(this.startTime, this.endTime)
+            .pipe(
+              tap((data: any) => {
+                this.updateDashboardData(data);
+              })
+            );
+        },
+        this.POLLING_INTERVAL,
+        this.destroy$
+      ).subscribe();
+    }
+  }
+
+  private stopPolling(): void {
+    if (this.pollingSubscription) {
+      this.pollingSubscription.unsubscribe();
+      this.pollingSubscription = null;
+    }
+  }
+
+  private clearData(): void {
+    this.rawMachineData = [];
+    this.rawOperatorData = [];
+    this.machineRows = [];
+    this.operatorRows = [];
+    this.itemRows = [];
+  }
+
+  private updateDashboardData(data: any): void {
+    this.rawMachineData = data.machineResults || [];
+    this.rawOperatorData = data.operatorResults || [];
+
+    //Machines
+    this.machineRows = this.rawMachineData.map((response: any) => ({
+      Status: getStatusDotByCode(response.currentStatus?.code),
+      'Machine Name': response.machine?.name ?? 'Unknown',
+      'OEE': response.performance?.performance?.oee?.percentage ?? '0%',
+      'Total Count': response.performance?.output?.totalCount ?? 0,
+      serial: response.machine?.serial
+    }));
+
+    // Operators
+    this.operatorRows = this.rawOperatorData.map((response: any) => ({
+      Status: getStatusDotByCode(response.currentStatus?.code),
+      'Operator Name': response.operator?.name ?? 'Unknown',
+      'Worked Time': `${response.metrics?.runtime?.formatted?.hours ?? 0}h ${response.metrics?.runtime?.formatted?.minutes ?? 0}m`,
+      'Efficiency': response.metrics?.performance?.efficiency?.percentage ?? '0%',
+      operatorId: response.operator?.id
+    }));
+
+    // Items
+    this.itemRows = (data.items || [])
+      .filter((item: any) => item.count > 0)
+      .map((item: any) => ({
+        'Item Name': item.itemName,
+        'Total Count': item.count
+      }));
+  }
+
   fetchData(): void {
     if (!this.startTime || !this.endTime) return;
   
@@ -120,35 +225,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     this.dailyDashboardService.getDailySummaryDashboard(formattedStart, formattedEnd)
       .subscribe({
         next: (data: any) => {
-          this.rawMachineData = data.machineResults || [];
-          this.rawOperatorData = data.operatorResults || [];
-
-        //Machines
-          this.machineRows = this.rawMachineData.map((response: any) => ({
-            Status: getStatusDotByCode(response.currentStatus?.code),
-            'Machine Name': response.machine?.name ?? 'Unknown',
-            'OEE': response.performance?.performance?.oee?.percentage ?? '0%',
-            'Total Count': response.performance?.output?.totalCount ?? 0,
-            serial: response.machine?.serial
-          }));
-
-          // Operators
-          this.operatorRows = this.rawOperatorData.map((response: any) => ({
-            Status: getStatusDotByCode(response.currentStatus?.code),
-            'Operator Name': response.operator?.name ?? 'Unknown',
-            'Worked Time': `${response.metrics?.runtime?.formatted?.hours ?? 0}h ${response.metrics?.runtime?.formatted?.minutes ?? 0}m`,
-            'Efficiency': response.metrics?.performance?.efficiency?.percentage ?? '0%',
-            operatorId: response.operator?.id
-          }));
-
-          // Items
-          this.itemRows = (data.items || [])
-            .filter((item: any) => item.count > 0)
-            .map((item: any) => ({
-              'Item Name': item.itemName,
-              'Total Count': item.count
-            }));
-
+          this.updateDashboardData(data);
           this.isLoading = false;
         },
         error: (err: any) => {
@@ -156,6 +233,14 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
           this.isLoading = false;
         }
       });
+  }
+
+  onDateChange(): void {
+    if (this.liveMode) {
+      this.liveMode = false;
+      this.stopPolling();
+    }
+    this.clearData();
   }
 
   getPercentageSafe(value: any): string {

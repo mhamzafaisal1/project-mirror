@@ -8,7 +8,7 @@ import { PollingService } from "../services/polling-service.service";
 import { Subject, Observable } from "rxjs";
 import { takeUntil, tap } from "rxjs/operators";
 import { FormsModule } from '@angular/forms';
-import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 import { DailyMachineStackedBarChartComponent } from "../daily-machine-stacked-bar-chart/daily-machine-stacked-bar-chart.component";
 import { DailyMachineOeeBarChartComponent } from "../daily-machine-oee-bar-chart/daily-machine-oee-bar-chart.component";
@@ -37,7 +37,7 @@ import { MatButtonModule } from '@angular/material/button';
     MatIconModule,
     MatButtonModule,
     FormsModule,
-    MatCheckboxModule
+    MatSlideToggleModule
   ],
   templateUrl: './daily-analytics-dashboard.component.html',
   styleUrls: ['./daily-analytics-dashboard.component.scss']
@@ -181,6 +181,9 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
       this.setupPolling();
     } else {
       this.stopPolling();
+      // Clear the dashboard data when live mode is turned off
+      this.hasInitialData = false;
+      this.fullDashboardData = null;
     }
   }
   
