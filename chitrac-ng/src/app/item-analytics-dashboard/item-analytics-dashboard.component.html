@@ -1,5 +1,13 @@
 <div class="scroll-wrapper">
   <div class="container" [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }">
+      <!-- LOADING OVERLAY -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Fetching data...</div>
+    </div>
+  </div>
+
     <div class="controls">
       <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
       <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>

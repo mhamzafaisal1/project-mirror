@@ -1,5 +1,14 @@
 <div class="scroll-wrapper">
   <div class="container" [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }">
+
+        <!-- LOADING OVERLAY -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Fetching data...</div>
+    </div>
+  </div>
+
     <div class="controls">
       <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
       <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
@@ -11,13 +20,8 @@
       </div>
     </div>
   
-    <div class="tables-container" [class.loading]="loading">
-      <div class="loading-overlay" *ngIf="loading">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">Loading data...</div>
-      </div>
-  
-      <div class="table-section">
+    <div class="tables-container" [class.loading]="isLoading" *ngIf="machineRows.length || operatorRows.length || itemRows.length">
+      <div class="table-section" *ngIf="machineRows.length">
         <h2>Machines</h2>
         <base-table
         [class.dark]="isDarkTheme"
@@ -31,7 +35,7 @@
       </base-table>          
       </div>
       
-      <div class="table-section">
+      <div class="table-section" *ngIf="operatorRows.length">
         <h2>Operators</h2>
         <base-table
           [class.dark]="isDarkTheme"
@@ -45,7 +49,7 @@
         </base-table>
       </div>
   
-      <div class="table-section">
+      <div class="table-section" *ngIf="itemRows.length">
         <h2>Items</h2>
         <base-table
           [class.dark]="isDarkTheme"

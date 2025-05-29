@@ -28,6 +28,7 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
   rows: any[] = [];
   columns: string[] = [];
   isDarkTheme: boolean = false;
+  isLoading: boolean = false;
   private observer!: MutationObserver;
 
   constructor(
@@ -61,6 +62,7 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
   fetchItemAnalytics(): void {
     if (!this.startTime || !this.endTime) return;
 
+    this.isLoading = true;
     this.analyticsService.getItemAnalytics(this.startTime, this.endTime).subscribe({
       next: (data: any[]) => {
         this.rows = data.map(row => {
@@ -76,11 +78,12 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
           };
         });        
         this.columns = Object.keys(this.rows[0]);
+        this.isLoading = false;
       },
       error: (err) => {
         console.error('Failed to load item analytics', err);
+        this.isLoading = false;
       }
     });
-    
   }
 }

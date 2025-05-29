@@ -54,7 +54,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   operatorColumns: string[] = ['Status', 'Operator Name', 'Worked Time', 'Efficiency'];
   operatorRows: any[] = [];
   selectedOperator: any = null;
-  loading: boolean = false;
+  isLoading: boolean = false;
   rawMachineData: any[] = []; // store full API response for machines
   rawOperatorData: any[] = []; // store full API response for operators
 
@@ -115,7 +115,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     const formattedStart = new Date(this.startTime).toISOString();
     const formattedEnd = new Date(this.endTime).toISOString();
   
-    this.loading = true;
+    this.isLoading = true;
   
     this.dailyDashboardService.getDailySummaryDashboard(formattedStart, formattedEnd)
       .subscribe({
@@ -149,11 +149,11 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
               'Total Count': item.count
             }));
 
-          this.loading = false;
+          this.isLoading = false;
         },
         error: (err: any) => {
           console.error('Error fetching summary data:', err);
-          this.loading = false;
+          this.isLoading = false;
         }
       });
   }

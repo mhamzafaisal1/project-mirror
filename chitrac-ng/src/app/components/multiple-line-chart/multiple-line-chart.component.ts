@@ -125,6 +125,7 @@ export class MultipleLineChartComponent implements AfterViewInit {
     // Add y-axis label
     svg.append("text")
       .attr("transform", "rotate(-90)")
+      .attr("x", this.margin.left - 30)
       .attr("y", 0)
       .attr("x", -(this.chartHeight / 2))
       .attr("dy", "1em")

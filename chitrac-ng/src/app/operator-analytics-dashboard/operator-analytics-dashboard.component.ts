@@ -96,10 +96,10 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   async fetchAnalyticsData(): Promise<void> {
     if (!this.startTime || !this.endTime) return;
 
-    try {
-      this.isLoading = true;
-      this.analyticsService.getOperatorDashboard(this.startTime, this.endTime, this.operatorId)
-        .subscribe((data: any) => {  
+    this.isLoading = true;
+    this.analyticsService.getOperatorDashboard(this.startTime, this.endTime, this.operatorId)
+      .subscribe({
+        next: (data: any) => {  
           // Store the raw data for later use
           this.operatorData = Array.isArray(data) ? data : [data];
           
@@ -120,12 +120,13 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
 
           const allColumns = Object.keys(this.rows[0]);
           this.columns = allColumns.filter(col => col !== 'Time Range');
-        });
-    } catch (error) {
-      console.error('Error fetching analytics data:', error);
-    } finally {
-      this.isLoading = false;
-    }
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error fetching analytics data:', error);
+          this.isLoading = false;
+        }
+      });
   }
 
   onRowSelected(row: any): void {
