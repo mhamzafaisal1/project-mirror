@@ -23,7 +23,7 @@ svg {
 }
 
 :host-context(.dark-theme) {
-  background-color: transparent;
+  background-color: transparent !important;
   color: #e0e0e0;
 
   text {
@@ -32,7 +32,7 @@ svg {
 }
 
 :host-context(.light-theme) {
-  background-color: transparent;
+  background-color: transparent !important;
   color: #000000;
 
   text {

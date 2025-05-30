@@ -7,11 +7,14 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { Subject, takeUntil, tap } from 'rxjs';
 
 import { BaseTableComponent } from '../components/base-table/base-table.component';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
 import { OperatorAnalyticsService } from '../services/operator-analytics.service';
 import { getStatusDotByCode } from '../../utils/status-utils';
+import { PollingService } from '../services/polling-service.service';
 
 import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
 import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
@@ -36,7 +39,8 @@ import { OperatorLineChartComponent } from '../operator-line-chart/operator-line
     MatButtonModule,
     OperatorPerformanceChartComponent,
     OperatorLineChartComponent,
-    MatIconModule
+    MatIconModule,
+    MatSlideToggleModule
   ],
   templateUrl: './operator-analytics-dashboard.component.html',
   styleUrl: './operator-analytics-dashboard.component.scss'
@@ -51,6 +55,11 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   rows: any[] = [];
   selectedRow: any = null;
   isLoading = false;
+  operatorData: any[] = []; // Store the raw dashboard data
+  liveMode: boolean = false;
+  private pollingSubscription: any;
+  private destroy$ = new Subject<void>();
+  private readonly POLLING_INTERVAL = 6000; // 6 seconds
 
   // Chart dimensions
   chartHeight = 700;
@@ -60,12 +69,18 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     private analyticsService: OperatorAnalyticsService,
     private dialog: MatDialog,
     private renderer: Renderer2,
-    private elRef: ElementRef
+    private elRef: ElementRef,
+    private pollingService: PollingService
   ) {}
 
   ngOnInit(): void {
-    this.detectTheme();
+    const now = new Date();
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    this.startTime = this.formatDateForInput(start);
+    this.endTime = this.formatDateForInput(now);
 
+    this.detectTheme();
     this.observer = new MutationObserver(() => {
       this.detectTheme();
     });
@@ -73,14 +88,15 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
       attributes: true,
       attributeFilter: ['class']
     });
-
-    this.fetchAnalyticsData();
   }
 
   ngOnDestroy(): void {
     if (this.observer) {
       this.observer.disconnect();
     }
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.stopPolling();
   }
 
   detectTheme(): void {
@@ -92,38 +108,107 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     this.renderer.setStyle(element, 'color', isDark ? '#e0e0e0' : '#000000');
   }
 
+  onLiveModeChange(checked: boolean): void {
+    this.liveMode = checked;
+
+    if (this.liveMode) {
+      // Reset startTime to today at 00:00
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      this.startTime = this.formatDateForInput(start);
+
+      // Reset endTime to now
+      this.endTime = this.pollingService.updateEndTimestampToNow();
+
+      // Initial data fetch
+      this.fetchAnalyticsData();
+      this.setupPolling();
+    } else {
+      this.stopPolling();
+      this.operatorData = [];
+      this.rows = [];
+    }
+  }
+
+  private setupPolling(): void {
+    if (this.liveMode) {
+      // Initial data fetch
+      this.analyticsService.getOperatorDashboard(this.startTime, this.endTime, this.operatorId)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe((data: any) => {
+          this.updateDashboardData(data);
+        });
+
+      // Setup polling for subsequent updates
+      this.pollingSubscription = this.pollingService.poll(
+        () => {
+          this.endTime = this.pollingService.updateEndTimestampToNow();
+          return this.analyticsService.getOperatorDashboard(this.startTime, this.endTime, this.operatorId)
+            .pipe(
+              tap((data: any) => {
+                this.updateDashboardData(data);
+              })
+            );
+        },
+        this.POLLING_INTERVAL,
+        this.destroy$
+      ).subscribe();
+    }
+  }
+
+  private stopPolling(): void {
+    if (this.pollingSubscription) {
+      this.pollingSubscription.unsubscribe();
+      this.pollingSubscription = null;
+    }
+  }
+
+  private updateDashboardData(data: any): void {
+    this.operatorData = Array.isArray(data) ? data : [data];
+    
+    this.rows = this.operatorData.map(response => ({
+      'Status': getStatusDotByCode(response.currentStatus?.code),
+      'Operator Name': response.operator.name,
+      'Operator ID': response.operator.id,
+      'Runtime': `${response.performance.runtime.formatted.hours}h ${response.performance.runtime.formatted.minutes}m`,
+      'Paused Time': `${response.performance.pausedTime.formatted.hours}h ${response.performance.pausedTime.formatted.minutes}m`,
+      'Fault Time': `${response.performance.faultTime.formatted.hours}h ${response.performance.faultTime.formatted.minutes}m`,
+      'Total Count': response.performance.output.totalCount,
+      'Misfeed Count': response.performance.output.misfeedCount,
+      'Valid Count': response.performance.output.validCount,
+      'Pieces Per Hour': response.performance.performance.piecesPerHour.formatted,
+      'Efficiency': response.performance.performance.efficiency.percentage,
+      'Time Range': `${this.startTime} to ${this.endTime}`
+    }));
+
+    const allColumns = Object.keys(this.rows[0]);
+    this.columns = allColumns.filter(col => col !== 'Time Range');
+  }
+
   async fetchAnalyticsData(): Promise<void> {
     if (!this.startTime || !this.endTime) return;
 
-    try {
-      this.isLoading = true;
-      this.analyticsService.getOperatorPerformance(this.startTime, this.endTime, this.operatorId)
-        .subscribe((data: any) => {  
-          const responses = Array.isArray(data) ? data : [data];
-          
-          this.rows = responses.map(response => ({
-            'Status': getStatusDotByCode(response.currentStatus?.code),
-            'Operator Name': response.operator.name,
-            'Operator ID': response.operator.id,
-            'Runtime': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
-            'Paused Time': `${response.metrics.pausedTime.formatted.hours}h ${response.metrics.pausedTime.formatted.minutes}m`,
-            'Fault Time': `${response.metrics.faultTime.formatted.hours}h ${response.metrics.faultTime.formatted.minutes}m`,
-            'Total Count': response.metrics.output.totalCount,
-            'Misfeed Count': response.metrics.output.misfeedCount,
-            'Valid Count': response.metrics.output.validCount,
-            'Pieces Per Hour': response.metrics.performance.piecesPerHour.formatted,
-            'Efficiency': response.metrics.performance.efficiency.percentage,
-            'Time Range': `${response.timeRange.start} to ${response.timeRange.end}`
-          }));
+    this.isLoading = true;
+    this.analyticsService.getOperatorDashboard(this.startTime, this.endTime, this.operatorId)
+      .subscribe({
+        next: (data: any) => {
+          this.updateDashboardData(data);
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error fetching analytics data:', error);
+          this.isLoading = false;
+        }
+      });
+  }
 
-          const allColumns = Object.keys(this.rows[0]);
-          this.columns = allColumns.filter(col => col !== 'Time Range');
-        });
-    } catch (error) {
-      console.error('Error fetching analytics data:', error);
-    } finally {
-      this.isLoading = false;
+  onDateChange(): void {
+    if (this.liveMode) {
+      this.liveMode = false;
+      this.stopPolling();
     }
+    this.operatorData = [];
+    this.rows = [];
   }
 
   onRowSelected(row: any): void {
@@ -141,21 +226,24 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   
     const operatorId = row['Operator ID'];
   
-    // Use the user-selected `this.endTime` to compute startTime for line chart
-    const selectedEnd = new Date(this.endTime);
-    const selectedStart = new Date(selectedEnd);
-    selectedStart.setDate(selectedStart.getDate() - 28);
-  
-    const startTimeStr = selectedStart.toISOString();
-    const endTimeStr = selectedEnd.toISOString();
-  
+    // Use the actual dashboard time range
+    const startTimeStr = this.startTime;
+    const endTimeStr = this.endTime;
+
+    // Find the operator data from the stored dashboard data
+    const operatorData = this.operatorData?.find((o: any) => o.operator?.id === operatorId);
+    if (!operatorData) {
+      console.error('Operator data not found for ID:', operatorId);
+      return;
+    }
+
     const carouselTabs = [
       {
         label: 'Item Summary',
         component: OperatorItemSummaryTableComponent,
         componentInputs: {
-          startTime: this.startTime,
-          endTime: this.endTime,
+          mode: 'dashboard',
+          dashboardData: this.operatorData,
           operatorId: operatorId,
           isModal: true
         }
@@ -164,8 +252,8 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         label: 'Item Stacked Chart',
         component: OperatorCountbyitemChartComponent,
         componentInputs: {
-          startTime: this.startTime,
-          endTime: this.endTime,
+          mode: 'dashboard',
+          dashboardData: this.operatorData,
           operatorId: operatorId,
           isModal: true,
           chartHeight: this.chartHeight,
@@ -176,8 +264,8 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         label: 'Running/Paused/Fault Pie Chart',
         component: OperatorCyclePieChartComponent,
         componentInputs: {
-          startTime: this.startTime,
-          endTime: this.endTime,
+          mode: 'dashboard',
+          dashboardData: this.operatorData,
           operatorId: operatorId,
           isModal: true,
           chartHeight: (this.chartHeight - 200),
@@ -188,8 +276,8 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         label: 'Fault History',
         component: OperatorFaultHistoryComponent,
         componentInputs: {
-          startTime: this.startTime,
-          endTime: this.endTime,
+          mode: 'dashboard',
+          dashboardData: this.operatorData,
           operatorId: operatorId.toString(),
           isModal: true
         }
@@ -198,11 +286,11 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         label: 'Daily Efficiency Chart',
         component: OperatorLineChartComponent,
         componentInputs: {
-          startTime: startTimeStr,
-          endTime: endTimeStr,
+          mode: 'dashboard',
+          dashboardData: this.operatorData,
           operatorId: operatorId.toString(),
           isModal: true,
-          chartHeight: this.chartHeight,
+          chartHeight: (this.chartHeight - 50),
           chartWidth: this.chartWidth
         }
       }
@@ -227,5 +315,14 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         this.selectedRow = null;
       }
     });
+  }
+
+  private formatDateForInput(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const h = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${d}T${h}:${min}`;
   }
 }

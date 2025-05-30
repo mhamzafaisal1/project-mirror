@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy, ElementRef, Renderer2 } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, ElementRef, Renderer2, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -23,13 +23,15 @@ import { OperatorAnalyticsService } from '../services/operator-analytics.service
   templateUrl: './operator-cycle-pie-chart.component.html',
   styleUrl: './operator-cycle-pie-chart.component.scss'
 })
-export class OperatorCyclePieChartComponent implements OnInit, OnDestroy {
+export class OperatorCyclePieChartComponent implements OnInit, OnDestroy, OnChanges {
   @Input() startTime: string = '';
   @Input() endTime: string = '';
   @Input() operatorId: number;
   @Input() isModal: boolean = false;
   @Input() chartWidth: number;
   @Input() chartHeight: number;
+  @Input() mode: 'standalone' | 'dashboard' = 'standalone';
+  @Input() dashboardData?: any[];
 
   pieData: PieChartDataPoint[] = [];
   title = 'Operator Machine Time Breakdown';
@@ -49,7 +51,16 @@ export class OperatorCyclePieChartComponent implements OnInit, OnDestroy {
     this.observer = new MutationObserver(() => this.detectTheme());
     this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
-    if (this.startTime && this.endTime) {
+    if (this.mode === 'standalone' && this.startTime && this.endTime) {
+      this.fetchData();
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (this.mode === 'dashboard' && changes['dashboardData']?.currentValue) {
+      this.processDashboardData(changes['dashboardData'].currentValue);
+    } else if (this.mode === 'standalone' && 
+              (changes['startTime']?.currentValue || changes['endTime']?.currentValue)) {
       this.fetchData();
     }
   }
@@ -64,6 +75,29 @@ export class OperatorCyclePieChartComponent implements OnInit, OnDestroy {
     const element = this.elRef.nativeElement;
     this.renderer.setStyle(element, 'background-color', isDark ? '#121212' : '#ffffff');
     this.renderer.setStyle(element, 'color', isDark ? '#e0e0e0' : '#000000');
+  }
+
+  private processDashboardData(data: any[]): void {
+    this.loading = true;
+    try {
+      // Find the operator data from the dashboard data
+      const operatorData = data.find(item => item.operator?.id === this.operatorId);
+      if (!operatorData?.cyclePie) {
+        this.error = 'No cycle pie data available';
+        return;
+      }
+
+      // The cycle pie data is already in the correct format
+      this.pieData = operatorData.cyclePie.map((item: any) => ({
+        name: item.name,
+        value: item.value
+      }));
+    } catch (error) {
+      console.error('Error processing dashboard data:', error);
+      this.error = 'Failed to process dashboard data';
+    } finally {
+      this.loading = false;
+    }
   }
 
   fetchData(): void {

@@ -62,9 +62,20 @@ export class OeeDataService {
     timeRange: { start: string; end: string; totalDays: number };
     data: { date: string; efficiency: number }[];
   }> {
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+  
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+    const rangeMs = endDate.getTime() - startDate.getTime();
+    
+    // Only adjust start time if the range is less than 7 days
+    if (rangeMs < sevenDaysMs) {
+      startDate.setTime(endDate.getTime() - sevenDaysMs);
+    }
+  
     const params = new HttpParams()
-      .set('start', startTime)
-      .set('end', endTime)
+      .set('start', startDate.toISOString())
+      .set('end', endDate.toISOString())
       .set('operatorId', operatorId);
   
     return this.http.get<{
@@ -74,4 +85,5 @@ export class OeeDataService {
     }>('/api/alpha/analytics/operator/daily-efficiency', { params });
   }
   
-}
+  }
+  

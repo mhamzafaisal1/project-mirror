@@ -13,7 +13,7 @@ import { MatButtonModule } from '@angular/material/button';
 })
 export class CarouselComponent {
   @Input() tabs: { label: string; component: any; componentInputs?: any }[] = [];
-  selectedIndex = 0;
+  public selectedIndex = 0;
 
   get tabLabels(): string[] {
     return this.tabs.map(tab => tab.label);
@@ -27,13 +27,13 @@ export class CarouselComponent {
     return this.tabs.map(tab => tab.componentInputs || {});
   }
 
-  goToPrevious() {
+  public goToPrevious() {
     if (this.selectedIndex > 0) {
       this.selectedIndex--;
     }
   }
 
-  goToNext() {
+  public goToNext() {
     if (this.selectedIndex < this.tabLabels.length - 1) {
       this.selectedIndex++;
     }

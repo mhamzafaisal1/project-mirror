@@ -4,7 +4,25 @@
 /** MODULE REQUIRES */
 const express = require('express');
 const router = express.Router();
-const { DateTime, Duration } = require('luxon'); //For handling dates and times
+const { DateTime, Duration, Interval } = require('luxon'); //For handling dates and times
+
+const {
+  parseAndValidateQueryParams,
+  createPaddedTimeRange,
+} = require("../../utils/time");
+
+const {
+  fetchStatesForOperator,
+  getCompletedCyclesForOperator,
+  groupStatesByOperatorAndSerial,
+} = require("../../utils/state");
+
+const {
+  groupCountsByOperatorAndMachine,
+  getCountsForOperatorMachinePairs,
+} = require("../../utils/count");
+
+const { buildSoftrolCycleSummary } = require("../../utils/miscFunctions");
 
 module.exports = function(server) {
     return constructor(server);
@@ -218,5 +236,102 @@ function constructor(server) {
         res.json(machineRunTimesArray);
     });
 
+
+    // Import misc-related routes (This is the softrol routes)
+    router.get("/historic-data", async (req, res) => {
+        try {
+          // Use centralized time parser
+          const { start, end } = parseAndValidateQueryParams(req);
+    
+          // Get latest state timestamp if end date is in the future
+          const [latestState] = await db.collection('state')
+            .find()
+            .sort({ timestamp: -1 })
+            .limit(1)
+            .toArray();
+    
+          const effectiveEnd = new Date(end) > new Date() 
+            ? (latestState?.timestamp || new Date()) 
+            : end;
+    
+          const { paddedStart, paddedEnd } = createPaddedTimeRange(start, effectiveEnd);
+    
+          // 1. Fetch and group states by operator and machine
+          const allStates = await fetchStatesForOperator(
+            db,
+            null,
+            paddedStart,
+            paddedEnd
+          );
+          const groupedStates = groupStatesByOperatorAndSerial(allStates);
+    
+          // 2. Process completed cycles for each group
+          const completedCyclesByGroup = {};
+          for (const [key, group] of Object.entries(groupedStates)) {
+            const completedCycles = getCompletedCyclesForOperator(group.states);
+            if (completedCycles.length > 0) {
+              completedCyclesByGroup[key] = { ...group, completedCycles };
+            }
+          }
+    
+          // 3. Get operator-machine pairs for count lookup
+          const operatorMachinePairs = Object.keys(completedCyclesByGroup).map(
+            (key) => {
+              const [operatorId, machineSerial] = key.split("-");
+              return {
+                operatorId: parseInt(operatorId),
+                machineSerial: parseInt(machineSerial),
+              };
+            }
+          );
+    
+          // 4. Fetch and group counts
+          const allCounts = await getCountsForOperatorMachinePairs(
+            db,
+            operatorMachinePairs,
+            start,
+            end
+          );
+          const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
+    
+          // 5. Process each group's cycles and counts
+          const results = [];
+          for (const [key, group] of Object.entries(completedCyclesByGroup)) {
+            const [operatorId, machineSerial] = key.split("-");
+            const countGroup = groupedCounts[`${operatorId}-${machineSerial}`];
+            if (!countGroup) continue;
+    
+            // Sort counts by timestamp for efficient processing
+            const sortedCounts = countGroup.counts.sort(
+              (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+            );
+    
+            // Process each cycle
+            for (const cycle of group.completedCycles) {
+              const summary = buildSoftrolCycleSummary(
+                cycle,
+                sortedCounts,
+                countGroup
+              );
+              
+              if (summary) {
+                results.push({
+                  operatorId: parseInt(operatorId),
+                  machineSerial: parseInt(machineSerial),
+                  ...summary
+                });
+              }
+            }
+          }
+    
+          res.json(results);
+        } catch (err) {
+          logger.error("Error in /softrol/get-softrol-data:", err);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      });
+      // Softrol Route end
+
+      
     return router;
 }

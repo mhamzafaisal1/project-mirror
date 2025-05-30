@@ -9,11 +9,13 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  width: 100%;
+  width: 95%;
+  margin: 0 auto;
   border-radius: 1rem;
   padding: 1.5rem;
   box-sizing: border-box;
   overflow: hidden;
+  position: relative;
 
   &.dark {
     background-color: #121212;
@@ -35,8 +37,9 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  height: calc(100% - 80px); // Account for modal-actions height
+  height: calc(100% - 80px);
   overflow: hidden;
+  padding: 0 2rem;
 }
 
 .modal-actions {
@@ -57,5 +60,66 @@
     font-weight: 500;
     text-transform: none;
     white-space: nowrap;
+  }
+}
+
+.carousel-nav-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem;
+
+  .carousel-nav {
+    pointer-events: auto;
+    position: relative;
+    background: rgba(255, 255, 255, 0.9);
+    color: rgba(0, 0, 0, 0.87);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 4px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: scale(1.1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+  }
+}
+
+.dark {
+  .carousel-nav {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.5);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6),
+                  0 0 0 1px rgba(255, 255, 255, 0.2);
+    }
   }
 }

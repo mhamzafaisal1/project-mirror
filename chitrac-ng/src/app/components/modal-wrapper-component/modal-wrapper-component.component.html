@@ -3,6 +3,16 @@
     <ng-container #container></ng-container>
   </div>
 
+  <!-- Carousel navigation overlay -->
+  <div class="carousel-nav-overlay" *ngIf="hasCarousel">
+    <button class="carousel-nav left" mat-icon-button (click)="goToPreviousTab()">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <button class="carousel-nav right" mat-icon-button (click)="goToNextTab()">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+
   <div class="modal-actions">
     <button mat-flat-button color="primary" (click)="close()">Close</button>
   </div>

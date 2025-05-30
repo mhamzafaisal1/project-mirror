@@ -40,6 +40,8 @@ export class OperatorFaultHistoryComponent implements OnInit, OnDestroy, OnChang
   @Input() endTime: string = '';
   @Input() operatorId: string = '';
   @Input() isModal: boolean = false;
+  @Input() mode: 'standalone' | 'dashboard' = 'standalone';
+  @Input() dashboardData?: any[];
 
   columns: string[] = [];
   rows: any[] = [];
@@ -60,15 +62,18 @@ export class OperatorFaultHistoryComponent implements OnInit, OnDestroy, OnChang
   ngOnInit(): void {
     this.detectTheme();
     this.observeTheme();
+
+    if (this.mode === 'standalone' && this.isValidInput()) {
+      this.fetchData();
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (
-      (changes['startTime'] || changes['endTime'] || changes['operatorId']) &&
-      this.startTime &&
-      this.endTime &&
-      this.operatorId
-    ) {
+    if (this.mode === 'dashboard' && changes['dashboardData']?.currentValue) {
+      this.processDashboardData(changes['dashboardData'].currentValue);
+    } else if (this.mode === 'standalone' && 
+              (changes['startTime'] || changes['endTime'] || changes['operatorId']) &&
+              this.isValidInput()) {
       this.fetchData();
     }
   }
@@ -88,6 +93,30 @@ export class OperatorFaultHistoryComponent implements OnInit, OnDestroy, OnChang
     const el = this.elRef.nativeElement;
     this.renderer.setStyle(el, 'background-color', isDark ? '#121212' : '#ffffff');
     this.renderer.setStyle(el, 'color', isDark ? '#e0e0e0' : '#000000');
+  }
+
+  private isValidInput(): boolean {
+    return !!this.startTime && !!this.endTime && !!this.operatorId;
+  }
+
+  private processDashboardData(data: any[]): void {
+    try {
+      const operatorData = data.find(item => item.operator?.id === parseInt(this.operatorId));
+      if (!operatorData?.faultHistory) {
+        this.error = 'No fault history data available';
+        this.rows = [];
+        this.columns = [];
+        return;
+      }
+
+      this.lastFetchedData = operatorData.faultHistory;
+      this.updateTable();
+    } catch (error) {
+      console.error('Error processing dashboard data:', error);
+      this.error = 'Failed to process dashboard data';
+      this.rows = [];
+      this.columns = [];
+    }
   }
 
   fetchData(): void {

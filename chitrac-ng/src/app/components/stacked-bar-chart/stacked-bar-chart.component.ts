@@ -51,6 +51,9 @@ export class StackedBarChartComponent implements OnInit, OnDestroy {
   private margin = { top: 40, right: 40, bottom: 100, left: 40 };
   private svg: any;
   private isDarkTheme = false;
+  private static colorMapping = new Map<string, string>();
+  private static customPalette = ['#66bb6a', '#42a5f5', '#ffca28', '#ab47bc', '#ef5350', '#29b6f6', '#ffa726', '#7e57c2', '#26c6da', '#ec407a'];
+  private static nextColorIndex = 0;
 
   constructor(
     private elRef: ElementRef,
@@ -124,8 +127,18 @@ export class StackedBarChartComponent implements OnInit, OnDestroy {
   }
 
   private getColorScale(keys: string[]) {
-    const customPalette = ['#66bb6a', '#42a5f5', '#ffca28', '#ab47bc', '#ef5350', '#29b6f6', '#ffa726', '#7e57c2', '#26c6da', '#ec407a'];
-    return d3.scaleOrdinal<string>().domain(keys).range(customPalette);
+    // Ensure all keys have a color assigned
+    keys.forEach(key => {
+      if (!StackedBarChartComponent.colorMapping.has(key)) {
+        const color = StackedBarChartComponent.customPalette[StackedBarChartComponent.nextColorIndex];
+        StackedBarChartComponent.colorMapping.set(key, color);
+        StackedBarChartComponent.nextColorIndex = (StackedBarChartComponent.nextColorIndex + 1) % StackedBarChartComponent.customPalette.length;
+      }
+    });
+
+    return d3.scaleOrdinal<string>()
+      .domain(keys)
+      .range(keys.map(key => StackedBarChartComponent.colorMapping.get(key)!));
   }
 
   renderChart(): void {

@@ -1,5 +1,12 @@
 <div class="dashboard-container" [class.dark-mode]="isDarkTheme">
-  <div class="dashboard-wrapper" *ngIf="fullDashboardData">
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Fetching data...</div>
+    </div>
+  </div>
+  <div class="dashboard-wrapper" *ngIf="hasInitialData">
+  
     <app-chart-tile
       *ngFor="let chart of chartComponents"
       [title]="chart.title"
@@ -15,22 +22,37 @@
       </ng-container>
     </app-chart-tile>
   </div>
+  
   <div class="controls">
+    <div class="live-mode-container">
+      <mat-slide-toggle
+        [(ngModel)]="liveMode"
+        (change)="onLiveModeChange($event.checked)"
+        color="primary"
+        [aria-label]="'Toggle Live Mode'"
+      >
+        Live Mode
+      </mat-slide-toggle>
+    </div>
+    
     <app-date-time-picker
       label="Start Time"
       [(value)]="startTime"
+      (valueChange)="onDateChange()"
     ></app-date-time-picker>
     <app-date-time-picker
       label="End Time"
       [(value)]="endTime"
+      (valueChange)="onDateChange()"
     ></app-date-time-picker>
     <button
       mat-flat-button
       color="primary"
-      (click)="fetchDashboardData()"
-      [disabled]="!startTime || !endTime"
+      (click)="fetchDashboardData().subscribe()"
+      [disabled]="!startTime || !endTime || loading"
     >
-      Fetch Data
+      <mat-icon>refresh</mat-icon>
+      {{ loading ? 'Loading...' : 'Fetch Data' }}
     </button>
   </div>
 </div>

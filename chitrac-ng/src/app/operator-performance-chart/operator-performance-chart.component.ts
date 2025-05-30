@@ -31,6 +31,8 @@ export class OperatorPerformanceChartComponent implements OnInit, OnDestroy {
   @Input() chartWidth: number;
   @Input() chartHeight: number;
   @Input() isModal: boolean = false;
+  @Input() mode: 'standalone' | 'dashboard' = 'standalone';
+  @Input() preloadedData: any = null;
 
   startTime = '';
   endTime = '';
@@ -54,6 +56,8 @@ export class OperatorPerformanceChartComponent implements OnInit, OnDestroy {
     this.chartWidth = data?.chartWidth ?? this.chartWidth;
     this.chartHeight = data?.chartHeight ?? this.chartHeight;
     this.isModal = data?.isModal ?? this.isModal;
+    this.mode = data?.mode ?? this.mode;
+    this.preloadedData = data?.preloadedData ?? this.preloadedData;
   }
 
   ngOnInit(): void {
@@ -66,6 +70,12 @@ export class OperatorPerformanceChartComponent implements OnInit, OnDestroy {
     }
 
     this.observeTheme();
+    
+    if (this.mode === 'dashboard' && this.preloadedData) {
+      this.chartData = this.preloadedData;
+      return;
+    }
+
     if (this.machineSerial && this.startTime && this.endTime) {
       this.fetchData();
     }

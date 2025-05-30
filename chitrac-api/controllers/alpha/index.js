@@ -89,6 +89,10 @@ function constructor(server) {
   const dailyDashboardRoutes = require("./dailyDashboardRoutes")(server);
   router.use("/", dailyDashboardRoutes);
 
+  // Import misc-related routes
+  const miscRoutes = require("./miscRoutes")(server);
+  router.use("/", miscRoutes);
+
 
   router.get("/timestamp", (req, res, next) => {
     res.json(startupDT);
@@ -1536,173 +1540,173 @@ function constructor(server) {
 
   /***  Analytics Route End */
 
-  // Softrol Route start (WORKS !!)
+  // // Softrol Route start (WORKS !!)
 
-  router.get("/softrol/get-softrol-data", async (req, res) => {
-    try {
-      // Step 1: Validate start parameter
-      const start = req.query.start;
-      if (!start) {
-        return res
-          .status(400)
-          .json({ error: "Start time parameter is required" });
-      }
+  // router.get("/softrol/get-softrol-data", async (req, res) => {
+  //   try {
+  //     // Step 1: Validate start parameter
+  //     const start = req.query.start;
+  //     if (!start) {
+  //       return res
+  //         .status(400)
+  //         .json({ error: "Start time parameter is required" });
+  //     }
 
-      // Validate start is a valid ISO date string
-      const startDate = new Date(start);
-      if (isNaN(startDate.getTime())) {
-        return res.status(400).json({
-          error: "Invalid start time format. Please use ISO date string",
-        });
-      }
+  //     // Validate start is a valid ISO date string
+  //     const startDate = new Date(start);
+  //     if (isNaN(startDate.getTime())) {
+  //       return res.status(400).json({
+  //         error: "Invalid start time format. Please use ISO date string",
+  //       });
+  //     }
 
-      // Step 2: Handle end parameter
-      let endDate;
-      if (req.query.end) {
-        // If end parameter is provided, validate it
-        endDate = new Date(req.query.end);
-        if (isNaN(endDate.getTime())) {
-          return res.status(400).json({
-            error: "Invalid end time format. Please use ISO date string",
-          });
-        }
-      }
+  //     // Step 2: Handle end parameter
+  //     let endDate;
+  //     if (req.query.end) {
+  //       // If end parameter is provided, validate it
+  //       endDate = new Date(req.query.end);
+  //       if (isNaN(endDate.getTime())) {
+  //         return res.status(400).json({
+  //           error: "Invalid end time format. Please use ISO date string",
+  //         });
+  //       }
+  //     }
 
-      // Step 3: Get latest state and create time range in parallel
-      const [latestState] = await Promise.all([
-        db
-          .collection("state")
-          .find()
-          .sort({ timestamp: -1 })
-          .limit(1)
-          .toArray(),
-        // Add any other independent operations here
-      ]);
+  //     // Step 3: Get latest state and create time range in parallel
+  //     const [latestState] = await Promise.all([
+  //       db
+  //         .collection("state")
+  //         .find()
+  //         .sort({ timestamp: -1 })
+  //         .limit(1)
+  //         .toArray(),
+  //       // Add any other independent operations here
+  //     ]);
 
-      // Use provided end date or default to latest state/current time
-      const end = endDate
-        ? endDate.toISOString()
-        : latestState?.timestamp || new Date().toISOString();
-      const { paddedStart, paddedEnd } = createPaddedTimeRange(
-        startDate,
-        new Date(end)
-      );
+  //     // Use provided end date or default to latest state/current time
+  //     const end = endDate
+  //       ? endDate.toISOString()
+  //       : latestState?.timestamp || new Date().toISOString();
+  //     const { paddedStart, paddedEnd } = createPaddedTimeRange(
+  //       startDate,
+  //       new Date(end)
+  //     );
 
-      // Step 4: Fetch states and process cycles in parallel
-      const [allStates] = await Promise.all([
-        fetchStatesForOperator(db, null, paddedStart, paddedEnd),
-        // Add any other independent operations here
-      ]);
+  //     // Step 4: Fetch states and process cycles in parallel
+  //     const [allStates] = await Promise.all([
+  //       fetchStatesForOperator(db, null, paddedStart, paddedEnd),
+  //       // Add any other independent operations here
+  //     ]);
 
-      const groupedStates = groupStatesByOperatorAndSerial(allStates);
+  //     const groupedStates = groupStatesByOperatorAndSerial(allStates);
 
-      // Process completed cycles for each operator-machine group
-      const completedCyclesByGroup = {};
-      for (const [key, group] of Object.entries(groupedStates)) {
-        const completedCycles = getCompletedCyclesForOperator(group.states);
-        if (completedCycles.length > 0) {
-          completedCyclesByGroup[key] = {
-            ...group,
-            completedCycles,
-          };
-        }
-      }
+  //     // Process completed cycles for each operator-machine group
+  //     const completedCyclesByGroup = {};
+  //     for (const [key, group] of Object.entries(groupedStates)) {
+  //       const completedCycles = getCompletedCyclesForOperator(group.states);
+  //       if (completedCycles.length > 0) {
+  //         completedCyclesByGroup[key] = {
+  //           ...group,
+  //           completedCycles,
+  //         };
+  //       }
+  //     }
 
-      // Get all operator IDs and machine serials
-      const operatorMachinePairs = Object.keys(completedCyclesByGroup).map(
-        (key) => {
-          const [operatorId, machineSerial] = key.split("-");
-          return {
-            operatorId: parseInt(operatorId),
-            machineSerial: parseInt(machineSerial),
-          };
-        }
-      );
+  //     // Get all operator IDs and machine serials
+  //     const operatorMachinePairs = Object.keys(completedCyclesByGroup).map(
+  //       (key) => {
+  //         const [operatorId, machineSerial] = key.split("-");
+  //         return {
+  //           operatorId: parseInt(operatorId),
+  //           machineSerial: parseInt(machineSerial),
+  //         };
+  //       }
+  //     );
 
-      // Step 5: Get counts and process results in parallel
-      const [allCounts] = await Promise.all([
-        getCountsForOperatorMachinePairs(db, operatorMachinePairs, start, end),
-        // Add any other independent operations here
-      ]);
+  //     // Step 5: Get counts and process results in parallel
+  //     const [allCounts] = await Promise.all([
+  //       getCountsForOperatorMachinePairs(db, operatorMachinePairs, start, end),
+  //       // Add any other independent operations here
+  //     ]);
 
-      // Group the counts by operator and machine for easier processing
-      const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
+  //     // Group the counts by operator and machine for easier processing
+  //     const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
 
-      // Step 6: Process each group and its completed cycles individually
-      const results = [];
+  //     // Step 6: Process each group and its completed cycles individually
+  //     const results = [];
 
-      for (const [key, group] of Object.entries(completedCyclesByGroup)) {
-        const [operatorId, machineSerial] = key.split("-");
-        const countGroup = groupedCounts[`${operatorId}-${machineSerial}`];
-        if (!countGroup) continue;
+  //     for (const [key, group] of Object.entries(completedCyclesByGroup)) {
+  //       const [operatorId, machineSerial] = key.split("-");
+  //       const countGroup = groupedCounts[`${operatorId}-${machineSerial}`];
+  //       if (!countGroup) continue;
 
-        // Pre-sort counts by timestamp ASCENDING (important)
-        const sortedCounts = countGroup.counts.sort(
-          (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
-        );
+  //       // Pre-sort counts by timestamp ASCENDING (important)
+  //       const sortedCounts = countGroup.counts.sort(
+  //         (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+  //       );
 
-        let countIndex = 0; // pointer for counts
+  //       let countIndex = 0; // pointer for counts
 
-        for (const cycle of group.completedCycles) {
-          const cycleStart = new Date(cycle.start);
-          const cycleEnd = new Date(cycle.end);
+  //       for (const cycle of group.completedCycles) {
+  //         const cycleStart = new Date(cycle.start);
+  //         const cycleEnd = new Date(cycle.end);
 
-          const cycleCounts = [];
+  //         const cycleCounts = [];
 
-          // Move countIndex forward while counts are within cycle window
-          while (countIndex < sortedCounts.length) {
-            const currentCount = sortedCounts[countIndex];
-            const countTimestamp = new Date(currentCount.timestamp);
+  //         // Move countIndex forward while counts are within cycle window
+  //         while (countIndex < sortedCounts.length) {
+  //           const currentCount = sortedCounts[countIndex];
+  //           const countTimestamp = new Date(currentCount.timestamp);
 
-            if (countTimestamp < cycleStart) {
-              countIndex++;
-              continue;
-            }
-            if (countTimestamp > cycleEnd) {
-              break; // current count is after this cycle
-            }
+  //           if (countTimestamp < cycleStart) {
+  //             countIndex++;
+  //             continue;
+  //           }
+  //           if (countTimestamp > cycleEnd) {
+  //             break; // current count is after this cycle
+  //           }
 
-            // count is inside this cycle
-            cycleCounts.push(currentCount);
-            countIndex++;
-          }
+  //           // count is inside this cycle
+  //           cycleCounts.push(currentCount);
+  //           countIndex++;
+  //         }
 
-          if (!cycleCounts.length) continue; // no counts in this cycle, skip
+  //         if (!cycleCounts.length) continue; // no counts in this cycle, skip
 
-          // Process stats for this cycle
-          const stats = processCountStatistics(cycleCounts);
-          const { runtime: runtimeMs } = calculateOperatorTimes(
-            cycle.states,
-            cycleStart,
-            cycleEnd
-          );
-          const piecesPerHour = calculatePiecesPerHour(stats.total, runtimeMs);
-          const efficiency = calculateEfficiency(
-            runtimeMs,
-            stats.total,
-            countGroup.validCounts
-          );
-          const itemNames = extractItemNamesFromCounts(cycleCounts);
+  //         // Process stats for this cycle
+  //         const stats = processCountStatistics(cycleCounts);
+  //         const { runtime: runtimeMs } = calculateOperatorTimes(
+  //           cycle.states,
+  //           cycleStart,
+  //           cycleEnd
+  //         );
+  //         const piecesPerHour = calculatePiecesPerHour(stats.total, runtimeMs);
+  //         const efficiency = calculateEfficiency(
+  //           runtimeMs,
+  //           stats.total,
+  //           countGroup.validCounts
+  //         );
+  //         const itemNames = extractItemNamesFromCounts(cycleCounts);
 
-          results.push({
-            operatorId: parseInt(operatorId),
-            machineSerial: parseInt(machineSerial),
-            startTimestamp: cycleStart.toISOString(),
-            endTimestamp: cycleEnd.toISOString(),
-            totalCount: stats.total,
-            task: itemNames,
-            standard: Math.round(piecesPerHour * efficiency),
-          });
-        }
-      }
+  //         results.push({
+  //           operatorId: parseInt(operatorId),
+  //           machineSerial: parseInt(machineSerial),
+  //           startTimestamp: cycleStart.toISOString(),
+  //           endTimestamp: cycleEnd.toISOString(),
+  //           totalCount: stats.total,
+  //           task: itemNames,
+  //           standard: Math.round(piecesPerHour * efficiency),
+  //         });
+  //       }
+  //     }
 
-      res.json(results);
-    } catch (error) {
-      logger.error("Error in softrol data processing:", error);
-      res.status(500).json({ error: "Failed to process softrol data" });
-    }
-  });
-  // Softrol Route end
+  //     res.json(results);
+  //   } catch (error) {
+  //     logger.error("Error in softrol data processing:", error);
+  //     res.status(500).json({ error: "Failed to process softrol data" });
+  //   }
+  // });
+  // // Softrol Route end
 
   // API Route for line chart data for OEE% and individual operator efficiency% by hour start
 

@@ -11,18 +11,22 @@ import { FormsModule } from "@angular/forms";
 import { HttpClientModule } from "@angular/common/http";
 import { forkJoin } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { Subject, takeUntil, tap } from 'rxjs';
+
 import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
 import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
 import { MachineFaultHistoryComponent } from '../machine-fault-history/machine-fault-history.component';
 import { OperatorPerformanceChartComponent } from '../operator-performance-chart/operator-performance-chart.component';
-
-
 import { DateTimePickerComponent } from "../components/date-time-picker/date-time-picker.component";
 import { BaseTableComponent } from "../components/base-table/base-table.component";
 import { MachineAnalyticsService } from "../services/machine-analytics.service";
 import { OperatorAnalyticsService } from '../services/operator-analytics.service';
 import { OperatorCountbyitemChartComponent } from "../operator-countbyitem-chart/operator-countbyitem-chart.component";
 import { getStatusDotByCode } from '../../utils/status-utils';
+import { DailyDashboardService } from '../services/daily-dashboard.service';
+import { PollingService } from '../services/polling-service.service';
 
 @Component({
   selector: "app-daily-summary-dashboard",
@@ -33,6 +37,8 @@ import { getStatusDotByCode } from '../../utils/status-utils';
     FormsModule,
     DateTimePickerComponent,
     MatButtonModule,
+    MatIconModule,
+    MatSlideToggleModule,
     BaseTableComponent,
     MatDialogModule,
   ],
@@ -53,8 +59,14 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   operatorColumns: string[] = ['Status', 'Operator Name', 'Worked Time', 'Efficiency'];
   operatorRows: any[] = [];
   selectedOperator: any = null;
-  loading: boolean = false;
-  
+  isLoading: boolean = false;
+  liveMode: boolean = false;
+  rawMachineData: any[] = []; // store full API response for machines
+  rawOperatorData: any[] = []; // store full API response for operators
+  private pollingSubscription: any;
+  private destroy$ = new Subject<void>();
+  private readonly POLLING_INTERVAL = 6000; // 6 seconds
+
   // Add chart dimensions and isModal property
   chartWidth: number = 1000;
   chartHeight: number = 700;
@@ -63,9 +75,9 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   constructor(
     private renderer: Renderer2,
     private elRef: ElementRef,
-    private machineAnalyticsService: MachineAnalyticsService,
-    private operatorAnalyticsService: OperatorAnalyticsService,
-    private dialog: MatDialog
+    private dailyDashboardService: DailyDashboardService,
+    private dialog: MatDialog,
+    private pollingService: PollingService
   ) {}
 
   ngOnInit(): void {
@@ -91,6 +103,9 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     if (this.observer) {
       this.observer.disconnect();
     }
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.stopPolling();
   }
 
   detectTheme(): void {
@@ -106,117 +121,134 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     this.renderer.setStyle(element, "color", isDark ? "#e0e0e0" : "#000000");
   }
 
+  onLiveModeChange(checked: boolean): void {
+    this.liveMode = checked;
+
+    if (this.liveMode) {
+      // Reset startTime to today at 00:00
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      this.startTime = this.formatDateForInput(start);
+
+      // Reset endTime to now
+      this.endTime = this.pollingService.updateEndTimestampToNow();
+
+      // Initial data fetch
+      this.fetchData();
+      this.setupPolling();
+    } else {
+      this.stopPolling();
+      this.clearData();
+    }
+  }
+
+  private setupPolling(): void {
+    if (this.liveMode) {
+      // Initial data fetch
+      this.dailyDashboardService.getDailySummaryDashboard(this.startTime, this.endTime)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe((data: any) => {
+          this.updateDashboardData(data);
+        });
+
+      // Setup polling for subsequent updates
+      this.pollingSubscription = this.pollingService.poll(
+        () => {
+          this.endTime = this.pollingService.updateEndTimestampToNow();
+          return this.dailyDashboardService.getDailySummaryDashboard(this.startTime, this.endTime)
+            .pipe(
+              tap((data: any) => {
+                this.updateDashboardData(data);
+              })
+            );
+        },
+        this.POLLING_INTERVAL,
+        this.destroy$
+      ).subscribe();
+    }
+  }
+
+  private stopPolling(): void {
+    if (this.pollingSubscription) {
+      this.pollingSubscription.unsubscribe();
+      this.pollingSubscription = null;
+    }
+  }
+
+  private clearData(): void {
+    this.rawMachineData = [];
+    this.rawOperatorData = [];
+    this.machineRows = [];
+    this.operatorRows = [];
+    this.itemRows = [];
+  }
+
+  private updateDashboardData(data: any): void {
+    this.rawMachineData = data.machineResults || [];
+    this.rawOperatorData = data.operatorResults || [];
+
+    //Machines
+    this.machineRows = this.rawMachineData.map((response: any) => ({
+      Status: getStatusDotByCode(response.currentStatus?.code),
+      'Machine Name': response.machine?.name ?? 'Unknown',
+      'OEE': response.performance?.performance?.oee?.percentage ?? '0%',
+      'Total Count': response.performance?.output?.totalCount ?? 0,
+      serial: response.machine?.serial
+    }));
+
+    // Operators
+    this.operatorRows = this.rawOperatorData.map((response: any) => ({
+      Status: getStatusDotByCode(response.currentStatus?.code),
+      'Operator Name': response.operator?.name ?? 'Unknown',
+      'Worked Time': `${response.metrics?.runtime?.formatted?.hours ?? 0}h ${response.metrics?.runtime?.formatted?.minutes ?? 0}m`,
+      'Efficiency': response.metrics?.performance?.efficiency?.percentage ?? '0%',
+      operatorId: response.operator?.id
+    }));
+
+    // Items
+    this.itemRows = (data.items || [])
+      .filter((item: any) => item.count > 0)
+      .map((item: any) => ({
+        'Item Name': item.itemName,
+        'Total Count': item.count
+      }));
+  }
+
   fetchData(): void {
     if (!this.startTime || !this.endTime) return;
   
     const formattedStart = new Date(this.startTime).toISOString();
     const formattedEnd = new Date(this.endTime).toISOString();
   
-    this.loading = true;
+    this.isLoading = true;
   
-    forkJoin({
-      machines: this.machineAnalyticsService.getMachinePerformance(formattedStart, formattedEnd, undefined),
-      operators: this.operatorAnalyticsService.getOperatorPerformance(formattedStart, formattedEnd, undefined),
-      items: this.machineAnalyticsService.getItemSummary(formattedStart, formattedEnd)
-    }).subscribe({
-      next: ({ machines, operators, items }) => {
-        // Populate machine rows
-        const machineResponses = Array.isArray(machines) ? machines : [machines];
-        this.machineRows = machineResponses.map((response: any) => ({
-          Status: getStatusDotByCode(response.currentStatus),
-          'Machine Name': response.machine.name,
-          'OEE': `${response.metrics.performance.oee.percentage}%`,
-          'Total Count': response.metrics.output.totalCount,
-          serial: response.machine.serial
-        }));
-  
-        // Populate operator rows
-        const operatorResponses = Array.isArray(operators) ? operators : [operators];
-        this.operatorRows = operatorResponses.map((response: any) => ({
-          Status: getStatusDotByCode(response.currentStatus),
-          'Operator Name': response.operator.name,
-          'Worked Time': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
-          'Efficiency': `${response.metrics.performance.efficiency.percentage}%`,
-          operatorId: response.operator.id
-        }));
-  
-        // Populate item rows
-        this.itemRows = items
-          .filter((item: any) => item.count > 0)
-          .map((item: any) => ({
-            'Item Name': item.itemName,
-            'Total Count': item.count
-          }));
-  
-        this.loading = false;
-      },
-      error: (err) => {
-        console.error('Error fetching summary data:', err);
-        this.loading = false;
-      }
-    });
-  }
-  
-  
-
-  fetchMachineSummaryData(): void {
-    if (!this.startTime || !this.endTime) return;
-  
-    const formattedStart = new Date(this.startTime).toISOString();
-    const formattedEnd = new Date(this.endTime).toISOString();
-  
-    this.machineAnalyticsService.getMachinePerformance(formattedStart, formattedEnd, undefined).subscribe((data: any) => {
-      const responses = Array.isArray(data) ? data : [data];
-  
-      this.machineRows = responses.map((response: any) => ({
-        Status: getStatusDotByCode(response.currentStatus),
-        'Machine Name': response.machine.name,
-        'OEE': `${response.metrics.performance.oee.percentage}%`,
-        'Total Count': response.metrics.output.totalCount,
-        serial: response.machine.serial // keep for row click later
-      }));
-    });
+    this.dailyDashboardService.getDailySummaryDashboard(formattedStart, formattedEnd)
+      .subscribe({
+        next: (data: any) => {
+          this.updateDashboardData(data);
+          this.isLoading = false;
+        },
+        error: (err: any) => {
+          console.error('Error fetching summary data:', err);
+          this.isLoading = false;
+        }
+      });
   }
 
-  fetchOperatorSummaryData(): void {
-    if (!this.startTime || !this.endTime) return;
-  
-    const formattedStart = new Date(this.startTime).toISOString();
-    const formattedEnd = new Date(this.endTime).toISOString();
-  
-    this.operatorAnalyticsService.getOperatorPerformance(formattedStart, formattedEnd, undefined).subscribe((data: any) => {
-      const responses = Array.isArray(data) ? data : [data];
-  
-      this.operatorRows = responses.map((response: any) => ({
-        Status: getStatusDotByCode(response.currentStatus), // assumes .code
-        'Operator Name': response.operator.name,
-        'Worked Time': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
-        'Efficiency': `${response.metrics.performance.efficiency.percentage}%`,
-        operatorId: response.operator.id
-      }));
-    });
+  onDateChange(): void {
+    if (this.liveMode) {
+      this.liveMode = false;
+      this.stopPolling();
+    }
+    this.clearData();
+  }
+
+  getPercentageSafe(value: any): string {
+    const num = typeof value === 'number' ? value : parseFloat(value);
+    if (isNaN(num)) return '0%';
+    return `${(num * 100).toFixed(2)}%`;
   }
   
-  fetchItemSummaryData(): void {
-    if (!this.startTime || !this.endTime) return;
-  
-    const formattedStart = new Date(this.startTime).toISOString();
-    const formattedEnd = new Date(this.endTime).toISOString();
-  
-    this.machineAnalyticsService.getItemSummary(formattedStart, formattedEnd).subscribe({
-      next: (data: any[]) => {
-        this.itemRows = data
-          .filter(item => item.count > 0)
-          .map(item => ({
-            'Item Name': item.itemName,
-            'Total Count': item.count
-          }));
-      },
-      error: (err) => {
-        console.error('Error fetching item summary:', err);
-      }
-    });
-  }
   
   
 
@@ -225,30 +257,44 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       this.selectedRow = null;
       return;
     }
-
+  
     this.selectedRow = row;
+  
+    const serial = row.serial;
+    const fullMachineData = this.rawMachineData.find((m: any) => m.machine?.serial === serial);
+    if (!fullMachineData) {
+      console.warn('Machine data not found for serial:', serial);
+      return;
+    }
+  
+    const faultSummaries = fullMachineData.faultData?.faultSummaries || [];
+    const faultCycles = fullMachineData.faultData?.faultCycles || [];
   
     const carouselTabs = [
       {
         label: 'Fault Summaries',
         component: MachineFaultHistoryComponent,
-        componentInputs: { 
+        componentInputs: {
           viewType: 'summary',
+          mode: 'dashboard',
+          preloadedData: faultSummaries,
+          isModal: this.isModal,
           startTime: this.startTime,
           endTime: this.endTime,
-          machineSerial: row.serial,
-          isModal: this.isModal
+          serial: serial.toString()
         }
       },
       {
         label: 'Fault Cycles',
         component: MachineFaultHistoryComponent,
-        componentInputs: { 
+        componentInputs: {
           viewType: 'cycles',
+          mode: 'dashboard',
+          preloadedData: faultCycles,
+          isModal: this.isModal,
           startTime: this.startTime,
           endTime: this.endTime,
-          machineSerial: row.serial,
-          isModal: this.isModal
+          serial: serial.toString()
         }
       },
       {
@@ -257,10 +303,22 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           startTime: this.startTime,
           endTime: this.endTime,
-          machineSerial: row.serial,
+          machineSerial: serial,
           chartWidth: this.chartWidth,
           chartHeight: this.chartHeight,
-          isModal: this.isModal
+          isModal: this.isModal,
+          mode: 'dashboard',
+          preloadedData: {
+            machine: {
+              serial: serial,
+              name: fullMachineData.machine?.name ?? 'Unknown'
+            },
+            timeRange: {
+              start: this.startTime,
+              end: this.endTime
+            },
+            hourlyData: fullMachineData.operatorEfficiency ?? []
+          }
         }
       }
     ];
@@ -276,22 +334,22 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
         componentInputs: {
           tabData: carouselTabs
         },
-        machineSerial: row.serial,
+        machineSerial: serial,
         startTime: this.startTime,
         endTime: this.endTime
       }
     });
-    
+  
     dialogRef.afterClosed().subscribe(() => {
-      if (this.selectedMachine === row) {
-        this.selectedMachine = null;
+      if (this.selectedRow === row) {
+        this.selectedRow = null;
       }
     });
   }
+  
 
   onOperatorClick(row: any): void {
     this.selectedOperator = row;
-  
     const dialogRef = this.dialog.open(ModalWrapperComponent, {
       width: '95vw',
       height: '90vh',
@@ -306,7 +364,9 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
           endTime: this.endTime,
           chartWidth: this.chartWidth,
           chartHeight: this.chartHeight,
-          isModal: this.isModal
+          isModal: this.isModal,
+          mode: 'dashboard',
+          dashboardData: this.rawOperatorData
         }
       }
     });
@@ -340,4 +400,18 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     const minutes = date.getMinutes().toString().padStart(2, "0");
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
+
+  // Add this helper for dynamic color coding
+  getPerformanceClass(value: any, column?: string): string {
+    if (column !== 'OEE' && column !== 'Efficiency') return '';
+    let num = value;
+    if (typeof value === 'string') {
+      num = parseFloat(value.replace('%', ''));
+    }
+    if (isNaN(num)) return '';
+    if (num >= 85) return 'green';
+    if (num >= 60) return 'yellow';
+    return 'red';
+  }
+  
 }

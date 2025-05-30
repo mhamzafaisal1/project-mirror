@@ -26,6 +26,8 @@ export class MachineItemStackedBarChartComponent implements OnChanges {
   @Input() chartWidth!: number;
   @Input() chartHeight!: number;
   @Input() isModal: boolean = false;
+  @Input() mode: 'standalone' | 'dashboard' = 'standalone';
+  @Input() preloadedData: any = null;
 
   chartData: StackedBarChartData | null = null;
   loading = false;
@@ -49,6 +51,11 @@ export class MachineItemStackedBarChartComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (this.mode === 'dashboard' && this.preloadedData) {
+      this.chartData = this.preloadedData;
+      return;
+    }
+
     if ((changes['startTime'] || changes['endTime'] || changes['machineSerial']) && this.isValid()) {
       this.fetchData();
     }
