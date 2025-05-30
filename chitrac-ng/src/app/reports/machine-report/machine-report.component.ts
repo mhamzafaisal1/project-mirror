@@ -87,38 +87,50 @@ export class MachineReportComponent implements OnInit, OnDestroy {
 
     this.isLoading = true;
     this.isDownloading = false;
-    this.analyticsService.getMachinePerformance(this.startTime, this.endTime, undefined)
-      .subscribe({
-        next: (data: any) => {
-          const responses = Array.isArray(data) ? data : [data];
+    const formattedStart = new Date(this.startTime).toISOString();
+    const formattedEnd = new Date(this.endTime).toISOString();
 
-          const formattedData = responses.map(response => ({
-            'Status': getStatusDotByCode(response.currentStatus?.code),
-            'Machine Name': response.machine.name,
-            'Serial Number': response.machine.serial,
-            'Runtime': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
-            'Downtime': `${response.metrics.downtime.formatted.hours}h ${response.metrics.downtime.formatted.minutes}m`,
-            'Total Count': response.metrics.output.totalCount,
-            'Misfeed Count': response.metrics.output.misfeedCount,
-            'Availability': `${response.metrics.performance.availability.percentage}%`,
-            'Throughput': `${response.metrics.performance.throughput.percentage}%`,
-            'Efficiency': `${response.metrics.performance.efficiency.percentage}%`,
-            'OEE': `${response.metrics.performance.oee.percentage}%`,
-            'Time Range': `${response.timeRange.start} to ${response.timeRange.end}`
-          }));
+    this.machineItemSummaryService.getMachineItemSummary(formattedStart, formattedEnd).subscribe({
+      next: (data) => {
+        const formattedData: any[] = [];
 
-          const allColumns = Object.keys(formattedData[0]);
-          const columnsToHide = ['Serial Number', 'Time Range'];
-          this.columns = allColumns.filter(col => !columnsToHide.includes(col));
+        data.forEach((machine: any) => {
+          const summary = machine.machineSummary;
 
-          this.rows = formattedData;
-          this.isLoading = false;
-        },
-        error: (error) => {
-          console.error('Error fetching analytics data:', error);
-          this.isLoading = false;
-        }
-      });
+          // Add machine-wide summary
+          formattedData.push({
+            'Machine': machine.machine.name,
+            'Item': 'TOTAL',
+            'Worked Time': `${summary.workedTimeFormatted.hours}h ${summary.workedTimeFormatted.minutes}m`,
+            'Total Count': summary.totalCount,
+            'PPH': summary.pph,
+            'Standard': summary.proratedStandard,
+            'Efficiency': `${summary.efficiency}%`
+          });
+
+          // Add item summaries under this machine
+          Object.values(summary.itemSummaries).forEach((item: any) => {
+            formattedData.push({
+              'Machine': machine.machine.name,
+              'Item': item.name,
+              'Worked Time': `${item.workedTimeFormatted.hours}h ${item.workedTimeFormatted.minutes}m`,
+              'Total Count': item.countTotal,
+              'PPH': item.pph,
+              'Standard': item.standard,
+              'Efficiency': `${item.efficiency}%`
+            });
+          });
+        });
+
+        this.columns = Object.keys(formattedData[0]);
+        this.rows = formattedData;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error fetching machine item summary:', error);
+        this.isLoading = false;
+      }
+    });
   }
 
   downloadMachineItemSummaryPdf(): void {
@@ -208,7 +220,6 @@ export class MachineReportComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.isDownloadingCsv = true;
 
-    // Use setTimeout to ensure the loading state is visible
     setTimeout(() => {
       try {
         const csvRows: string[] = [];
@@ -241,7 +252,6 @@ export class MachineReportComponent implements OnInit, OnDestroy {
       } catch (error) {
         console.error('Error generating CSV:', error);
       } finally {
-        // Add a small delay before hiding the loading state to ensure it's visible
         setTimeout(() => {
           this.isLoading = false;
           this.isDownloadingCsv = false;
@@ -249,7 +259,6 @@ export class MachineReportComponent implements OnInit, OnDestroy {
       }
     }, 100);
   }
-  
 
   private formatDateForInput(date: Date): string {
     const year = date.getFullYear();
