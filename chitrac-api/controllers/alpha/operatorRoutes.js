@@ -20,6 +20,8 @@ module.exports = function (server) {
     extractFaultCycles,
     fetchAllStates,
     groupStatesByOperatorAndSerial,
+    extractFaultCyclesFromStates,
+    extractCyclesFromStates
   } = require("../../utils/state");
 
   const {
@@ -46,6 +48,10 @@ module.exports = function (server) {
     buildOperatorCyclePie,
     buildOperatorFaultHistory,
     buildOperatorEfficiencyLine,
+    buildOptimizedOperatorItemSummary,
+    buildOptimizedOperatorCountByItem,
+    buildOptimizedOperatorCyclePie,
+    buildOptimizedOperatorFaultHistory
   } = require("../../utils/operatorDashboardBuilder");
 
   const {
@@ -141,6 +147,77 @@ module.exports = function (server) {
   // });
 
   
+  // router.get("/analytics/operator-dashboard", async (req, res) => {
+  //   try {
+  //     const { start, end } = parseAndValidateQueryParams(req);
+  //     const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+  
+  //     const groupedData = await fetchGroupedAnalyticsData(
+  //       db,
+  //       paddedStart,
+  //       paddedEnd,
+  //       "operator"
+  //     );
+  
+  //     const results = await Promise.all(
+  //       Object.entries(groupedData).map(async ([operatorId, group]) => {
+  //         const numericOperatorId = parseInt(operatorId);
+  //         const { states, counts } = group;
+      
+  //         if (!states.length && !counts.all.length) return null;
+      
+  //         const [
+  //           performance,
+  //           itemSummary,
+  //           countByItem,
+  //           cyclePie,
+  //           faultHistory,
+  //           dailyEfficiency
+  //         ] = await Promise.all([
+  //           buildOperatorPerformance(states, counts.valid, counts.misfeed, start, end),
+  //           buildOperatorItemSummary(states, counts.all, start, end, group.machineNames || {}),
+  //           buildOperatorCountByItem(group, start, end),
+  //           buildOperatorCyclePie(group, start, end),
+  //           buildOperatorFaultHistory({ [operatorId]: group }, start, end),
+  //           buildOperatorEfficiencyLine(group, start, end, db)
+  //         ]);
+      
+  //         const operatorName =
+  //           counts.valid[0]?.operator?.name ||
+  //           counts.all[0]?.operator?.name ||
+  //           "Unknown";
+      
+  //         return {
+  //           operator: {
+  //             id: numericOperatorId,
+  //             name: operatorName,
+  //           },
+  //           currentStatus: {
+  //             code: states[states.length - 1]?.status?.code || 0,
+  //             name: states[states.length - 1]?.status?.name || "Unknown",
+  //           },
+  //           performance,
+  //           itemSummary,
+  //           countByItem,
+  //           cyclePie,
+  //           faultHistory,
+  //           dailyEfficiency,
+  //         };
+  //       })
+  //     );
+      
+  //     // Filter out nulls from skipped operators
+  //     res.json(results.filter(r => r !== null));
+      
+  //   } catch (err) {
+  //     logger.error("Error in /analytics/operator-dashboard route:", err);
+  //     res
+  //       .status(500)
+  //       .json({ error: "Failed to fetch operator dashboard data" });
+  //   }
+  // });
+  
+
   router.get("/analytics/operator-dashboard", async (req, res) => {
     try {
       const { start, end } = parseAndValidateQueryParams(req);
@@ -153,65 +230,66 @@ module.exports = function (server) {
         "operator"
       );
   
-      const results = [];
+      const results = await Promise.all(
+        Object.entries(groupedData).map(async ([operatorId, group]) => {
+          const numericOperatorId = parseInt(operatorId);
+          const { states, counts } = group;
   
-      for (const [operatorId, group] of Object.entries(groupedData)) {
-        const numericOperatorId = parseInt(operatorId);
-        const { states, counts } = group;
+          if (!states.length && !counts.all.length) return null;
   
-        if (!states.length && !counts.all.length) continue;
+          // Preprocess once and reuse
+          const validCounts = counts.valid;
+          const misfeedCounts = counts.misfeed;
+          const allCounts = counts.all;
   
-        const performance = await buildOperatorPerformance(
-          states,
-          counts.valid,
-          counts.misfeed,
-          start,
-          end
-        );
+          const { faultCycles } = extractFaultCycles(states, start, end);
+          const { running: runCycles } = extractAllCyclesFromStates(states, start, end);
   
-        const itemSummary = await buildOperatorItemSummary(
-          states,
-          counts.all,
-          start,
-          end,
-          group.machineNames || {}
-        );
-        
+          const [
+            performance,
+            itemSummary,
+            countByItem,
+            cyclePie,
+            faultHistory,
+            dailyEfficiency
+          ] = await Promise.all([
+            buildOperatorPerformance(states, validCounts, misfeedCounts, start, end),
+            buildOptimizedOperatorItemSummary(states, allCounts, start, end, group.machineNames || {}),
+            buildOptimizedOperatorCountByItem(allCounts, start, end),
+            buildOptimizedOperatorCyclePie(group.states, start, end),
+            buildOptimizedOperatorFaultHistory({ [operatorId]: group }, start, end),
+            buildOperatorEfficiencyLine(group, start, end, db)
+          ]);
   
-        const countByItem = await buildOperatorCountByItem(group, start, end);
-        const cyclePie = await buildOperatorCyclePie(group, start, end);
-        const faultHistory = await buildOperatorFaultHistory(groupedData, start, end);
-        const dailyEfficiency = await buildOperatorEfficiencyLine(group, start, end,db);
+          const operatorName =
+            validCounts[0]?.operator?.name ||
+            allCounts[0]?.operator?.name ||
+            "Unknown";
   
-        const operatorName =
-          counts.valid[0]?.operator?.name ||
-          counts.all[0]?.operator?.name ||
-          "Unknown";
+          return {
+            operator: {
+              id: numericOperatorId,
+              name: operatorName,
+            },
+            currentStatus: {
+              code: states[states.length - 1]?.status?.code || 0,
+              name: states[states.length - 1]?.status?.name || "Unknown",
+            },
+            performance,
+            itemSummary,
+            countByItem,
+            cyclePie,
+            faultHistory,
+            dailyEfficiency,
+          };
+        })
+      );
   
-        results.push({
-          operator: {
-            id: numericOperatorId,
-            name: operatorName,
-          },
-          currentStatus: {
-            code: states[states.length - 1]?.status?.code || 0,
-            name: states[states.length - 1]?.status?.name || "Unknown",
-          },
-          performance,
-          itemSummary,
-          countByItem,
-          cyclePie,
-          faultHistory,
-          dailyEfficiency,
-        });
-      }
+      res.json(results.filter(r => r !== null));
   
-      res.json(results);
     } catch (err) {
       logger.error("Error in /analytics/operator-dashboard route:", err);
-      res
-        .status(500)
-        .json({ error: "Failed to fetch operator dashboard data" });
+      res.status(500).json({ error: "Failed to fetch operator dashboard data" });
     }
   });
   
