@@ -9,7 +9,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  width: 100%;
+  width: 95%;
+  margin: 0 auto;
   border-radius: 1rem;
   padding: 1.5rem;
   box-sizing: border-box;
@@ -36,8 +37,9 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  height: calc(100% - 80px); // Account for modal-actions height
+  height: calc(100% - 80px);
   overflow: hidden;
+  padding: 0 2rem;
 }
 
 .modal-actions {
@@ -72,7 +74,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 1rem;
 
   .carousel-nav {
     pointer-events: auto;
@@ -80,12 +82,12 @@
     background: rgba(255, 255, 255, 0.9);
     color: rgba(0, 0, 0, 0.87);
     border-radius: 50%;
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 8px;
+    margin: 0 4px;
     border: none;
     cursor: pointer;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -98,9 +100,9 @@
     }
 
     mat-icon {
-      font-size: 28px;
-      width: 28px;
-      height: 28px;
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
     }
   }
 }

@@ -535,62 +535,136 @@ async function getAllOperatorIds(db) {
   //   };
   // }
 
-  async function buildOperatorEfficiencyLine(group, start, end) {
+  // async function buildOperatorEfficiencyLine(group, start, end) {
 
     
-    const validCounts = group.counts?.valid || [];
-    const states = group.states || [];
+  //   const validCounts = group.counts?.valid || [];
+  //   const states = group.states || [];
   
-    const startDate = new Date(start);
+  //   const startDate = new Date(start);
+  //   const endDate = new Date(end);
+  //   const days = [];
+  
+  //   let cursor = new Date(startDate);
+  //   while (cursor <= endDate) {
+  //     const dayStart = new Date(cursor);
+  //     const dayEnd = new Date(dayStart);
+  //     dayEnd.setUTCHours(23, 59, 59, 999);
+  //     days.push({ start: new Date(dayStart), end: new Date(dayEnd) });
+  //     cursor.setUTCDate(cursor.getUTCDate() + 1);
+  //   }
+  
+  //   const results = [];
+  //   for (const day of days) {
+  //     const dailyStates = states.filter(s => new Date(s.timestamp) >= day.start && new Date(s.timestamp) <= day.end);
+  //     const dailyCounts = validCounts.filter(c => new Date(c.timestamp) >= day.start && new Date(c.timestamp) <= day.end);
+  //     const runCycles = getCompletedCyclesForOperator(dailyStates);
+  //     const runTime = runCycles.reduce((sum, cycle) => sum + cycle.duration, 0);
+  
+  //     let avgStandard = 666;
+  //     const standards = dailyCounts.map(c => c.item?.standard).filter(s => typeof s === 'number' && s > 0);
+  //     if (standards.length > 0) {
+  //       avgStandard = standards.reduce((a, b) => a + b, 0) / standards.length;
+  //     }
+  
+  //     const hours = runTime / 3600000;
+  //     const pph = hours > 0 ? dailyCounts.length / hours : 0;
+  //     const efficiency = avgStandard > 0 ? (pph / avgStandard) * 100 : 0;
+  
+  //     results.push({
+  //       date: day.start.toISOString().split('T')[0],
+  //       efficiency: Math.round(efficiency * 100) / 100
+  //     });
+  //   }
+  
+  //   return {
+  //     operator: {
+  //       id: validCounts[0]?.operator?.id || group.operator?.id || 'Unknown',
+  //       name: validCounts[0]?.operator?.name || group.operator?.name || 'Unknown'
+  //     },
+  //     timeRange: {
+  //       start,
+  //       end,
+  //       totalDays: results.length
+  //     },
+  //     data: results
+  //   };
+  // }
+  
+  
+  async function buildOperatorEfficiencyLine(group, start, end, db) {
+    const operatorId = group.operator?.id || group.counts?.valid?.[0]?.operator?.id;
+    if (!operatorId) {
+      throw new Error('Operator ID missing in group');
+    }
+  
     const endDate = new Date(end);
-    const days = [];
+    let startDate = new Date(start);
+    const rangeMs = endDate - startDate;
   
+    // ⏪ Expand to 7-day window if shorter
+    if (rangeMs < 7 * 24 * 60 * 60 * 1000) {
+      startDate = new Date(endDate);
+      startDate.setDate(endDate.getDate() - 6);
+      startDate.setHours(0, 0, 0, 0);
+    }
+  
+    const days = [];
     let cursor = new Date(startDate);
     while (cursor <= endDate) {
-      const dayStart = new Date(cursor);
-      const dayEnd = new Date(dayStart);
-      dayEnd.setUTCHours(23, 59, 59, 999);
-      days.push({ start: new Date(dayStart), end: new Date(dayEnd) });
+      const startOfDay = new Date(cursor);
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+  
+      days.push({ start: new Date(startOfDay), end: new Date(endOfDay) });
+  
       cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
   
     const results = [];
+  
     for (const day of days) {
-      const dailyStates = states.filter(s => new Date(s.timestamp) >= day.start && new Date(s.timestamp) <= day.end);
-      const dailyCounts = validCounts.filter(c => new Date(c.timestamp) >= day.start && new Date(c.timestamp) <= day.end);
-      const runCycles = getCompletedCyclesForOperator(dailyStates);
-      const runTime = runCycles.reduce((sum, cycle) => sum + cycle.duration, 0);
+      const dayStates = await fetchStatesForOperator(db, operatorId, day.start, day.end);
+      const runCycles = getCompletedCyclesForOperator(dayStates);
+      const totalRunTimeMs = runCycles.reduce((sum, cycle) => sum + cycle.duration, 0);
+  
+      const validCounts = await getValidCountsForOperator(db, operatorId, day.start, day.end);
   
       let avgStandard = 666;
-      const standards = dailyCounts.map(c => c.item?.standard).filter(s => typeof s === 'number' && s > 0);
-      if (standards.length > 0) {
-        avgStandard = standards.reduce((a, b) => a + b, 0) / standards.length;
+      if (validCounts.length > 0) {
+        const standards = validCounts.map(c => c.item?.standard).filter(s => typeof s === 'number' && s > 0);
+        if (standards.length > 0) {
+          avgStandard = standards.reduce((a, b) => a + b, 0) / standards.length;
+        }
       }
   
-      const hours = runTime / 3600000;
-      const pph = hours > 0 ? dailyCounts.length / hours : 0;
+      const hours = totalRunTimeMs / 3600000;
+      const pph = hours > 0 ? validCounts.length / hours : 0;
       const efficiency = avgStandard > 0 ? (pph / avgStandard) * 100 : 0;
   
       results.push({
-        date: day.start.toISOString().split('T')[0],
-        efficiency: Math.round(efficiency * 100) / 100
+        date: day.start.toISOString().split("T")[0],
+        efficiency: Math.round(efficiency * 100) / 100,
       });
     }
   
+    const operatorName = await getOperatorNameFromCount(db, operatorId);
+  
     return {
       operator: {
-        id: validCounts[0]?.operator?.id || group.operator?.id || 'Unknown',
-        name: validCounts[0]?.operator?.name || group.operator?.name || 'Unknown'
+        id: operatorId,
+        name: operatorName || "Unknown"
       },
       timeRange: {
-        start,
-        end,
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
         totalDays: results.length
       },
       data: results
     };
   }
   
+
   
   module.exports = {
     getAllOperatorIds,

@@ -287,8 +287,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         component: OperatorLineChartComponent,
         componentInputs: {
           mode: 'dashboard',
-          startTime: startTimeStr,
-          endTime: endTimeStr,
+          dashboardData: this.operatorData,
           operatorId: operatorId.toString(),
           isModal: true,
           chartHeight: (this.chartHeight - 50),
