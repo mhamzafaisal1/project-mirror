@@ -24,6 +24,10 @@ import { AuthGuard } from './guards/auth.guard';
 import { TestComponent } from './test/test.component';
 import { DailyAnalyticsDashboardComponent } from './daily-analytics-dashboard/daily-analytics-dashboard.component';
 import { MachineDashboardComponent } from './machine-dashboard/machine-dashboard.component';
+import { MachineReportComponent } from './reports/machine-report/machine-report.component';
+import { OperatorReportComponent } from './reports/operator-report/operator-report.component';
+import { ItemReportComponent } from './reports/item-report/item-report.component';
+
 
 export const routes: Routes = [
 	{ path: 'ng/configGridTest', component: ConfigGridTestComponent },
@@ -49,5 +53,8 @@ export const routes: Routes = [
 	{ path: 'ng/test', component: TestComponent },
 	{ path: 'ng/daily-analytics', component: DailyAnalyticsDashboardComponent },
 	{ path: 'ng/analytics/machine-dashboard', component: MachineDashboardComponent },
+	{ path: 'ng/reports/machine-report', component: MachineReportComponent },
+	{ path: 'ng/reports/operator-report', component: OperatorReportComponent },
+	{ path: 'ng/reports/item-report', component: ItemReportComponent },
 	{ path: 'ng/*', redirectTo: 'ng/home' }
 	];
