@@ -102,13 +102,81 @@ module.exports = function (server) {
   
 
   
+  // router.get("/machine-dashboard", async (req, res) => {
+  //   try {
+  //     const { start, end, serial } = parseAndValidateQueryParams(req);
+  //     const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+  
+  //     const targetSerials = serial ? [serial] : [];
+
+  //     const groupedData = await fetchGroupedAnalyticsData(
+  //       db,
+  //       paddedStart,
+  //       paddedEnd,
+  //       "machine",
+  //       { targetSerials }
+  //     );
+      
+
+  
+  //     const results = [];
+
+  //     for (const [serial, group] of Object.entries(groupedData)) {
+  //       const machineSerial = parseInt(serial);
+  //       const { states, counts } = group;
+  
+  //       if (!states.length) continue;
+  
+  //       // ✅ Compute performance using pre-filtered counts
+  //       const performance = await buildMachinePerformance(
+  //         states,
+  //         counts.valid,
+  //         counts.misfeed,
+  //         start,
+  //         end
+  //       );
+  //       const itemSummary = buildMachineItemSummary(states, counts.valid, start, end);
+  //       const itemHourlyStack = buildItemHourlyStack(counts.valid, start, end);
+  //       const faultData = buildFaultData(states, start, end);
+  //       const operatorEfficiency = await buildOperatorEfficiency(states, counts.valid, start, end, parseInt(serial));
+  
+  //       const latestState = states[states.length - 1];
+  //       const statusCode = latestState.status?.code || 0;
+  //       const statusName = latestState.status?.name || "Unknown";
+  //       const machineName = latestState.machine?.name || "Unknown";
+  
+  //       results.push({
+  //         machine: {
+  //           serial: machineSerial,
+  //           name: machineName
+  //         },
+  //         currentStatus: {
+  //           code: statusCode,
+  //           name: statusName
+  //         },
+  //         performance,
+  //         itemSummary,
+  //         itemHourlyStack,
+  //         faultData,
+  //         operatorEfficiency
+  //       });
+  //     }
+  
+  //     res.json(results);
+  //   } catch (err) {
+  //     logger.error("Error in /machine-dashboard route:", err);
+  //     res.status(500).json({ error: "Failed to fetch dashboard data" });
+  //   }
+  // });
+
+  
   router.get("/machine-dashboard", async (req, res) => {
     try {
       const { start, end, serial } = parseAndValidateQueryParams(req);
       const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
   
       const targetSerials = serial ? [serial] : [];
-
+  
       const groupedData = await fetchGroupedAnalyticsData(
         db,
         paddedStart,
@@ -116,59 +184,58 @@ module.exports = function (server) {
         "machine",
         { targetSerials }
       );
-      
-
   
-      const results = [];
-
-      for (const [serial, group] of Object.entries(groupedData)) {
-        const machineSerial = parseInt(serial);
-        const { states, counts } = group;
+      const results = await Promise.all(
+        Object.entries(groupedData).map(async ([serial, group]) => {
+          const machineSerial = parseInt(serial);
+          const { states, counts } = group;
   
-        if (!states.length) continue;
+          if (!states.length && !counts.valid.length) return null;
   
-        // ✅ Compute performance using pre-filtered counts
-        const performance = await buildMachinePerformance(
-          states,
-          counts.valid,
-          counts.misfeed,
-          start,
-          end
-        );
-        const itemSummary = buildMachineItemSummary(states, counts.valid, start, end);
-        const itemHourlyStack = buildItemHourlyStack(counts.valid, start, end);
-        const faultData = buildFaultData(states, start, end);
-        const operatorEfficiency = await buildOperatorEfficiency(states, counts.valid, start, end, parseInt(serial));
+          const latest = states[states.length - 1] || {};
+          const statusCode = latest.status?.code || 0;
+          const statusName = latest.status?.name || "Unknown";
+          const machineName = latest.machine?.name || "Unknown";
   
-        const latestState = states[states.length - 1];
-        const statusCode = latestState.status?.code || 0;
-        const statusName = latestState.status?.name || "Unknown";
-        const machineName = latestState.machine?.name || "Unknown";
+          const [
+            performance,
+            itemSummary,
+            itemHourlyStack,
+            faultData,
+            operatorEfficiency
+          ] = await Promise.all([
+            buildMachinePerformance(states, counts.valid, counts.misfeed, start, end),
+            buildMachineItemSummary(states, counts.valid, start, end),
+            buildItemHourlyStack(counts.valid, start, end),
+            buildFaultData(states, start, end),
+            buildOperatorEfficiency(states, counts.valid, start, end, machineSerial)
+          ]);
   
-        results.push({
-          machine: {
-            serial: machineSerial,
-            name: machineName
-          },
-          currentStatus: {
-            code: statusCode,
-            name: statusName
-          },
-          performance,
-          itemSummary,
-          itemHourlyStack,
-          faultData,
-          operatorEfficiency
-        });
-      }
+          return {
+            machine: {
+              serial: machineSerial,
+              name: machineName
+            },
+            currentStatus: {
+              code: statusCode,
+              name: statusName
+            },
+            performance,
+            itemSummary,
+            itemHourlyStack,
+            faultData,
+            operatorEfficiency
+          };
+        })
+      );
   
-      res.json(results);
+      res.json(results.filter(Boolean));
     } catch (err) {
       logger.error("Error in /machine-dashboard route:", err);
       res.status(500).json({ error: "Failed to fetch dashboard data" });
     }
   });
-
+  
 
   router.get("/daily-dashboard/machine-status", async (req, res) => {
   try {
