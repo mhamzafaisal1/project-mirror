@@ -1,5 +1,7 @@
 @use '@angular/material' as mat;
 @use './themes/chitrac';
+@use './app/blanket-blaster/lane-common.scss';
+@import 'bootstrap/dist/css/bootstrap.min.css';
 
 @include mat.core();
 // mat.$theme-ignore-duplication-warnings: true;
