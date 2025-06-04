@@ -14,7 +14,8 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
         'machine.name': 1,
         'program.mode': 1,
         'status.code': 1,
-        'status.name': 1
+        'status.name': 1,
+        operators: 1 
       })
       .toArray();
   }

@@ -1,6 +1,16 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription, timer } from 'rxjs';
 import { startWith, switchMap, share, retry } from 'rxjs/operators';
+import { MatButtonModule } from "@angular/material/button";
+import { DemoFlipperService } from '../../services/demo-flipper.service';
+import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
 //import { MachineService } from '../machine.service';
 //import { Duration } from 'luxon';
 
@@ -18,11 +28,15 @@ export class DemoFlipperComponent implements OnInit, OnDestroy {
   subDaily: Subscription;
   subStatus: Subscription;
 
-  serialNumber: string = '63520';
+  serialNumber: string = '';
+  selectedDate: string | null = null;
 
   ident(index: number, lane: any): number {
     return index;
   }
+
+  // public sampleDataArray: any[] = [];
+
 
   public sampleDataArray = [{
     status: 1,
@@ -186,7 +200,7 @@ export class DemoFlipperComponent implements OnInit, OnDestroy {
       }
     }];
 
-  constructor() { }
+  constructor(private demoFlipperService: DemoFlipperService) { }
 
   public colorPicker = function(result: any) {
     if ((result.runTime < ((result.timeframe * 60) * 0.85)) && (result.timeframe != 1440 && result.timeframe != 5)) {
@@ -247,5 +261,17 @@ export class DemoFlipperComponent implements OnInit, OnDestroy {
     if (this.subHourly) this.subHourly.unsubscribe();
     if (this.subDaily) this.subDaily.unsubscribe();
     if (this.subStatus) this.subStatus.unsubscribe();
+  }
+
+  fetchData() {
+    // Call the service and log the result
+    this.demoFlipperService.getLiveEfficiencySummary(Number(this.serialNumber), this.selectedDate).subscribe(
+      (result: any) => {
+        this.sampleDataArray = result;
+      },
+      (error: any) => {
+        console.error('Service error:', error);
+      }
+    );
   }
 }
