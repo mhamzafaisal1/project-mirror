@@ -263,8 +263,9 @@ function constructor(server) {
             paddedStart,
             paddedEnd
           );
+
           const groupedStates = groupStatesByOperatorAndSerial(allStates);
-    
+
           // 2. Process completed cycles for each group
           const completedCyclesByGroup = {};
           for (const [key, group] of Object.entries(groupedStates)) {
@@ -326,7 +327,7 @@ function constructor(server) {
     
           res.json(results);
         } catch (err) {
-          logger.error("Error in /softrol/get-softrol-data:", err);
+          logger.error("Error in /historic-data:", err);
           res.status(500).json({ error: "Internal server error" });
         }
       });

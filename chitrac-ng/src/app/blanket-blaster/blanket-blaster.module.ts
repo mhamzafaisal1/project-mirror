@@ -1,4 +1,3 @@
-// src/app/features/blanket-blaster/blanket-blaster.module.ts
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -7,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 
 import { DemoFlipperComponent } from './demo-flipper/demo-flipper.component';
 import { DataBarComponent } from './lane-components/data-bar/data-bar.component';
@@ -26,13 +26,20 @@ import { LaneStopComponent } from './lane-stop/lane-stop.component';
   ],
   imports: [
     CommonModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
+    FormsModule,
     MatFormFieldModule,
     MatInputModule,
-    FormsModule,
-    MatButtonModule
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatButtonModule,
+    MatIconModule
   ],
-  exports: [DemoFlipperComponent]
+  exports: [
+    DemoFlipperComponent,
+    LaneRunningComponent,
+    LaneRunningGreyedComponent,
+    LaneFaultComponent,
+    LaneStopComponent
+  ]
 })
 export class BlanketBlasterModule {}
