@@ -1,16 +1,16 @@
 <div class="container" style="padding-right: 0; padding-left: 0; height: 99%;">
     <div class="lane-background" style="background-color: #333;height:84%;">
       <div class="lane" style="padding-top:15px;padding-bottom: 15px;height: 100%;">
-        <div id="OperatorBlock" [style.background-color]="lane.efficiency.lastFiveMinutes.color" class="row fs-3" style="height: 10%; margin: 0 15px;">
+        <div id="OperatorBlock" [style.background-color]="lane.efficiency.lastSixMinutes.color" class="row fs-3" style="height: 10%; margin: 0 15px;">
           <div class="col-12 text-uppercase">
             <div class="d-flex text-center align-bottom flex-column h-100 pt-3">NO OPERATOR</div>
           </div>
         </div>
   
         <div id="DataBlock" class="row" style="height: 90%; margin: 0 15px;">
-          <div class="col-12" [style.background-color]="lane.efficiency.lastFiveMinutes.color" style="height:30%">
+          <div class="col-12" [style.background-color]="lane.efficiency.lastSixMinutes.color" style="height:30%">
             <div class="d-flex text-center justify-content-center flex-column h-100 display-2 fw-bold">
-              {{lane.efficiency.lastFiveMinutes.value | number: '1.0-0'}}%
+              {{lane.efficiency.lastSixMinutes.value | number: '1.0-0'}}%
             </div>
           </div>
           <div class="col-12" style="height:70%">

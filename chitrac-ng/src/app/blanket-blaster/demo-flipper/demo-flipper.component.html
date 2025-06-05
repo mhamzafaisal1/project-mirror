@@ -1,9 +1,14 @@
 <div class="row pr-3 pt-3" style="height: 900px;">
-    <div *ngFor="let lane of sampleDataArray; trackBy: ident" class="col pr-0">
-        <ct-lane-running *ngIf="lane.status === 1 && lane.operator != null" [lane]="lane"></ct-lane-running>
-        <ct-lane-running-greyed *ngIf="lane.status === 1 && lane.operator === null" [lane]="lane"></ct-lane-running-greyed>
-        <ct-lane-fault *ngIf="lane.status > 1" [lane]="lane"></ct-lane-fault>
-        <ct-lane-stop *ngIf="lane.status === -1 || lane.status === 0" [lane]="lane"></ct-lane-stop>
+    <div *ngFor="let lane of realDataArray; trackBy: ident" class="col pr-0">
+        <ng-container *ngIf="lane.status === 1">
+            <ct-lane-running *ngIf="lane.operator != null" [lane]="lane"></ct-lane-running>
+            <ct-lane-running-greyed *ngIf="lane.operator === null" [lane]="lane"></ct-lane-running-greyed>
+          </ng-container>
+          
+          <ct-lane-fault *ngIf="lane.status > 1" [lane]="lane"></ct-lane-fault>
+          
+          <ct-lane-stop *ngIf="lane.status === 0 || lane.status === -1" [lane]="lane"></ct-lane-stop>
+          
     </div>
 </div>
 

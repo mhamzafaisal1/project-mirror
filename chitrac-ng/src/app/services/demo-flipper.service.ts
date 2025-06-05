@@ -14,6 +14,6 @@ export class DemoFlipperService {
     const params = new HttpParams()
       .set('serial', serial.toString())
       .set('date', new Date(date).toISOString().split('T')[0]);
-    return this.http.get('http://localhost:9090/api/alpha/analytics/operator-efficiency-hourly', { params });
+    return this.http.get('http://localhost:9090/api/alpha/analytics/flipper-live-summary', { params });
   }
 }

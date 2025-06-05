@@ -35,9 +35,133 @@ export class DemoFlipperComponent implements OnInit, OnDestroy {
     return index;
   }
 
-  // public sampleDataArray: any[] = [];
+  public realDataArray: any[] = [];
 
 
+ public samplyeDataArray =  [{
+        "status": 1,
+        "fault": "Run",
+        "operator": "Maribel Sarco",
+        "operatorId": 135814,
+        "machine": "Blanket2",
+        "timers": {
+            "on": 0,
+            "ready": 0
+        },
+        "displayTimers": {
+            "on": "",
+            "run": ""
+        },
+        "efficiency": {
+            "today": {
+                "value": 98,
+                "label": "today",
+                "color": "#008000"
+            },
+            "lastHour": {
+                "value": 98,
+                "label": "lastHour",
+                "color": "#008000"
+            },
+            "lastFifteenMinutes": {
+                "value": 115,
+                "label": "lastFifteenMinutes",
+                "color": "#008000"
+            },
+            "lastSixMinutes": {
+                "value": 124,
+                "label": "lastSixMinutes",
+                "color": "#008000"
+            }
+        },
+        "batch": {
+            "item": "Bath Blankets",
+            "code": 7
+        }
+    },
+    {
+        "status": 3,
+        "fault": "Run",
+        "operator": "Blanket2 Untracked",
+        "operatorId": 967802,
+        "machine": "Blanket2",
+        "timers": {
+            "on": 0,
+            "ready": 0
+        },
+        "displayTimers": {
+            "on": "",
+            "run": ""
+        },
+        "efficiency": {
+            "today": {
+                "value": 0,
+                "label": "today",
+                "color": "#FF0000"
+            },
+            "lastHour": {
+                "value": 0,
+                "label": "lastHour",
+                "color": "#FF0000"
+            },
+            "lastFifteenMinutes": {
+                "value": 0,
+                "label": "lastFifteenMinutes",
+                "color": "#FF0000"
+            },
+            "lastSixMinutes": {
+                "value": 0,
+                "label": "lastSixMinutes",
+                "color": "#FF0000"
+            }
+        },
+        "batch": {
+            "item": "Bath Blankets",
+            "code": 7
+        }
+    },
+    {
+        "status": 0,
+        "fault": "Run",
+        "operator": "Torres Jackson",
+        "operatorId": 135804,
+        "machine": "Blanket2",
+        "timers": {
+            "on": 0,
+            "ready": 0
+        },
+        "displayTimers": {
+            "on": "",
+            "run": ""
+        },
+        "efficiency": {
+            "today": {
+                "value": 116,
+                "label": "today",
+                "color": "#008000"
+            },
+            "lastHour": {
+                "value": 134,
+                "label": "lastHour",
+                "color": "#008000"
+            },
+            "lastFifteenMinutes": {
+                "value": 123,
+                "label": "lastFifteenMinutes",
+                "color": "#008000"
+            },
+            "lastSixMinutes": {
+                "value": 131,
+                "label": "lastSixMinutes",
+                "color": "#008000"
+            }
+        },
+        "batch": {
+            "item": "Bath Blankets",
+            "code": 7
+        }
+    }
+]
   public sampleDataArray = [{
     status: 1,
     fault: 'Run',
@@ -53,7 +177,7 @@ export class DemoFlipperComponent implements OnInit, OnDestroy {
     },
     efficiency: {
       lastFiveMinutes: {
-        value: 93,
+        value: 97,
         label: 'Current',
         color: '#008000'
       },
@@ -267,7 +391,7 @@ export class DemoFlipperComponent implements OnInit, OnDestroy {
     // Call the service and log the result
     this.demoFlipperService.getLiveEfficiencySummary(Number(this.serialNumber), this.selectedDate).subscribe(
       (result: any) => {
-        this.sampleDataArray = result;
+        this.realDataArray = result.flipperData;
       },
       (error: any) => {
         console.error('Service error:', error);
