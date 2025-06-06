@@ -903,6 +903,121 @@ router.get("/dryer/running-with-operators", async (req, res) => {
 });
 
 
+router.get("/dryer/running-with-operators-test", async (req, res) => {
+  try {
+    const { start, end, serial } = parseAndValidateQueryParams(req);
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const serialNum = parseInt(serial);
+
+    // Read from state-test collection
+    const states = await fetchStatesForMachine(db, serialNum, startDate, endDate, "state-test");
+    const runningCycles = extractAllCyclesFromStates(states, startDate, endDate, "running");
+
+    const counts = await db.collection("count").find({
+      "machine.serial": serialNum,
+      timestamp: { $gte: startDate, $lte: endDate },
+      "operator.id": { $exists: true }
+    }).sort({ timestamp: 1 }).toArray();
+
+    const operatorSessions = [];
+    if (counts.length > 0) {
+      let currentOperator = counts[0].operator;
+      let currentStart = new Date(counts[0].timestamp);
+      let lastTimestamp = currentStart;
+
+      for (let i = 1; i < counts.length; i++) {
+        const count = counts[i];
+        const ts = new Date(count.timestamp);
+        const id = count.operator?.id;
+
+        if (id !== currentOperator.id) {
+          operatorSessions.push({
+            operatorId: currentOperator.id,
+            name: currentOperator.name,
+            start: currentStart,
+            end: lastTimestamp
+          });
+          currentOperator = count.operator;
+          currentStart = ts;
+        }
+
+        lastTimestamp = ts;
+      }
+
+      operatorSessions.push({
+        operatorId: currentOperator.id,
+        name: currentOperator.name,
+        start: currentStart,
+        end: lastTimestamp
+      });
+    }
+
+    const paddingMs = 60 * 1000;
+    const bulkUpdates = [];
+
+    for (const cycle of runningCycles) {
+      const runStart = new Date(cycle.start.getTime() - paddingMs);
+      const runEnd = new Date(cycle.end.getTime() + paddingMs);
+
+      const seen = new Set();
+      const operators = [];
+
+      for (const session of operatorSessions) {
+        const opStart = new Date(session.start);
+        const opEnd = new Date(session.end);
+        const overlapStart = runStart > opStart ? runStart : opStart;
+        const overlapEnd = runEnd < opEnd ? runEnd : opEnd;
+
+        if (overlapEnd > overlapStart && !seen.has(session.operatorId)) {
+          operators.push({
+            id: session.operatorId,
+            name: session.name
+          });
+          seen.add(session.operatorId);
+        }
+
+        if (operators.length >= 8) break;
+      }
+
+      while (operators.length < 8) {
+        operators.push({ id: -1, name: "Offline" });
+      }
+
+      const statesInCycle = states.filter(s => {
+        const ts = new Date(s.timestamp);
+        return ts >= cycle.start && ts <= cycle.end;
+      });
+
+      for (const state of statesInCycle) {
+        bulkUpdates.push({
+          updateOne: {
+            filter: { _id: state._id },
+            update: { $set: { operators } }
+          }
+        });
+      }
+    }
+
+    if (bulkUpdates.length > 0) {
+      const result = await db.collection("state-test").bulkWrite(bulkUpdates);
+      res.json({
+        message: "Operators updated in state-test collection.",
+        matched: result.matchedCount,
+        modified: result.modifiedCount
+      });
+    } else {
+      res.json({ message: "No state records matched for update." });
+    }
+
+  } catch (err) {
+    console.error("Error in /dryer/running-with-operators:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+
 return router;
 
   

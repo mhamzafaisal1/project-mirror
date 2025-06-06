@@ -68,6 +68,8 @@ const {
   buildTopOperatorEfficiency
 } = require("../../utils/dailyDashboardBuilder");
 
+const { buildSoftrolCycleSummary } = require("../../utils/miscFunctions");
+
 module.exports = function (server) {
   return constructor(server);
 };
@@ -3197,7 +3199,93 @@ function constructor(server) {
   });
 
   //API route for item Dashboard end
-
+  router.get("/historic-data-test", async (req, res) => {
+    try {
+      const { start, end } = parseAndValidateQueryParams(req);
+  
+      // Use latest timestamp from "state-test" instead of "state"
+      const [latestState] = await db.collection('state-test')
+        .find()
+        .sort({ timestamp: -1 })
+        .limit(1)
+        .toArray();
+  
+      const effectiveEnd = new Date(end) > new Date()
+        ? (latestState?.timestamp || new Date())
+        : end;
+  
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, effectiveEnd);
+  
+      // ✅ Fetch from "state-test" collection
+      const allStates = await fetchStatesForOperator(
+        db,
+        null,
+        paddedStart,
+        paddedEnd,
+        "state-test" // <-- updated to target "state-test"
+      );
+      const groupedStates = groupStatesByOperatorAndSerial(allStates);
+  
+      const completedCyclesByGroup = {};
+      for (const [key, group] of Object.entries(groupedStates)) {
+        const completedCycles = getCompletedCyclesForOperator(group.states);
+        if (completedCycles.length > 0) {
+          completedCyclesByGroup[key] = { ...group, completedCycles };
+        }
+      }
+  
+      const operatorMachinePairs = Object.keys(completedCyclesByGroup).map(
+        (key) => {
+          const [operatorId, machineSerial] = key.split("-");
+          return {
+            operatorId: parseInt(operatorId),
+            machineSerial: parseInt(machineSerial),
+          };
+        }
+      );
+  
+      const allCounts = await getCountsForOperatorMachinePairs(
+        db,
+        operatorMachinePairs,
+        start,
+        end
+      );
+      const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
+  
+      const results = [];
+      for (const [key, group] of Object.entries(completedCyclesByGroup)) {
+        const [operatorId, machineSerial] = key.split("-");
+        const countGroup = groupedCounts[`${operatorId}-${machineSerial}`];
+        if (!countGroup) continue;
+  
+        const sortedCounts = countGroup.counts.sort(
+          (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+        );
+  
+        for (const cycle of group.completedCycles) {
+          const summary = buildSoftrolCycleSummary(
+            cycle,
+            sortedCounts,
+            countGroup
+          );
+  
+          if (summary) {
+            results.push({
+              operatorId: parseInt(operatorId),
+              machineSerial: parseInt(machineSerial),
+              ...summary
+            });
+          }
+        }
+      }
+  
+      res.json(results);
+    } catch (err) {
+      logger.error("Error in /softrol/historic-data-test:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
 
   return router;
 }
