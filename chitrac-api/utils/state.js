@@ -14,7 +14,8 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
         'machine.name': 1,
         'program.mode': 1,
         'status.code': 1,
-        'status.name': 1
+        'status.name': 1,
+        operators: 1 
       })
       .toArray();
   }
@@ -293,17 +294,17 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
   
   // State functions for Operator
 
-  async function fetchStatesForOperator(db, operatorId, paddedStart, paddedEnd) {
+  async function fetchStatesForOperator(db, operatorId, paddedStart, paddedEnd, collectionName = 'state') {
     const query = {
       timestamp: { $gte: paddedStart, $lte: paddedEnd },
-      'operators': { $exists: true, $ne: [] } // Ensure we only get states that have operators
+      operators: { $exists: true, $ne: [] }
     };
-
+  
     if (operatorId) {
       query['operators.id'] = operatorId;
     }
-
-    return db.collection('state')
+  
+    return db.collection(collectionName)
       .find(query)
       .sort({ timestamp: 1 })
       .project({
@@ -313,10 +314,11 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
         'program.mode': 1,
         'status.code': 1,
         'status.name': 1,
-        'operators': 1
+        operators: 1
       })
       .toArray();
   }
+  
   
   // function groupStatesByOperator(states) {
   //   const grouped = {};

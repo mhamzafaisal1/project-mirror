@@ -27,7 +27,7 @@ import { MachineDashboardComponent } from './machine-dashboard/machine-dashboard
 import { MachineReportComponent } from './reports/machine-report/machine-report.component';
 import { OperatorReportComponent } from './reports/operator-report/operator-report.component';
 import { ItemReportComponent } from './reports/item-report/item-report.component';
-
+import { AC360SixLaneComponent } from './ac360-six-lane/ac360-six-lane.component';
 
 export const routes: Routes = [
 	{ path: 'ng/configGridTest', component: ConfigGridTestComponent },
@@ -55,6 +55,7 @@ export const routes: Routes = [
 	{ path: 'ng/analytics/machine-dashboard', component: MachineDashboardComponent },
 	{ path: 'ng/reports/machine-report', component: MachineReportComponent },
 	{ path: 'ng/reports/operator-report', component: OperatorReportComponent },
-	{ path: 'ng/reports/item-report', component: ItemReportComponent },
+	{ path: 'ng/reports/item-report', component: ItemReportComponent },	
+	{ path: 'ng/ac360-six-lane', component: AC360SixLaneComponent },
 	{ path: 'ng/*', redirectTo: 'ng/home' }
 	];

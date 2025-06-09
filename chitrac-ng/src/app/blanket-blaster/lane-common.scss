@@ -1,0 +1,69 @@
+.lane-container {
+    padding: 0;
+    height: 99%;
+  }
+  
+  .lane-background {
+    height: 84%;
+    background-color: #333; // default; override per state
+  }
+  
+  .lane-inner {
+    height: 100%;
+    padding-top: 15px;
+    padding-bottom: 15px;
+  }
+  
+  .lane-operator {
+    height: 10%;
+    margin: 0 15px;
+    font-size: 2em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 10px;
+  }
+  
+  .lane-data {
+    height: 90%;
+    margin: 0 15px;
+    font-size: 2em;
+  }
+  
+  .lane-data-main {
+    font-size: 2.5em;
+    height: 15%;
+    font-weight: bold;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .lane-data-sub {
+    height: 5%;
+    text-align: center;
+  }
+  
+  .lane-timer {
+    height: 10%;
+    font-size: 2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .lane-footer {
+    height: 16%;
+    border-top: 0.5em solid #191919;
+    border-bottom: 1em solid #333;
+    background-color: #333;
+    margin: 0 0 15px 0;
+    font-size: 2em;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
