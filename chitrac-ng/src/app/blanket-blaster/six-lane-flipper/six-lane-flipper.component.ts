@@ -1,6 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subscription, timer, forkJoin, Subject } from 'rxjs';
-import { startWith, switchMap, takeUntil } from 'rxjs/operators';
+import { Subscription, forkJoin } from 'rxjs';
 import { MatButtonModule } from "@angular/material/button";
 import { DemoFlipperService } from '../../services/demo-flipper.service';
 import { FormsModule } from '@angular/forms';
@@ -40,8 +39,6 @@ export class SixLaneFlipperComponent implements OnInit, OnDestroy {
   subHourly: Subscription;
   subDaily: Subscription;
   subStatus: Subscription;
-  pollingSub: Subscription;
-  pollingDestroy$ = new Subject<void>();
 
   selectedDate: string | null = null;
   serialNumbers = [67808, 67806, 67807, 67805, 67804, 67803];
@@ -50,6 +47,8 @@ export class SixLaneFlipperComponent implements OnInit, OnDestroy {
   public hasFetchedData: boolean = false;
   public realDataArray: any[] = [];
 
+  private pollingTimeout: any = null;
+
   constructor(private demoFlipperService: DemoFlipperService) {}
 
   ident(index: number, lane: any): number {
@@ -57,11 +56,11 @@ export class SixLaneFlipperComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.subFiveMinutes = timer(1, 500).pipe(startWith(0)).subscribe(() => {});
-    this.subFifteenMinutes = timer(1, 1000).pipe(startWith(0)).subscribe(() => {});
-    this.subHourly = timer(1, 1000).pipe(startWith(0)).subscribe(() => {});
-    this.subDaily = timer(1, 1000).pipe(startWith(0)).subscribe(() => {});
-    this.subStatus = timer(1, 500).pipe(startWith(0)).subscribe(() => {});
+    this.subFiveMinutes = this.createDummySub(500);
+    this.subFifteenMinutes = this.createDummySub(1000);
+    this.subHourly = this.createDummySub(1000);
+    this.subDaily = this.createDummySub(1000);
+    this.subStatus = this.createDummySub(500);
   }
 
   ngOnDestroy() {
@@ -71,9 +70,11 @@ export class SixLaneFlipperComponent implements OnInit, OnDestroy {
     if (this.subHourly) this.subHourly.unsubscribe();
     if (this.subDaily) this.subDaily.unsubscribe();
     if (this.subStatus) this.subStatus.unsubscribe();
-    if (this.pollingSub) this.pollingSub.unsubscribe();
-    this.pollingDestroy$.next();
-    this.pollingDestroy$.complete();
+    this.stopLivePolling();
+  }
+
+  private createDummySub(interval: number): Subscription {
+    return new Subscription(); // Replace with logic if needed
   }
 
   fetchData() {
@@ -104,19 +105,21 @@ export class SixLaneFlipperComponent implements OnInit, OnDestroy {
     this.liveMode = checked;
 
     if (this.liveMode) {
+      this.startLivePolling();
+    } else {
+      this.stopLivePolling();
+    }
+  }
 
-      this.pollingSub = timer(0, 6000)
-      .pipe(
-        takeUntil(this.pollingDestroy$),
-        switchMap(() => {
-          const dateToUse = this.selectedDate || new Date().toISOString().split('T')[0];
-          const apiCalls = this.serialNumbers.map(serial =>
-            this.demoFlipperService.getLiveEfficiencySummary(serial, dateToUse)
-          );
-          return forkJoin(apiCalls);
-        })
-      )
-      .subscribe({
+  private startLivePolling() {
+    const dateToUse = this.selectedDate || new Date().toISOString().split('T')[0];
+
+    const poll = () => {
+      const apiCalls = this.serialNumbers.map(serial =>
+        this.demoFlipperService.getLiveEfficiencySummary(serial, dateToUse)
+      );
+
+      forkJoin(apiCalls).subscribe({
         next: (results: any[]) => {
           this.realDataArray = results.flatMap((result, i) => {
             const serial = this.serialNumbers[i];
@@ -127,14 +130,28 @@ export class SixLaneFlipperComponent implements OnInit, OnDestroy {
             return result.flipperData;
           });
           this.hasFetchedData = true;
+
+          if (this.liveMode) {
+            this.pollingTimeout = setTimeout(poll, 1000); // 🔁 wait 1 second after each call
+          }
         },
         error: (err) => {
-          console.error('Polling error:', err);
+          console.error("Polling error:", err);
+
+          if (this.liveMode) {
+            this.pollingTimeout = setTimeout(poll, 1000); // 🔁 retry after 1s
+          }
         }
       });
-    } else {
-      this.pollingDestroy$.next();
-      this.pollingDestroy$ = new Subject<void>();
+    };
+
+    poll(); // start initial poll
+  }
+
+  private stopLivePolling() {
+    if (this.pollingTimeout) {
+      clearTimeout(this.pollingTimeout);
+      this.pollingTimeout = null;
     }
   }
 
