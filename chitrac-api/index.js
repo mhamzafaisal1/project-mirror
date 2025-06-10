@@ -5,7 +5,7 @@ var state, server = {};
 server.appRoot = require('app-root-path');
 
 /** Load config */
-const config = require('./modules/parameterizer')(__dirname);
+const config = require('./modules/config');
 const db = require('./modules/mongoConnector')(config);
 
 /** Load Morgan for http logging */
@@ -13,7 +13,7 @@ const morgan = require('morgan');
 
 /** Declare the custom winston logger and create a blank instance */
 const winston = require('./modules/logger');
-const logger = new winston(config.mongoLog.url + '/' + config.mongoLog.db);
+const logger = new winston(`${config.mongoLog.url}/${config.mongoLog.db}`);
 
 server.config = config;
 server.db = db;
@@ -42,29 +42,28 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const app = express();
-const port = process.env.PORT || server.config.api.port;
+const port = config.port; // ✅ Using .env PORT
 
-//Passport
+// Passport
 const passport = require('passport');
 
-// pass passport for configuration
+// Pass passport for configuration
 require('./configuration/passport')(passport, server);
 server['passport'] = passport;
 
 app.use(cookieParser());
-app.use(bodyParser.json()); // get information from html forms
+app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(session({
-    "secret": 'supersecretchitracsecret',
-    "resave": true,
-    "saveUninitialized": true
+    secret: config.jwtSecret, // ✅ Using .env secret
+    resave: true,
+    saveUninitialized: true
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-//require and use connect-flash for flash messaging
 const flash = require('connect-flash');
 app.use(flash());
 
@@ -72,11 +71,8 @@ const allowCrossDomain = function(req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
-
-    // intercept OPTIONS method
-    if ('OPTIONS' == req.method) {
+    if (req.method === 'OPTIONS') {
         res.sendStatus(200);
-        //console.log(res)
     } else {
         next();
     }
@@ -84,32 +80,28 @@ const allowCrossDomain = function(req, res, next) {
 
 app.use(allowCrossDomain);
 
-const morganMiddleware = morgan(':method :url :status :res[content-length] - :response-time ms',
-    {
-        stream: {
-            // Configure Morgan to use our custom logger with the http severity
-            write: (message) => logger.http(message.trim()),
-        },
-    });
+const morganMiddleware = morgan(':method :url :status :res[content-length] - :response-time ms', {
+    stream: {
+        write: (message) => logger.http(message.trim())
+    }
+});
 
-/*** Load middleware */
 app.use(morganMiddleware);
-//app.use(express.json());
 
 const routes = require('./routes');
 routes.init(app, server);
 
 app.listen(port, () => logger.info(`ChiTracAPI Started and listening on port ${port}`));
 
-/**** HACKY GROSS SECTION TO CLEAN UP */
+/**** Initial Collection Setup */
 async function initializeCollections() {
     logger.debug('Initializing machine collection...');
     await cm.createCollection('machine').then(() => {
-        let collection = db.collection('machine');
+        const collection = db.collection('machine');
         collection.insertMany(server.defaults.machine);
         logger.debug('Machine collection initialized!');
     }).catch(async (error) => {
-        if (error.codeName == 'NamespaceExists') {
+        if (error.codeName === 'NamespaceExists') {
             logger.debug('Machine collection already initialized!');
         } else {
             logger.error(error.toString());
@@ -118,11 +110,11 @@ async function initializeCollections() {
 
     logger.debug('Initializing item collection...');
     await cm.createCollection('item').then(() => {
-        let collection = db.collection('item');
+        const collection = db.collection('item');
         collection.insertMany(server.defaults.item);
         logger.debug('Item collection initialized!');
     }).catch((error) => {
-        if (error.codeName == 'NamespaceExists') {
+        if (error.codeName === 'NamespaceExists') {
             logger.debug('Item collection already initialized!');
         } else {
             logger.error(error.toString());
@@ -131,11 +123,11 @@ async function initializeCollections() {
 
     logger.debug('Initializing fault collection...');
     await cm.createCollection('fault').then(() => {
-        let collection = db.collection('fault');
+        const collection = db.collection('fault');
         collection.insertMany(server.defaults.fault);
         logger.debug('Fault collection initialized!');
     }).catch((error) => {
-        if (error.codeName == 'NamespaceExists') {
+        if (error.codeName === 'NamespaceExists') {
             logger.debug('Fault collection already initialized!');
         } else {
             logger.error(error.toString());
@@ -144,11 +136,11 @@ async function initializeCollections() {
 
     logger.debug('Initializing status collection...');
     await cm.createCollection('status').then(() => {
-        let collection = db.collection('status');
+        const collection = db.collection('status');
         collection.insertMany(server.defaults.status);
         logger.debug('Status collection initialized!');
     }).catch((error) => {
-        if (error.codeName == 'NamespaceExists') {
+        if (error.codeName === 'NamespaceExists') {
             logger.debug('Status collection already initialized!');
         } else {
             logger.error(error.toString());
@@ -157,19 +149,19 @@ async function initializeCollections() {
 
     logger.debug('Initializing operator collection...');
     await cm.createCollection('operator').then(() => {
-        let collection = db.collection('operator');
+        const collection = db.collection('operator');
         collection.insertMany(server.defaults.operator);
         logger.debug('Operators collection initialized!');
     }).catch(async (error) => {
-        if (error.codeName == 'NamespaceExists') {
-            let cursor = db.collection('operator').find({});
-            let found = await cursor.toArray();
+        if (error.codeName === 'NamespaceExists') {
+            const cursor = db.collection('operator').find({});
+            const found = await cursor.toArray();
             if (found.length) {
                 logger.debug('Operator collection already initialized!');
             } else {
-                logger.debug('Operator collection already exists but is empty!');
+                logger.debug('Operator collection exists but is empty!');
                 db.collection('operator').insertMany(server.defaults.operator);
-                logger.debug('Operator collection initialized!');
+                logger.debug('Operator collection populated!');
             }
         } else {
             logger.error(error.toString());
