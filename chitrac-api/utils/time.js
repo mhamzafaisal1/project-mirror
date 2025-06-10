@@ -1,230 +1,223 @@
+const { DateTime, Duration } = require("luxon");
+
+const SYSTEM_TIMEZONE = "America/Chicago";
+
 const TIME_CONSTANTS = {
   MINUTES_IN_HOUR: 60,
   MILLISECONDS_IN_MINUTE: 60000,
   MILLISECONDS_IN_HOUR: 3600000,
   DEFAULT_PADDING: 5,
   DATE_FORMATS: {
-    ISO: 'yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'',
-    DISPLAY: 'MM/dd/yyyy HH:mm:ss',
-    MONGO: 'YYYY-MM-DDTHH:mm:ss.SSSZ'  // MongoDB's preferred format
-  }
+    ISO: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+    DISPLAY: "MM/dd/yyyy HH:mm:ss",
+    MONGO: "YYYY-MM-DDTHH:mm:ss.SSSZ",
+  },
 };
 
 /**
  * Validates and parses query parameters for MongoDB date queries
- * @param {Object} req - Express request object
- * @returns {Object} { start, end, serial, operatorId } - Validated dates and IDs
  */
 function parseAndValidateQueryParams(req) {
-  const { 
-    startTime, 
-    endTime, 
-    machineSerial, 
-    start, 
-    end, 
+  const {
+    startTime,
+    endTime,
+    machineSerial,
+    start,
+    end,
     serial,
-    operatorId
+    operatorId,
   } = req.query;
-  
-  // Use either naming convention for dates
+
   const startDate = startTime || start;
   const endDate = endTime || end;
   const machineId = machineSerial || serial;
-  
+
   if (!startDate || !endDate) {
-    throw new Error('start/startTime and end/endTime are required');
+    throw new Error("start/startTime and end/endTime are required");
   }
-  
-  const startDateObj = validateDateString(startDate);
-  const endDateObj = validateDateString(endDate);
-  const serialNum = machineId ? parseInt(machineId) : null;
-  const operatorNum = operatorId ? parseInt(operatorId) : null;
-  
-  validateTimeRange(startDateObj, endDateObj);
-  
-  return { 
-    start: convertToMongoDate(startDateObj),
-    end: convertToMongoDate(endDateObj),
-    serial: serialNum,
-    operatorId: operatorNum
+
+  const startDT = validateDateString(startDate);
+  const endDT = validateDateString(endDate);
+  validateTimeRange(startDT, endDT);
+
+  return {
+    start: convertToMongoDate(startDT),
+    end: convertToMongoDate(endDT),
+    serial: machineId ? parseInt(machineId) : null,
+    operatorId: operatorId ? parseInt(operatorId) : null,
+    startLuxon: startDT,
+    endLuxon: endDT,
   };
 }
 
 /**
  * Creates a padded time range for MongoDB queries
- * @param {Date} start - Start date
- * @param {Date} end - End date
- * @param {number} paddingMinutes - Minutes to pad (default: 5)
- * @returns {Object} { paddedStart, paddedEnd } - Padded dates in MongoDB format
  */
 function createPaddedTimeRange(start, end, paddingMinutes = TIME_CONSTANTS.DEFAULT_PADDING) {
-  const paddingMs = paddingMinutes * TIME_CONSTANTS.MILLISECONDS_IN_MINUTE;
+  const startDT = DateTime.fromJSDate(start, { zone: SYSTEM_TIMEZONE });
+  const endDT = DateTime.fromJSDate(end, { zone: SYSTEM_TIMEZONE });
+
   return {
-    paddedStart: convertToMongoDate(new Date(start.getTime() - paddingMs)),
-    paddedEnd: convertToMongoDate(new Date(end.getTime() + paddingMs))
+    paddedStart: convertToMongoDate(startDT.minus({ minutes: paddingMinutes })),
+    paddedEnd: convertToMongoDate(endDT.plus({ minutes: paddingMinutes })),
   };
 }
 
 /**
  * Validates that start time is before end time
- * @param {Date} start - Start date
- * @param {Date} end - End date
- * @returns {boolean} true if valid
  */
 function validateTimeRange(start, end) {
   if (start > end) {
-    throw new Error('Start time must be before end time');
+    throw new Error("Start time must be before end time");
   }
   return true;
 }
 
 /**
- * Validates a date string and converts it to a Date object
- * @param {string} dateString - Date string to validate
- * @returns {Date} Validated date object
+ * Validates a date string and converts it to a Luxon DateTime
  */
 function validateDateString(dateString) {
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) {
-    throw new Error('Invalid date string format');
+  const dt = DateTime.fromISO(dateString, { zone: SYSTEM_TIMEZONE });
+  if (!dt.isValid) {
+    throw new Error("Invalid date string format");
   }
-  return date;
+  return dt;
 }
 
 /**
- * Converts a JavaScript Date to MongoDB's preferred date format
- * @param {Date} date - JavaScript Date object
- * @returns {Date} MongoDB compatible date
+ * Converts Luxon DateTime to Mongo-compatible JS Date
  */
-function convertToMongoDate(date) {
-  return new Date(date.toISOString());
+function convertToMongoDate(dt) {
+  return dt.toJSDate();
 }
 
 /**
  * Creates a MongoDB date query object
- * @param {Date} start - Start date
- * @param {Date} end - End date
- * @returns {Object} MongoDB date query
  */
 function createMongoDateQuery(start, end) {
   return {
-    $gte: convertToMongoDate(start),
-    $lte: convertToMongoDate(end)
+    $gte: convertToMongoDate(DateTime.fromJSDate(start, { zone: SYSTEM_TIMEZONE })),
+    $lte: convertToMongoDate(DateTime.fromJSDate(end, { zone: SYSTEM_TIMEZONE })),
   };
 }
 
 /**
  * Calculates duration between two dates in milliseconds
- * @param {Date} start - Start date
- * @param {Date} end - End date
- * @returns {number} Duration in milliseconds
  */
 function calculateDuration(start, end) {
-  return end.getTime() - start.getTime();
+  const startDT = DateTime.fromJSDate(start, { zone: SYSTEM_TIMEZONE });
+  const endDT = DateTime.fromJSDate(end, { zone: SYSTEM_TIMEZONE });
+  return endDT.diff(startDT).as("milliseconds");
 }
 
 /**
  * Formats duration into hours and minutes
- * @param {number} milliseconds - Duration in milliseconds
- * @returns {Object} { hours, minutes }
  */
 function formatDuration(milliseconds) {
-  const hours = Math.floor(milliseconds / TIME_CONSTANTS.MILLISECONDS_IN_HOUR);
-  const minutes = Math.floor((milliseconds % TIME_CONSTANTS.MILLISECONDS_IN_HOUR) / TIME_CONSTANTS.MILLISECONDS_IN_MINUTE);
+  const dur = Duration.fromMillis(milliseconds);
+  const hours = Math.floor(dur.as("hours"));
+  const minutes = Math.floor(dur.minus({ hours }).as("minutes"));
   return { hours, minutes };
 }
 
 /**
  * Creates a MongoDB aggregation pipeline for time-based grouping
- * @param {string} dateField - Field name containing the date
- * @param {string} interval - Grouping interval ('hour', 'day', etc.)
- * @returns {Array} MongoDB aggregation pipeline
  */
-function createTimeGroupingPipeline(dateField, interval = 'hour') {
+function createTimeGroupingPipeline(dateField, interval = "hour") {
   return [
     {
       $group: {
         _id: {
           $dateToString: {
             format: getMongoDateFormat(interval),
-            date: `$${dateField}`
-          }
+            date: `$${dateField}`,
+          },
         },
-        count: { $sum: 1 }
-      }
+        count: { $sum: 1 },
+      },
     },
-    { $sort: { _id: 1 } }
+    { $sort: { _id: 1 } },
   ];
 }
 
 /**
  * Gets MongoDB date format string based on interval
- * @param {string} interval - Time interval
- * @returns {string} MongoDB date format string
  */
 function getMongoDateFormat(interval) {
   const formats = {
-    hour: '%Y-%m-%d %H:00:00',
-    day: '%Y-%m-%d',
-    month: '%Y-%m',
-    year: '%Y'
+    hour: "%Y-%m-%d %H:00:00",
+    day: "%Y-%m-%d",
+    month: "%Y-%m",
+    year: "%Y",
   };
   return formats[interval] || formats.hour;
 }
 
-  
+/**
+ * Generates hourly intervals between two timestamps
+ */
 function getHourlyIntervals(start, end) {
-  const intervals = [];
-  let current = new Date(start);
-  const endDate = new Date(end);
+  const startDT = DateTime.fromJSDate(start, { zone: SYSTEM_TIMEZONE }).startOf("hour");
+  const endDT = DateTime.fromJSDate(end, { zone: SYSTEM_TIMEZONE }).endOf("hour");
 
-  while (current < endDate) {
-    const nextHour = new Date(current);
-    nextHour.setHours(current.getHours() + 1);
+  const intervals = [];
+  let cursor = startDT;
+
+  while (cursor < endDT) {
+    const next = cursor.plus({ hours: 1 });
     intervals.push({
-      start: new Date(current),
-      end: nextHour > endDate ? endDate : nextHour
+      start: cursor.toJSDate(),
+      end: next > endDT ? endDT.toJSDate() : next.toJSDate(),
     });
-    current = nextHour;
+    cursor = next;
   }
 
   return intervals;
 }
 
-
+/**
+ * Enforces a minimum time window of N days
+ */
 function enforceMinimumTimeRange(start, end, minDays = 7) {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  const minDuration = minDays * 24 * 60 * 60 * 1000;
+  let startDT = DateTime.fromJSDate(start, { zone: SYSTEM_TIMEZONE });
+  const endDT = DateTime.fromJSDate(end, { zone: SYSTEM_TIMEZONE });
+  const minDuration = Duration.fromObject({ days: minDays });
 
-  if (endDate - startDate < minDuration) {
-    startDate.setTime(endDate.getTime() - minDuration);
+  if (endDT.diff(startDT) < minDuration) {
+    startDT = endDT.minus(minDuration);
   }
 
   return {
-    start: startDate.toISOString(),
-    end: endDate.toISOString()
+    start: startDT.toISO(),
+    end: endDT.toISO(),
   };
 }
 
+/**
+ * Generates day-by-day intervals between two timestamps
+ */
 function getDayIntervals(start, end) {
-  const intervals = [];
-  let current = new Date(start);
-  current.setHours(0, 0, 0, 0);
+  const startDT = DateTime.fromJSDate(start, { zone: SYSTEM_TIMEZONE }).startOf("day");
+  const endDT = DateTime.fromJSDate(end, { zone: SYSTEM_TIMEZONE }).endOf("day");
 
-  while (current < end) {
-    const next = new Date(current);
-    next.setDate(current.getDate() + 1);
-    intervals.push({ start: new Date(current), end: new Date(next) });
-    current = next;
+  const intervals = [];
+  let cursor = startDT;
+
+  while (cursor < endDT) {
+    const next = cursor.plus({ days: 1 });
+    intervals.push({
+      start: cursor.toJSDate(),
+      end: next.toJSDate(),
+    });
+    cursor = next;
   }
 
   return intervals;
 }
 
-
 module.exports = {
   TIME_CONSTANTS,
+  SYSTEM_TIMEZONE,
   parseAndValidateQueryParams,
   createPaddedTimeRange,
   validateTimeRange,
@@ -237,6 +230,5 @@ module.exports = {
   getMongoDateFormat,
   getHourlyIntervals,
   enforceMinimumTimeRange,
-  getDayIntervals
+  getDayIntervals,
 };
-  
