@@ -49,3 +49,39 @@
 .dark-theme .nav-section-title {
   color: rgba(255, 255, 255, 0.7);
 }
+
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; // Adjust spacing between all icons/toggle
+}
+
+.calendar-btn {
+  margin-right: 0.5rem;
+}
+
+.light-theme .calendar-icon {
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.light-icon,
+.dark-icon {
+  font-size: 20px;
+  vertical-align: middle;
+}
+
+.dark-toggle {
+  margin: 0 0.25rem;
+}
+
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}

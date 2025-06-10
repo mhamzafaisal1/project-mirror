@@ -1,0 +1,36 @@
+<div class="date-time-menu">
+    <div class="picker-section">
+      <!-- Date Picker -->
+      <mat-form-field>
+        <mat-label>Start Date</mat-label>
+        <input matInput [matDatepicker]="startPicker" [(ngModel)]="startDate">
+        <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+        <mat-datepicker #startPicker></mat-datepicker>
+      </mat-form-field>
+  
+      <!-- Time Picker -->
+      <mat-form-field>
+        <mat-label>Start Time</mat-label>
+        <input matInput [matTimepicker]="startTimePicker" [(ngModel)]="startTime" />
+        <mat-timepicker-toggle matSuffix [for]="startTimePicker"></mat-timepicker-toggle>
+        <mat-timepicker #startTimePicker></mat-timepicker>
+      </mat-form-field>
+    </div>
+  
+    <div class="divider"></div>
+  
+    <div class="mode-section">
+      <mat-radio-group [(ngModel)]="mode">
+        <mat-radio-button value="live">Live Mode</mat-radio-button>
+        <mat-radio-button value="manual">Manual</mat-radio-button>
+      </mat-radio-group>
+    </div>
+  
+    <div class="action-row">
+      <button mat-flat-button color="primary">
+        <mat-icon>done</mat-icon>
+        Confirm
+      </button>
+    </div>
+  </div>
+  

@@ -11,6 +11,9 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatMenuModule } from '@angular/material/menu';
+import { DateTimeModalComponent } from '../components/date-time-modal/date-time-modal.component'; 
+
 
 import { trigger, state, style, animate, transition, query, group } from '@angular/animations';
 
@@ -49,8 +52,11 @@ const right = [
     MatSidenavModule,
     MatListModule,
     MatIconModule,
-    MatSlideToggleModule
+    MatSlideToggleModule,
+    MatMenuModule,
+    DateTimeModalComponent
   ],
+  
   animations: [
     trigger('menuSlider', [
       transition(':increment', right),
