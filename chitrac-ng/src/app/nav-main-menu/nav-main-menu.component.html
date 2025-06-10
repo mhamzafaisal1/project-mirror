@@ -153,17 +153,47 @@
 
   <mat-sidenav-content>
     <mat-toolbar>
+      <!-- Left: menu toggle and title -->
       <button (click)="toggleMenu()" mat-icon-button>
         <mat-icon *ngIf="shownMenu == ''">chevron_right</mat-icon>
         <mat-icon *ngIf="shownMenu != ''">chevron_left</mat-icon>
       </button>
       <span><a href="/">ChiTrac V2</a></span>
+    
+      <!-- Spacer -->
       <span class="spacer"></span>
-      <mat-icon style="padding-right: 0.25em">light_mode</mat-icon>
-      <mat-slide-toggle (click)="darkModeToggle()" [checked]="isDarkMode">
-      </mat-slide-toggle>
-      <mat-icon style="padding-left: 0.25em">dark_mode</mat-icon>
+    
+      <!-- Right: calendar + dark mode controls -->
+      <span class="toolbar-actions">
+        <button mat-icon-button class="calendar-btn" [matMenuTriggerFor]="dateMenu">
+          <mat-icon class="calendar-icon">calendar_today</mat-icon>
+        </button>
+    
+        <mat-menu
+        #dateMenu="matMenu"
+        class="date-menu-wrapper"
+        [overlapTrigger]="false"
+        xPosition="after"
+        yPosition="below"
+        [hasBackdrop]="true"
+        (closed)="shownMenu = ''"
+      >
+        <div (click)="$event.stopPropagation()">
+          <app-date-time-modal />
+        </div>
+      </mat-menu>
+      
+    
+        <mat-icon class="light-icon">light_mode</mat-icon>
+        <mat-slide-toggle
+          class="dark-toggle"
+          (click)="darkModeToggle()"
+          [checked]="isDarkMode"
+        ></mat-slide-toggle>
+        <mat-icon class="dark-icon">dark_mode</mat-icon>
+      </span>
     </mat-toolbar>
+    
     <div class="sidenav-content">
       <router-outlet />
     </div>

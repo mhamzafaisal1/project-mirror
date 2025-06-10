@@ -11,6 +11,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { trigger, state, style, animate, transition, query, group } from '@angular/animations';
 
@@ -18,6 +19,7 @@ import { Observable } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 
 import { UserService } from '../user.service';
+import { DateTimeModalComponent } from '../components/date-time-modal/date-time-modal.component';
 
 const left = [
   query(':enter, :leave', style({ position: 'absolute', width: '15em' })),
@@ -49,7 +51,9 @@ const right = [
     MatSidenavModule,
     MatListModule,
     MatIconModule,
-    MatSlideToggleModule
+    MatSlideToggleModule,
+    MatMenuModule,
+    DateTimeModalComponent
   ],
   animations: [
     trigger('menuSlider', [

@@ -200,4 +200,11 @@ body.dark-theme {
   margin-right: 0.5em;
 }
 
+::ng-deep .mat-mdc-menu-panel.date-menu-wrapper {
+  min-width: unset !important;
+  max-width: unset !important;
+  width: auto !important;
+}
+
+
 
