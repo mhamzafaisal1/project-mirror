@@ -7,24 +7,24 @@ const router = express.Router();
 const { DateTime, Duration, Interval } = require('luxon'); //For handling dates and times
 
 const {
-  parseAndValidateQueryParams,
-  createPaddedTimeRange,
+    parseAndValidateQueryParams,
+    createPaddedTimeRange,
 } = require("../../utils/time");
 
 const {
-  fetchStatesForOperator,
-  getCompletedCyclesForOperator,
-  groupStatesByOperatorAndSerial,
+    fetchStatesForOperator,
+    getCompletedCyclesForOperator,
+    groupStatesByOperatorAndSerial,
 } = require("../../utils/state");
 
 const {
-  groupCountsByOperatorAndMachine,
-  getCountsForOperatorMachinePairs,
+    groupCountsByOperatorAndMachine,
+    getCountsForOperatorMachinePairs,
 } = require("../../utils/count");
 
 const { buildSoftrolCycleSummary } = require("../../utils/miscFunctions");
 
-module.exports = function(server) {
+module.exports = function (server) {
     return constructor(server);
 }
 
@@ -42,17 +42,17 @@ function constructor(server) {
         let queryDateTime = DateTime.now().toISO();
         const startDate = new Date(queryDateTime);
 
-        const activeMachineStates = await stateTickerCollection.find({'timestamp': {'$lt': new Date(queryDateTime)}}).sort({ "machine.name": 1 }).toArray();
+        const activeMachineStates = await stateTickerCollection.find({ 'timestamp': { '$lt': new Date(queryDateTime) } }).sort({ "machine.name": 1 }).toArray();
 
         async function machineSession(serial) {
-            let machineStatesMostRecentFind = await stateCollection.find({ 'machine.serial': parseInt(serial), 'status.code': { $ne: null }}).sort({ timestamp: -1 }).limit(1).toArray();
+            let machineStatesMostRecentFind = await stateCollection.find({ 'machine.serial': parseInt(serial), 'status.code': { $ne: null } }).sort({ timestamp: -1 }).limit(1).toArray();
             let machineStatesMostRecent;
             let machineStatesMostRecentTimestamp;
             if (machineStatesMostRecentFind.length) {
                 machineStatesMostRecent = machineStatesMostRecentFind[0];
                 machineStatesMostRecentTimestamp = new Date(machineStatesMostRecent.timestamp);
             }
-             
+
             let diff;
             if (machineStatesMostRecent.status && machineStatesMostRecent.status.code == 1) {
                 let machineStatesNextMostRecent;
@@ -63,7 +63,7 @@ function constructor(server) {
                         if (machineStatesNextMostRecent.status.code == 1) {
                             machineStatesMostRecent = Object.assign({}, machineStatesNextMostRecent);
                             machineStatesMostRecentTimestamp = new Date(machineStatesNextMostRecent.timestamp);
-                            
+
                         } else {
                             break;
                         }
@@ -236,109 +236,126 @@ function constructor(server) {
         res.json(machineRunTimesArray);
     });
 
+    router.get('/leveltwo', (req, res, next) => {
+        res.json({
+            "timers": {
+                "run": 63,
+                "down": 17,
+            },
+            "totals": {
+                "input": 2493,
+                "out": 2384,
+                "faults": 15,
+                "jams": 9
+            },
+            "availability": 86.55,
+            "oee": 68.47,
+            "operatorEfficiency": 78.61
+        })
+    });
 
     // Import misc-related routes (This is the softrol routes)
     router.get("/historic-data", async (req, res) => {
         try {
-          // Use centralized time parser
-          const { start, end } = parseAndValidateQueryParams(req);
-    
-          // Get latest state timestamp if end date is in the future
-          const [latestState] = await db.collection('state')
-            .find()
-            .sort({ timestamp: -1 })
-            .limit(1)
-            .toArray();
-    
-          const effectiveEnd = new Date(end) > new Date() 
-            ? (latestState?.timestamp || new Date()) 
-            : end;
-    
-          const { paddedStart, paddedEnd } = createPaddedTimeRange(start, effectiveEnd);
-    
-          // 1. Fetch and group states by operator and machine
-          const allStates = await fetchStatesForOperator(
-            db,
-            null,
-            paddedStart,
-            paddedEnd
-          );
+            // Use centralized time parser
+            const { start, end } = parseAndValidateQueryParams(req);
 
-          const groupedStates = groupStatesByOperatorAndSerial(allStates);
+            // Get latest state timestamp if end date is in the future
+            const [latestState] = await db.collection('state')
+                .find()
+                .sort({ timestamp: -1 })
+                .limit(1)
+                .toArray();
 
-          // 2. Process completed cycles for each group
-          const completedCyclesByGroup = {};
-          for (const [key, group] of Object.entries(groupedStates)) {
-            const completedCycles = getCompletedCyclesForOperator(group.states);
-            if (completedCycles.length > 0) {
-              completedCyclesByGroup[key] = { ...group, completedCycles };
-            }
-          }
-    
-          // 3. Get operator-machine pairs for count lookup
-          const operatorMachinePairs = Object.keys(completedCyclesByGroup).map(
-            (key) => {
-              const [operatorId, machineSerial] = key.split("-");
-              return {
-                operatorId: parseInt(operatorId),
-                machineSerial: parseInt(machineSerial),
-              };
-            }
-          );
-    
-          // 4. Fetch and group counts
-          const allCounts = await getCountsForOperatorMachinePairs(
-            db,
-            operatorMachinePairs,
-            start,
-            end
-          );
-          const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
-    
-          // 5. Process each group's cycles and counts
-          const results = [];
-          for (const [key, group] of Object.entries(completedCyclesByGroup)) {
-            const [operatorId, machineSerial] = key.split("-");
-            const countGroup = groupedCounts[`${operatorId}-${machineSerial}`];
-            if (!countGroup) continue;
-    
-            // Sort counts by timestamp for efficient processing
-            const sortedCounts = countGroup.counts.sort(
-              (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+            const effectiveEnd = new Date(end) > new Date()
+                ? (latestState?.timestamp || new Date())
+                : end;
+
+            const { paddedStart, paddedEnd } = createPaddedTimeRange(start, effectiveEnd);
+
+            // 1. Fetch and group states by operator and machine
+            const allStates = await fetchStatesForOperator(
+                db,
+                null,
+                paddedStart,
+                paddedEnd
             );
-    
-            // Process each cycle
-            for (const cycle of group.completedCycles) {
-              const summary = buildSoftrolCycleSummary(
-                cycle,
-                sortedCounts,
-                countGroup
-              );
-              
-              if (summary) {
-                results.push({
-                  operatorId: parseInt(operatorId),
-                  machineSerial: parseInt(machineSerial),
-                  ...summary
-                });
-              }
+
+            const groupedStates = groupStatesByOperatorAndSerial(allStates);
+
+            // 2. Process completed cycles for each group
+            const completedCyclesByGroup = {};
+            for (const [key, group] of Object.entries(groupedStates)) {
+                const completedCycles = getCompletedCyclesForOperator(group.states);
+                if (completedCycles.length > 0) {
+                    completedCyclesByGroup[key] = { ...group, completedCycles };
+                }
             }
-          }
-    
-          res.json(results);
+
+            // 3. Get operator-machine pairs for count lookup
+            const operatorMachinePairs = Object.keys(completedCyclesByGroup).map(
+                (key) => {
+                    const [operatorId, machineSerial] = key.split("-");
+                    return {
+                        operatorId: parseInt(operatorId),
+                        machineSerial: parseInt(machineSerial),
+                    };
+                }
+            );
+
+            // 4. Fetch and group counts
+            const allCounts = await getCountsForOperatorMachinePairs(
+                db,
+                operatorMachinePairs,
+                start,
+                end
+            );
+            const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
+
+            // 5. Process each group's cycles and counts
+            const results = [];
+            for (const [key, group] of Object.entries(completedCyclesByGroup)) {
+                const [operatorId, machineSerial] = key.split("-");
+                const countGroup = groupedCounts[`${operatorId}-${machineSerial}`];
+                if (!countGroup) continue;
+
+                // Sort counts by timestamp for efficient processing
+                const sortedCounts = countGroup.counts.sort(
+                    (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+                );
+
+                // Process each cycle
+                for (const cycle of group.completedCycles) {
+                    const summary = buildSoftrolCycleSummary(
+                        cycle,
+                        sortedCounts,
+                        countGroup
+                    );
+
+                    if (summary) {
+                        results.push({
+                            operatorId: parseInt(operatorId),
+                            machineSerial: parseInt(machineSerial),
+                            ...summary
+                        });
+                    }
+                }
+            }
+
+            res.json(results);
         } catch (err) {
-          logger.error("Error in /historic-data:", err);
-          res.status(500).json({ error: "Internal server error" });
+            logger.error("Error in /historic-data:", err);
+            res.status(500).json({ error: "Internal server error" });
         }
-      });
-      // Softrol Route end
+    });
+    // Softrol Route end
 
 
 
-      
-      
-    
 
-      
+
+
+
+
     return router;
 }
