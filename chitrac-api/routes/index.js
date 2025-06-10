@@ -11,6 +11,7 @@ function init(app, server) {
     const softrolRoutes = require('../controllers/softrol')(server);
     const alphaRoutes = require('../controllers/alpha')(server);
     const passportRoutes = require('../controllers/passport')(server);
+    const historyRoutes = require('../controllers/history')(server);
 
 
     app.get('/docs/api', (req, res, next) => {
@@ -236,6 +237,8 @@ function init(app, server) {
     app.use('/api/passport', passportRoutes);
 
     app.use('/api/softrol', softrolRoutes);
+
+    app.use('/api/history', historyRoutes);
 
     app.use(['/ng/*', '/'], express.static(path.join(server.appRoot.path, 'ng/browser/')));
 
