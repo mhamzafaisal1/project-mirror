@@ -9,6 +9,7 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
       .find(query)
       .sort({ timestamp: 1 })
       .project({
+        _id:0, //RTI II: ADDED 06/10/25 to omit _ids from the API returns as those are extraneous outside of UPDATE or DELETE actions
         timestamp: 1,
         'machine.serial': 1,
         'machine.name': 1,
@@ -161,6 +162,7 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     const machines = await db.collection('state')
       .find(query)
       .project({
+        _id:0, //RTI II: ADDED 06/10/25 to omit _ids from the API returns as those are extraneous outside of UPDATE or DELETE actions
         'machine.serial': 1,
         'machine.name': 1
       })
@@ -308,6 +310,7 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
       .find(query)
       .sort({ timestamp: 1 })
       .project({
+        _id:0, //RTI II: ADDED 06/10/25 to omit _ids from the API returns as those are extraneous outside of UPDATE or DELETE actions
         timestamp: 1,
         'machine.serial': 1,
         'machine.name': 1,
@@ -556,6 +559,7 @@ function extractFaultCycles(states, queryStart, queryEnd) {
       if (!currentCycle) {
         currentCycle = {
           faultType: faultName,
+          faultCode: code, //RTI II: ADDED 06/10/25 to make the code associated with the string type for the cycle easily accessible
           start: timestamp,
           states: [state],
         };
@@ -570,7 +574,7 @@ function extractFaultCycles(states, queryStart, queryEnd) {
         faultCycles.push(currentCycle);
 
         // Update summary
-        const summary = faultSummaryMap.get(currentCycle.faultType) || { totalDuration: 0, count: 0 };
+        const summary = faultSummaryMap.get(currentCycle.faultType) || { totalDuration: 0, count: 0, faultCode: currentCycle.faultCode }; //RTI II: ADDED faultCode 06/10/25 for usability purposes for others
         summary.totalDuration += currentCycle.duration;
         summary.count += 1;
         faultSummaryMap.set(currentCycle.faultType, summary);
@@ -586,14 +590,15 @@ function extractFaultCycles(states, queryStart, queryEnd) {
     currentCycle.duration = endTime - currentCycle.start;
     faultCycles.push(currentCycle);
 
-    const summary = faultSummaryMap.get(currentCycle.faultType) || { totalDuration: 0, count: 0 };
+    const summary = faultSummaryMap.get(currentCycle.faultType) || { totalDuration: 0, count: 0, faultCode: currentCycle.faultCode }; //RTI II: ADDED faultCode 06/10/25 for usability purposes for others
     summary.totalDuration += currentCycle.duration;
     summary.count += 1;
     faultSummaryMap.set(currentCycle.faultType, summary);
   }
 
-  const faultSummaries = Array.from(faultSummaryMap.entries()).map(([faultType, { totalDuration, count }]) => ({
+  const faultSummaries = Array.from(faultSummaryMap.entries()).map(([faultType, { totalDuration, count, faultCode }]) => ({
     faultType,
+    faultCode,
     totalDuration,
     count,
   }));
@@ -636,7 +641,11 @@ async function getAllMachineSerialsAndNames(db, start, end) {
     timestamp: { $gte: start, $lte: end },
     "machine.serial": { $type: "int" },
     "machine.name": { $exists: true, $ne: null }
-  }).project({ "machine.serial": 1, "machine.name": 1 }).toArray();
+  }).project({
+    _id:0, //RTI II: ADDED 06/10/25 to omit _ids from the API returns as those are extraneous outside of UPDATE or DELETE actions
+    "machine.serial": 1,
+    "machine.name": 1
+  }).toArray();
 
   const seen = new Set();
   const result = [];
@@ -663,6 +672,7 @@ async function fetchAllStates(db, start, end) {
     })
     .sort({ timestamp: 1 })
     .project({
+      _id:0, //RTI II: ADDED 06/10/25 to omit _ids from the API returns as those are extraneous outside of UPDATE or DELETE actions
       timestamp: 1,
       'machine.serial': 1,
       'machine.name': 1,
