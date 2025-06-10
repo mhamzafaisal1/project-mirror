@@ -55,6 +55,7 @@ const right = [
     MatMenuModule,
     DateTimeModalComponent
   ],
+  
   animations: [
     trigger('menuSlider', [
       transition(':increment', right),

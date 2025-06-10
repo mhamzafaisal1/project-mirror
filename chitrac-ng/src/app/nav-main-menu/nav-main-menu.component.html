@@ -154,11 +154,14 @@
   <mat-sidenav-content>
     <mat-toolbar>
       <!-- Left: menu toggle and title -->
+      <!-- Left: menu toggle and title -->
       <button (click)="toggleMenu()" mat-icon-button>
         <mat-icon *ngIf="shownMenu == ''">chevron_right</mat-icon>
         <mat-icon *ngIf="shownMenu != ''">chevron_left</mat-icon>
       </button>
       <span><a href="/">ChiTrac V2</a></span>
+    
+      <!-- Spacer -->
     
       <!-- Spacer -->
       <span class="spacer"></span>
@@ -193,6 +196,7 @@
         <mat-icon class="dark-icon">dark_mode</mat-icon>
       </span>
     </mat-toolbar>
+    
     
     <div class="sidenav-content">
       <router-outlet />
