@@ -115,7 +115,7 @@ Data Format:
 },
 "availability": 86.55,									Float (rounded to 2 decimal places) availability percentage of the machine all day
 "oee": 68.47,											Float (rounded to 2 decimal places) Overall Equipment Efficiency percentage of the machine all day
-"operatorEfficiency": 78.61								Floay (rounded to 2 decimal places) averaged operator efficiecy across all operators on this machine all day
+"operatorEfficiency": 78.61								Float (rounded to 2 decimal places) averaged operator efficiecy across all operators on this machine all day
 ```
 
 ## History Routes
