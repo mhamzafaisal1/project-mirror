@@ -3,11 +3,10 @@ import { CommonModule } from '@angular/common';
 import { BarChartComponent, BarChartDataPoint } from '../components/bar-chart/bar-chart.component';
 
 @Component({
-  selector: 'app-daily-machine-oee-bar-chart',
-  standalone: true,
-  imports: [CommonModule, BarChartComponent],
-  templateUrl: './daily-machine-oee-bar-chart.component.html',
-  styleUrls: ['./daily-machine-oee-bar-chart.component.scss']
+    selector: 'app-daily-machine-oee-bar-chart',
+    imports: [CommonModule, BarChartComponent],
+    templateUrl: './daily-machine-oee-bar-chart.component.html',
+    styleUrls: ['./daily-machine-oee-bar-chart.component.scss']
 })
 export class DailyMachineOeeBarChartComponent implements OnChanges {
   @Input() data: any[] = [];

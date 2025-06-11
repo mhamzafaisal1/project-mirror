@@ -26,24 +26,23 @@ import { OperatorPerformanceChartComponent } from '../operator-performance-chart
 import { OperatorLineChartComponent } from '../operator-line-chart/operator-line-chart.component';
 
 @Component({
-  selector: 'app-operator-analytics-dashboard',
-  standalone: true,
-  imports: [
-    CommonModule, 
-    HttpClientModule, 
-    FormsModule, 
-    BaseTableComponent, 
-    DateTimePickerComponent,
-    MatTableModule,
-    MatSortModule,
-    MatButtonModule,
-    OperatorPerformanceChartComponent,
-    OperatorLineChartComponent,
-    MatIconModule,
-    MatSlideToggleModule
-  ],
-  templateUrl: './operator-analytics-dashboard.component.html',
-  styleUrl: './operator-analytics-dashboard.component.scss'
+    selector: 'app-operator-analytics-dashboard',
+    imports: [
+        CommonModule,
+        HttpClientModule,
+        FormsModule,
+        BaseTableComponent,
+        DateTimePickerComponent,
+        MatTableModule,
+        MatSortModule,
+        MatButtonModule,
+        OperatorPerformanceChartComponent,
+        OperatorLineChartComponent,
+        MatIconModule,
+        MatSlideToggleModule
+    ],
+    templateUrl: './operator-analytics-dashboard.component.html',
+    styleUrl: './operator-analytics-dashboard.component.scss'
 })
 export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   isDarkTheme: boolean = false;

@@ -9,19 +9,18 @@ import { DateTimePickerComponent } from '../components/date-time-picker/date-tim
 import { OperatorAnalyticsService } from '../services/operator-analytics.service';
 
 @Component({
-  selector: 'app-operator-cycle-pie-chart',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatButtonModule,
-    MatInputModule,
-    MatFormFieldModule,
-    PieChartComponent,
-    DateTimePickerComponent
-  ],
-  templateUrl: './operator-cycle-pie-chart.component.html',
-  styleUrl: './operator-cycle-pie-chart.component.scss'
+    selector: 'app-operator-cycle-pie-chart',
+    imports: [
+        CommonModule,
+        FormsModule,
+        MatButtonModule,
+        MatInputModule,
+        MatFormFieldModule,
+        PieChartComponent,
+        DateTimePickerComponent
+    ],
+    templateUrl: './operator-cycle-pie-chart.component.html',
+    styleUrl: './operator-cycle-pie-chart.component.scss'
 })
 export class OperatorCyclePieChartComponent implements OnInit, OnDestroy, OnChanges {
   @Input() startTime: string = '';

@@ -20,20 +20,19 @@ import { DateTimePickerComponent } from '../components/date-time-picker/date-tim
 import { OperatorFaultHistoryService } from '../services/operator-fault-history.service';
 
 @Component({
-  selector: 'app-operator-fault-history',
-  standalone: true,
-  imports: [
-    CommonModule,
-    HttpClientModule,
-    FormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    BaseTableComponent,
-    DateTimePickerComponent
-  ],
-  templateUrl: './operator-fault-history.component.html',
-  styleUrls: ['./operator-fault-history.component.scss']
+    selector: 'app-operator-fault-history',
+    imports: [
+        CommonModule,
+        HttpClientModule,
+        FormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        BaseTableComponent,
+        DateTimePickerComponent
+    ],
+    templateUrl: './operator-fault-history.component.html',
+    styleUrls: ['./operator-fault-history.component.scss']
 })
 export class OperatorFaultHistoryComponent implements OnInit, OnDestroy, OnChanges {
   @Input() startTime: string = '';

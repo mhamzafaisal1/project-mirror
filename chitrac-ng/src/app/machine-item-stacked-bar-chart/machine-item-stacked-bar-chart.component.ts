@@ -7,17 +7,16 @@ import { StackedBarChartComponent, StackedBarChartData } from '../components/sta
 import { MachineAnalyticsService } from '../services/machine-analytics.service';
 
 @Component({
-  selector: 'app-machine-item-stacked-bar-chart',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatButtonModule,
-    DateTimePickerComponent,
-    StackedBarChartComponent
-  ],
-  templateUrl: './machine-item-stacked-bar-chart.component.html',
-  styleUrls: ['./machine-item-stacked-bar-chart.component.scss']
+    selector: 'app-machine-item-stacked-bar-chart',
+    imports: [
+        CommonModule,
+        FormsModule,
+        MatButtonModule,
+        DateTimePickerComponent,
+        StackedBarChartComponent
+    ],
+    templateUrl: './machine-item-stacked-bar-chart.component.html',
+    styleUrls: ['./machine-item-stacked-bar-chart.component.scss']
 })
 export class MachineItemStackedBarChartComponent implements OnChanges {
   @Input() startTime: string = '';

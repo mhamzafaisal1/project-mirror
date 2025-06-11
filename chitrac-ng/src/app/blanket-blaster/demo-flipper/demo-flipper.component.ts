@@ -15,9 +15,10 @@ import { MatIconModule } from '@angular/material/icon';
 //import { Duration } from 'luxon';
 
 @Component({
-  selector: 'ct-demo-flipper',
-  templateUrl: './demo-flipper.component.html',
-  styleUrls: ['./demo-flipper.component.scss']
+    selector: 'ct-demo-flipper',
+    templateUrl: './demo-flipper.component.html',
+    styleUrls: ['./demo-flipper.component.scss'],
+    standalone: false
 })
 export class DemoFlipperComponent implements OnInit, OnDestroy {
 

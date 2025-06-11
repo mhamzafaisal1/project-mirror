@@ -13,20 +13,19 @@ import { ItemAnalyticsService } from '../services/item-analytics.service';
 import { PollingService } from '../services/polling-service.service';
 
 @Component({
-  selector: 'app-item-analytics-dashboard',
-  standalone: true,
-  imports: [
-    CommonModule,
-    HttpClientModule,
-    FormsModule,
-    MatButtonModule,
-    MatIconModule,
-    MatSlideToggleModule,
-    BaseTableComponent,
-    DateTimePickerComponent
-  ],
-  templateUrl: './item-analytics-dashboard.component.html',
-  styleUrl: './item-analytics-dashboard.component.scss'
+    selector: 'app-item-analytics-dashboard',
+    imports: [
+        CommonModule,
+        HttpClientModule,
+        FormsModule,
+        MatButtonModule,
+        MatIconModule,
+        MatSlideToggleModule,
+        BaseTableComponent,
+        DateTimePickerComponent
+    ],
+    templateUrl: './item-analytics-dashboard.component.html',
+    styleUrl: './item-analytics-dashboard.component.scss'
 })
 export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
   startTime = '';

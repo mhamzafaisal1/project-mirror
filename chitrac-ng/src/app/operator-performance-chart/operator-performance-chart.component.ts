@@ -12,20 +12,19 @@ import { MultipleLineChartComponent } from '../components/multiple-line-chart/mu
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
 
 @Component({
-  selector: 'app-operator-performance-chart',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MultipleLineChartComponent,
-    DateTimePickerComponent
-  ],
-  templateUrl: './operator-performance-chart.component.html',
-  styleUrls: ['./operator-performance-chart.component.scss']
+    selector: 'app-operator-performance-chart',
+    imports: [
+        CommonModule,
+        FormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        MultipleLineChartComponent,
+        DateTimePickerComponent
+    ],
+    templateUrl: './operator-performance-chart.component.html',
+    styleUrls: ['./operator-performance-chart.component.scss']
 })
 export class OperatorPerformanceChartComponent implements OnInit, OnDestroy {
   @Input() chartWidth: number;

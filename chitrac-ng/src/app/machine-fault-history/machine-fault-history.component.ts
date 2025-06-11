@@ -23,21 +23,20 @@ import { DateTimePickerComponent } from '../components/date-time-picker/date-tim
 import { FaultHistoryService } from '../services/fault-history.service';
 
 @Component({
-  selector: 'app-machine-fault-history',
-  standalone: true,
-  imports: [
-    CommonModule,
-    HttpClientModule,
-    FormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatSelectModule,
-    BaseTableComponent,
-    DateTimePickerComponent
-  ],
-  templateUrl: './machine-fault-history.component.html',
-  styleUrls: ['./machine-fault-history.component.scss']
+    selector: 'app-machine-fault-history',
+    imports: [
+        CommonModule,
+        HttpClientModule,
+        FormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatSelectModule,
+        BaseTableComponent,
+        DateTimePickerComponent
+    ],
+    templateUrl: './machine-fault-history.component.html',
+    styleUrls: ['./machine-fault-history.component.scss']
 })
 export class MachineFaultHistoryComponent implements OnInit, OnChanges, OnDestroy {
   @Input() startTime: string = '';

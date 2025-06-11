@@ -7,11 +7,10 @@ import { DateTimePickerComponent } from '../components/date-time-picker/date-tim
 import { MachineAnalyticsService } from '../services/machine-analytics.service';
 
 @Component({
-  selector: 'app-machine-item-summary-table',
-  standalone: true,
-  imports: [CommonModule, FormsModule, BaseTableComponent, DateTimePickerComponent, MatButtonModule],
-  templateUrl: './machine-item-summary-table.component.html',
-  styleUrls: ['./machine-item-summary-table.component.scss']
+    selector: 'app-machine-item-summary-table',
+    imports: [CommonModule, FormsModule, BaseTableComponent, DateTimePickerComponent, MatButtonModule],
+    templateUrl: './machine-item-summary-table.component.html',
+    styleUrls: ['./machine-item-summary-table.component.scss']
 })
 export class MachineItemSummaryTableComponent implements OnInit {
   @Input() startTime: string = '';

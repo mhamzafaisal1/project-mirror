@@ -22,22 +22,22 @@ import { OperatorConfig } from '../shared/models/operator.model';
 import { debounceTime, distinctUntilChanged } from "rxjs/operators";
 
 @Component({
-  selector: 'app-operator-dialog-cu',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    FormsModule,
-    ReactiveFormsModule,
-    MatButtonModule,
-    MatDialogTitle,
-    MatDialogContent,
-    MatDialogActions,
-    MatDialogClose,
-    MatSlideToggleModule],
-  templateUrl: './operator-dialog-cu.component.html',
-  styleUrl: './operator-dialog-cu.component.scss'
+    selector: 'app-operator-dialog-cu',
+    imports: [
+        CommonModule,
+        MatFormFieldModule,
+        MatInputModule,
+        FormsModule,
+        ReactiveFormsModule,
+        MatButtonModule,
+        MatDialogTitle,
+        MatDialogContent,
+        MatDialogActions,
+        MatDialogClose,
+        MatSlideToggleModule
+    ],
+    templateUrl: './operator-dialog-cu.component.html',
+    styleUrl: './operator-dialog-cu.component.scss'
 })
 
 export class OperatorDialogCuComponent implements OnInit {

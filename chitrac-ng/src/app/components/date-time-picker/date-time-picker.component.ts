@@ -3,11 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'app-date-time-picker',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './date-time-picker.component.html',
-  styleUrls: ['./date-time-picker.component.scss']
+    selector: 'app-date-time-picker',
+    imports: [CommonModule, FormsModule],
+    templateUrl: './date-time-picker.component.html',
+    styleUrls: ['./date-time-picker.component.scss']
 })
 export class DateTimePickerComponent implements OnInit, OnDestroy {
   @Input() label: string = '';

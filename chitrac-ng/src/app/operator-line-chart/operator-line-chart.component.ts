@@ -27,19 +27,18 @@ function toDateTimeLocalString(dateStr: string): string {
 }
 
 @Component({
-  selector: 'app-operator-line-chart',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    DateTimePickerComponent,
-    LineChartComponent
-  ],
-  templateUrl: './operator-line-chart.component.html',
-  styleUrls: ['./operator-line-chart.component.scss']
+    selector: 'app-operator-line-chart',
+    imports: [
+        CommonModule,
+        FormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        DateTimePickerComponent,
+        LineChartComponent
+    ],
+    templateUrl: './operator-line-chart.component.html',
+    styleUrls: ['./operator-line-chart.component.scss']
 })
 export class OperatorLineChartComponent implements OnInit, OnDestroy, OnChanges {
   @Input() startTime: string = '';

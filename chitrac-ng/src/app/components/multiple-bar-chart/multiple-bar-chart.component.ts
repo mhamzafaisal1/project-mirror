@@ -19,11 +19,10 @@ export interface BarChartData {
 }
 
 @Component({
-  selector: 'app-multiple-bar-chart',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './multiple-bar-chart.component.html',
-  styleUrl: './multiple-bar-chart.component.scss'
+    selector: 'app-multiple-bar-chart',
+    imports: [CommonModule],
+    templateUrl: './multiple-bar-chart.component.html',
+    styleUrl: './multiple-bar-chart.component.scss'
 })
 export class MultipleBarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
   @Input() data: BarChartData | null = null;

@@ -30,11 +30,10 @@ import { ConfigurationService } from '../configuration.service';
 
 
 @Component({
-  selector: 'app-item-grid',
-  standalone: true,
-  imports: [CommonModule, MatTableModule, MatPaginator, MatSortModule, MatCheckboxModule, MatDividerModule, MatButtonModule, MatIconModule],
-  templateUrl: './item-grid.component.html',
-  styleUrl: './item-grid.component.scss'
+    selector: 'app-item-grid',
+    imports: [CommonModule, MatTableModule, MatPaginator, MatSortModule, MatCheckboxModule, MatDividerModule, MatButtonModule, MatIconModule],
+    templateUrl: './item-grid.component.html',
+    styleUrl: './item-grid.component.scss'
 })
 export class ItemGridComponent implements OnInit, OnDestroy {
   selectionModel = new SelectionModel<any>(false, []);

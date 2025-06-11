@@ -14,23 +14,22 @@ import { BlanketBlasterModule } from '../blanket-blaster.module';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 @Component({
-  selector: 'ct-six-lane-flipper',
-  templateUrl: './six-lane-flipper.component.html',
-  styleUrls: ['./six-lane-flipper.component.scss'],
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatSelectModule,
-    MatIconModule,
-    BlanketBlasterModule,
-    MatSlideToggleModule
-  ]
+    selector: 'ct-six-lane-flipper',
+    templateUrl: './six-lane-flipper.component.html',
+    styleUrls: ['./six-lane-flipper.component.scss'],
+    imports: [
+        CommonModule,
+        FormsModule,
+        MatButtonModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatDatepickerModule,
+        MatNativeDateModule,
+        MatSelectModule,
+        MatIconModule,
+        BlanketBlasterModule,
+        MatSlideToggleModule
+    ]
 })
 export class SixLaneFlipperComponent implements OnInit, OnDestroy {
   sub: Subscription;

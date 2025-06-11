@@ -23,21 +23,20 @@ interface ItemSummary {
 }
 
 @Component({
-  selector: 'app-item-report',
-  standalone: true,
-  imports: [
-    CommonModule,
-    HttpClientModule,
-    FormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    BaseTableComponent,
-    DateTimePickerComponent
-  ],
-  templateUrl: './item-report.component.html',
-  styleUrls: ['./item-report.component.scss']
+    selector: 'app-item-report',
+    imports: [
+        CommonModule,
+        HttpClientModule,
+        FormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        BaseTableComponent,
+        DateTimePickerComponent
+    ],
+    templateUrl: './item-report.component.html',
+    styleUrls: ['./item-report.component.scss']
 })
 export class ItemReportComponent implements OnInit, OnDestroy {
   startTime: string = '';

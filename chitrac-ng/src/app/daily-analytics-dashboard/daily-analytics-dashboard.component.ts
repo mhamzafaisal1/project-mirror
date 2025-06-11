@@ -21,26 +21,25 @@ import { PlantwideMetricsChartComponent } from "../plantwide-metrics-chart/plant
 import { ComponentOutletInjectorModule, DynamicIoDirective } from 'ng-dynamic-component';
 import { MatButtonModule } from '@angular/material/button';
 @Component({
-  selector: 'app-daily-analytics-dashboard',
-  standalone: true,
+    selector: 'app-daily-analytics-dashboard',
     imports: [
-    CommonModule,
-    DateTimePickerComponent,
-    ChartTileComponent,
-    DailyMachineStackedBarChartComponent,
-    DailyMachineOeeBarChartComponent,
-    DailyMachineItemStackedBarChartComponent,
-    RankedOperatorBarChartComponent,
-    PlantwideMetricsChartComponent,
-    ComponentOutletInjectorModule,
-    DynamicIoDirective,
-    MatIconModule,
-    MatButtonModule,
-    FormsModule,
-    MatSlideToggleModule
-  ],
-  templateUrl: './daily-analytics-dashboard.component.html',
-  styleUrls: ['./daily-analytics-dashboard.component.scss']
+        CommonModule,
+        DateTimePickerComponent,
+        ChartTileComponent,
+        DailyMachineStackedBarChartComponent,
+        DailyMachineOeeBarChartComponent,
+        DailyMachineItemStackedBarChartComponent,
+        RankedOperatorBarChartComponent,
+        PlantwideMetricsChartComponent,
+        ComponentOutletInjectorModule,
+        DynamicIoDirective,
+        MatIconModule,
+        MatButtonModule,
+        FormsModule,
+        MatSlideToggleModule
+    ],
+    templateUrl: './daily-analytics-dashboard.component.html',
+    styleUrls: ['./daily-analytics-dashboard.component.scss']
 })
 export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
   startTime: string = '';

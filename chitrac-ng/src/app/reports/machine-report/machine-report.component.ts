@@ -16,21 +16,20 @@ import { DateTimePickerComponent } from '../../components/date-time-picker/date-
 import { getStatusDotByCode } from '../../../utils/status-utils';
 
 @Component({
-  selector: 'app-machine-report',
-  standalone: true,
-  imports: [
-    CommonModule,
-    HttpClientModule,
-    FormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    BaseTableComponent,
-    DateTimePickerComponent
-  ],
-  templateUrl: './machine-report.component.html',
-  styleUrls: ['./machine-report.component.scss'] // ❗️Use plural: styleUrls
+    selector: 'app-machine-report',
+    imports: [
+        CommonModule,
+        HttpClientModule,
+        FormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        BaseTableComponent,
+        DateTimePickerComponent
+    ],
+    templateUrl: './machine-report.component.html',
+    styleUrls: ['./machine-report.component.scss'] // ❗️Use plural: styleUrls
 })
 
 export class MachineReportComponent implements OnInit, OnDestroy {

@@ -29,21 +29,20 @@ import { DailyDashboardService } from '../services/daily-dashboard.service';
 import { PollingService } from '../services/polling-service.service';
 
 @Component({
-  selector: "app-daily-summary-dashboard",
-  standalone: true,
-  imports: [
-    CommonModule,
-    HttpClientModule,
-    FormsModule,
-    DateTimePickerComponent,
-    MatButtonModule,
-    MatIconModule,
-    MatSlideToggleModule,
-    BaseTableComponent,
-    MatDialogModule,
-  ],
-  templateUrl: "./daily-summary-dashboard.component.html",
-  styleUrls: ["./daily-summary-dashboard.component.scss"],
+    selector: "app-daily-summary-dashboard",
+    imports: [
+        CommonModule,
+        HttpClientModule,
+        FormsModule,
+        DateTimePickerComponent,
+        MatButtonModule,
+        MatIconModule,
+        MatSlideToggleModule,
+        BaseTableComponent,
+        MatDialogModule,
+    ],
+    templateUrl: "./daily-summary-dashboard.component.html",
+    styleUrls: ["./daily-summary-dashboard.component.scss"]
 })
 export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   startTime: string = "";

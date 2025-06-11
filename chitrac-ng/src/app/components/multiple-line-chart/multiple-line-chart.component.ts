@@ -41,11 +41,10 @@ interface DataPoint {
 }
 
 @Component({
-  selector: "app-multiple-line-chart",
-  standalone: true,
-  imports: [],
-  templateUrl: "./multiple-line-chart.component.html",
-  styleUrl: "./multiple-line-chart.component.scss",
+    selector: "app-multiple-line-chart",
+    imports: [],
+    templateUrl: "./multiple-line-chart.component.html",
+    styleUrl: "./multiple-line-chart.component.scss"
 })
 export class MultipleLineChartComponent implements AfterViewInit {
   @ViewChild("chartContainer") private chartContainer!: ElementRef;

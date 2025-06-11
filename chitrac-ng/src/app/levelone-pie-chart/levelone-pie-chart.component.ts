@@ -4,11 +4,10 @@ import { HttpClient } from '@angular/common/http';
 import { PieChartComponent, PieChartDataPoint } from '../components/pie-chart/pie-chart.component';
 
 @Component({
-  selector: 'app-levelone-pie-chart',
-  standalone: true,
-  imports: [CommonModule, PieChartComponent],
-  templateUrl: './levelone-pie-chart.component.html',
-  styleUrls: ['./levelone-pie-chart.component.scss']
+    selector: 'app-levelone-pie-chart',
+    imports: [CommonModule, PieChartComponent],
+    templateUrl: './levelone-pie-chart.component.html',
+    styleUrls: ['./levelone-pie-chart.component.scss']
 })
 export class LevelonePieChartComponent implements OnInit {
   title: string = '';

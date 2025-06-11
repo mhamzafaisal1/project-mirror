@@ -6,11 +6,10 @@ import { ModalWrapperComponent } from '../components/modal-wrapper-component/mod
 import { OperatorPerformanceChartComponent } from '../operator-performance-chart/operator-performance-chart.component'; // Your chart component
 
 @Component({
-  selector: 'app-use-modal',
-  standalone: true,
-  templateUrl: './use-modal.component.html',
-  styleUrls: ['./use-modal.component.scss'],
-  imports: [MatDialogModule, MatButtonModule, MatIconModule] 
+    selector: 'app-use-modal',
+    templateUrl: './use-modal.component.html',
+    styleUrls: ['./use-modal.component.scss'],
+    imports: [MatDialogModule, MatButtonModule, MatIconModule]
 })
 
 export class UseModalComponent {

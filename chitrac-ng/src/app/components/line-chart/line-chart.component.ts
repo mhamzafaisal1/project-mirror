@@ -17,11 +17,10 @@ export interface LineChartDataPoint {
 }
 
 @Component({
-  selector: 'line-chart',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './line-chart.component.html',
-  styleUrls: ['./line-chart.component.scss'],
+    selector: 'line-chart',
+    imports: [CommonModule],
+    templateUrl: './line-chart.component.html',
+    styleUrls: ['./line-chart.component.scss']
 })
 export class LineChartComponent implements OnChanges, AfterViewInit, OnDestroy {
   @ViewChild('chartContainer') private chartContainer!: ElementRef;

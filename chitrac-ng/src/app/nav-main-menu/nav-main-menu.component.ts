@@ -38,34 +38,32 @@ const right = [
 ];
 
 @Component({
-  selector: 'nav-main-menu',
-  templateUrl: './nav-main-menu.component.html',
-  styleUrl: './nav-main-menu.component.scss',
-  standalone: true,
-  imports: [
-    CommonModule,
-    RouterOutlet,
-    RouterModule,
-    MatToolbarModule,
-    MatButtonModule,
-    MatSidenavModule,
-    MatListModule,
-    MatIconModule,
-    MatSlideToggleModule,
-    MatMenuModule,
-    DateTimeModalComponent
-  ],
-  
-  animations: [
-    trigger('menuSlider', [
-      transition(':increment', right),
-      transition(':decrement', left),
-    ]),
-    trigger('menuSwap', [
-      transition(':enter', [style({ transform: 'translateX(-15em)', position: 'absolute' }), animate('.3s ease-out', style({ transform: 'translateX(0%)', position: 'absolute' }))]),
-      transition(':leave', [style({ transform: 'translateX(0%)', position: 'absolute' }), animate('.3s ease-out', style({ transform: 'translateX(-15em)', position: 'absolute' }))])
-    ])
-  ]
+    selector: 'nav-main-menu',
+    templateUrl: './nav-main-menu.component.html',
+    styleUrl: './nav-main-menu.component.scss',
+    imports: [
+        CommonModule,
+        RouterOutlet,
+        RouterModule,
+        MatToolbarModule,
+        MatButtonModule,
+        MatSidenavModule,
+        MatListModule,
+        MatIconModule,
+        MatSlideToggleModule,
+        MatMenuModule,
+        DateTimeModalComponent
+    ],
+    animations: [
+        trigger('menuSlider', [
+            transition(':increment', right),
+            transition(':decrement', left),
+        ]),
+        trigger('menuSwap', [
+            transition(':enter', [style({ transform: 'translateX(-15em)', position: 'absolute' }), animate('.3s ease-out', style({ transform: 'translateX(0%)', position: 'absolute' }))]),
+            transition(':leave', [style({ transform: 'translateX(0%)', position: 'absolute' }), animate('.3s ease-out', style({ transform: 'translateX(-15em)', position: 'absolute' }))])
+        ])
+    ]
 })
 export class NavMainMenuComponent {
   @Output() darkModeToggleEvent = new EventEmitter();

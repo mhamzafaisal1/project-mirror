@@ -29,22 +29,21 @@ import { MachineFaultHistoryComponent } from "../machine-fault-history/machine-f
 import { OperatorPerformanceChartComponent } from "../operator-performance-chart/operator-performance-chart.component";
 
 @Component({
-  selector: "app-machine-dashboard",
-  standalone: true,
-  imports: [
-    CommonModule,
-    HttpClientModule,
-    FormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    BaseTableComponent,
-    DateTimePickerComponent,
-    MatSlideToggleModule,
-  ],
-  templateUrl: "./machine-dashboard.component.html",
-  styleUrls: ["./machine-dashboard.component.scss"],
+    selector: "app-machine-dashboard",
+    imports: [
+        CommonModule,
+        HttpClientModule,
+        FormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        BaseTableComponent,
+        DateTimePickerComponent,
+        MatSlideToggleModule,
+    ],
+    templateUrl: "./machine-dashboard.component.html",
+    styleUrls: ["./machine-dashboard.component.scss"]
 })
 export class MachineDashboardComponent implements OnInit, OnDestroy {
   startTime: string = "";

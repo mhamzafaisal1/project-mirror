@@ -5,11 +5,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 
 @Component({
-  selector: 'app-carousel',
-  standalone: true,
-  imports: [CommonModule, MatTabsModule, MatIconModule, MatButtonModule],
-  templateUrl: './carousel-component.component.html',
-  styleUrls: ['./carousel-component.component.scss']
+    selector: 'app-carousel',
+    imports: [CommonModule, MatTabsModule, MatIconModule, MatButtonModule],
+    templateUrl: './carousel-component.component.html',
+    styleUrls: ['./carousel-component.component.scss']
 })
 export class CarouselComponent {
   @Input() tabs: { label: string; component: any; componentInputs?: any }[] = [];

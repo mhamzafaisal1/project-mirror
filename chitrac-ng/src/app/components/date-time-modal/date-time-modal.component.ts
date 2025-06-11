@@ -12,23 +12,22 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 
 @Component({
-  selector: 'app-date-time-modal',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatRadioModule,
-    MatButtonModule,
-    MatIconModule,
-    MatSelectModule
-  ],
-  templateUrl: './date-time-modal.component.html',
-  styleUrls: ['./date-time-modal.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+    selector: 'app-date-time-modal',
+    imports: [
+        CommonModule,
+        FormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatDatepickerModule,
+        MatNativeDateModule,
+        MatRadioModule,
+        MatButtonModule,
+        MatIconModule,
+        MatSelectModule
+    ],
+    templateUrl: './date-time-modal.component.html',
+    styleUrls: ['./date-time-modal.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DateTimeModalComponent {
   startDate: Date | null = new Date();

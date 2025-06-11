@@ -4,15 +4,14 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSort, MatSortModule, Sort } from '@angular/material/sort';
 
 @Component({
-  selector: 'base-table',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatTableModule,
-    MatSortModule
-  ],
-  templateUrl: './base-table.component.html',
-  styleUrls: ['./base-table.component.scss']
+    selector: 'base-table',
+    imports: [
+        CommonModule,
+        MatTableModule,
+        MatSortModule
+    ],
+    templateUrl: './base-table.component.html',
+    styleUrls: ['./base-table.component.scss']
 })
 export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit {
   @Input() columns: string[] = [];
