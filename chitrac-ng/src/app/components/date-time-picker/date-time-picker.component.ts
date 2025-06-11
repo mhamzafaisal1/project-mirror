@@ -11,6 +11,7 @@ import { FormsModule } from '@angular/forms';
 export class DateTimePickerComponent implements OnInit, OnDestroy {
   @Input() label: string = '';
   @Input() value: string = '';
+  @Input() disabled: boolean = false;
   @Output() valueChange = new EventEmitter<string>();
 
   isDarkTheme = false;

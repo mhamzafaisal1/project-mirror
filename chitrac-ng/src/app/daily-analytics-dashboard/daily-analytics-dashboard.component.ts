@@ -5,6 +5,7 @@ import { DailyDashboardService } from "../services/daily-dashboard.service";
 import { DateTimePickerComponent } from "../components/date-time-picker/date-time-picker.component";
 import { ChartTileComponent } from "../components/chart-tile/chart-tile.component";
 import { PollingService } from "../services/polling-service.service";
+import { DateTimeService } from "../services/date-time.service";
 import { Subject, Observable } from "rxjs";
 import { takeUntil, tap } from "rxjs/operators";
 import { FormsModule } from '@angular/forms';
@@ -104,7 +105,8 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
     private dashboardService: DailyDashboardService,
     private renderer: Renderer2,
     private elRef: ElementRef,
-    private pollingService: PollingService
+    private pollingService: PollingService,
+    private dateTimeService: DateTimeService
   ) {}
 
   ngOnInit(): void {
@@ -114,6 +116,40 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
     this.startTime = this.formatDateForInput(start);
     this.endTime = this.formatDateForInput(now);
     this.detectTheme();
+
+    // Subscribe to live mode changes
+    this.dateTimeService.liveMode$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((isLive: boolean) => {
+        this.liveMode = isLive;
+
+        if (this.liveMode) {
+          const start = new Date();
+          start.setHours(0, 0, 0, 0);
+          this.startTime = this.formatDateForInput(start);
+          this.endTime = this.pollingService.updateEndTimestampToNow();
+
+          this.fetchDashboardData().subscribe();
+          this.setupPolling();
+        } else {
+          this.stopPolling();
+          this.hasInitialData = false;
+          this.fullDashboardData = null;
+        }
+      });
+
+    // Subscribe to confirm action
+    this.dateTimeService.confirmTrigger$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.liveMode = false;
+        this.stopPolling();
+
+        this.startTime = this.dateTimeService.getStartTime();
+        this.endTime = this.dateTimeService.getEndTime();
+
+        this.fetchDashboardData().subscribe();
+      });
   }
 
   ngOnDestroy(): void {
@@ -156,36 +192,6 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
       this.pollingSubscription = null;
     }
   }
-
-  onLiveModeChange(checked: boolean): void {
-    this.liveMode = checked;
-  
-    if (this.liveMode) {
-      // Reset startTime to today at 00:00
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-      this.startTime = this.formatDateForInput(start);
-  
-      // Reset endTime to now
-      this.endTime = this.pollingService.updateEndTimestampToNow();
-  
-      // Initial data fetch without loading state
-      this.dashboardService.getFullDailyDashboard(this.startTime, this.endTime)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe(data => {
-          this.fullDashboardData = data;
-          this.hasInitialData = true;
-        });
-      
-      this.setupPolling();
-    } else {
-      this.stopPolling();
-      // Clear the dashboard data when live mode is turned off
-      this.hasInitialData = false;
-      this.fullDashboardData = null;
-    }
-  }
-  
 
   onDateChange(): void {
     if (this.liveMode) {

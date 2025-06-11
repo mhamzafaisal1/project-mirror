@@ -5,5 +5,6 @@
     [id]="inputId"
     [(ngModel)]="value"
     (ngModelChange)="valueChange.emit($event)"
+    [disabled]="disabled"
   />
 </div>

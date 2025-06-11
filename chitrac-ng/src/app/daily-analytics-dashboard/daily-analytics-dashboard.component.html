@@ -24,27 +24,18 @@
   </div>
   
   <div class="controls">
-    <div class="live-mode-container">
-      <mat-slide-toggle
-        [(ngModel)]="liveMode"
-        (change)="onLiveModeChange($event.checked)"
-        color="primary"
-        [aria-label]="'Toggle Live Mode'"
-      >
-        Live Mode
-      </mat-slide-toggle>
-    </div>
-    
     <app-date-time-picker
       label="Start Time"
       [(value)]="startTime"
       (valueChange)="onDateChange()"
-    ></app-date-time-picker>
+      [disabled]="liveMode">
+    </app-date-time-picker>
     <app-date-time-picker
       label="End Time"
       [(value)]="endTime"
       (valueChange)="onDateChange()"
-    ></app-date-time-picker>
+      [disabled]="liveMode">
+    </app-date-time-picker>
     <button
       mat-flat-button
       color="primary"

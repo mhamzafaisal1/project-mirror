@@ -168,9 +168,15 @@
     
       <!-- Right: calendar + dark mode controls -->
       <span class="toolbar-actions">
-        <button mat-icon-button class="calendar-btn" [matMenuTriggerFor]="dateMenu">
-          <mat-icon class="calendar-icon">calendar_today</mat-icon>
-        </button>
+        <button
+        #dateMenuTrigger="matMenuTrigger"
+        mat-icon-button
+        class="calendar-btn"
+        [matMenuTriggerFor]="dateMenu"
+      >
+        <mat-icon class="calendar-icon">calendar_today</mat-icon>
+      </button>
+      
     
         <mat-menu
         #dateMenu="matMenu"
@@ -182,7 +188,7 @@
         (closed)="shownMenu = ''"
       >
         <div (click)="$event.stopPropagation()">
-          <app-date-time-modal />
+          <app-date-time-modal (closeModal)="onDateTimeModalClose()" />
         </div>
       </mat-menu>
       

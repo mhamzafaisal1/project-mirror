@@ -1,48 +1,81 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
+import { MatTimepickerModule } from '@angular/material/timepicker';
+import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material/core';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 
+import { DateTimeService } from '../../services/date-time.service';
+
 @Component({
-    selector: 'app-date-time-modal',
-    imports: [
-        CommonModule,
-        FormsModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatDatepickerModule,
-        MatNativeDateModule,
-        MatRadioModule,
-        MatButtonModule,
-        MatIconModule,
-        MatSelectModule
-    ],
-    templateUrl: './date-time-modal.component.html',
-    styleUrls: ['./date-time-modal.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush
+  selector: 'app-date-time-modal',
+  standalone: true,
+  providers: [provideNativeDateAdapter()],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatDatepickerModule,
+    MatTimepickerModule,
+    MatNativeDateModule,
+    MatRadioModule,
+    MatButtonModule,
+    MatIconModule,
+    MatSelectModule,
+  ],
+  templateUrl: './date-time-modal.component.html',
+  styleUrls: ['./date-time-modal.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DateTimeModalComponent {
-  startDate: Date | null = new Date();
+  private dateTimeService = inject(DateTimeService);
+  @Output() closeModal = new EventEmitter<void>();
+
+  startDateTime: Date = new Date(new Date().setHours(0, 0, 0, 0));
+  endDateTime: Date = new Date();
   mode: string = 'live';
 
-  hours = Array.from({ length: 24 }, (_, i) => i);
-  minutes = Array.from({ length: 60 }, (_, i) => i);
-  selectedHour: number = new Date().getHours();
-  selectedMinute: number = new Date().getMinutes();
-
-  get startTime(): string {
-    return `${this.pad(this.selectedHour)}:${this.pad(this.selectedMinute)}`;
+  ngOnInit(): void {
+    this.setLiveModeDefaults();
   }
 
-  private pad(val: number): string {
-    return val.toString().padStart(2, '0');
+  isDisabled(): boolean {
+    return this.mode === 'live';
+  }
+
+  onModeChange(newMode: string): void {
+    this.mode = newMode;
+    const isLive = newMode === 'live';
+    this.dateTimeService.setLiveMode(isLive);
+  
+    if (isLive) {
+      const now = new Date();
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      this.startDateTime = start;
+      this.endDateTime = now;
+    }
+  }
+  
+
+  private setLiveModeDefaults(): void {
+    const now = new Date();
+    this.startDateTime = new Date(now.setHours(0, 0, 0, 0));
+    this.endDateTime = new Date();
+  }
+
+  confirm(): void {
+    this.dateTimeService.setStartTime(this.startDateTime.toISOString());
+    this.dateTimeService.setEndTime(this.endDateTime.toISOString());
+    this.dateTimeService.triggerConfirm();
+    this.closeModal.emit();
   }
 }

@@ -1,45 +1,51 @@
 <div class="date-time-menu">
-    <div class="picker-section">
-      <!-- Date Picker -->
-      <mat-form-field>
-        <mat-label>Start Date</mat-label>
-        <input matInput [matDatepicker]="startPicker" [(ngModel)]="startDate" />
-        <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
-        <mat-datepicker #startPicker></mat-datepicker>
-      </mat-form-field>
-  
-      <!-- Time Picker Substitute -->
-      <div class="time-picker">
-        <mat-form-field appearance="fill">
-          <mat-label>Hour</mat-label>
-          <mat-select [(ngModel)]="selectedHour">
-            <mat-option *ngFor="let hour of hours" [value]="hour">{{ hour }}</mat-option>
-          </mat-select>
-        </mat-form-field>
-  
-        <mat-form-field appearance="fill">
-          <mat-label>Minute</mat-label>
-          <mat-select [(ngModel)]="selectedMinute">
-            <mat-option *ngFor="let min of minutes" [value]="min">{{ min }}</mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
-    </div>
-  
-    <div class="divider"></div>
-  
-    <div class="mode-section">
-      <mat-radio-group [(ngModel)]="mode">
-        <mat-radio-button value="live">Live Mode</mat-radio-button>
-        <mat-radio-button value="manual">Manual</mat-radio-button>
-      </mat-radio-group>
-    </div>
-  
-    <div class="action-row">
-      <button mat-flat-button color="primary">
-        <mat-icon>done</mat-icon>
-        Confirm
-      </button>
-    </div>
+  <div class="picker-section">
+    <!-- Start Date -->
+    <mat-form-field>
+      <mat-label>Start Date</mat-label>
+      <input matInput [matDatepicker]="startPicker" [(ngModel)]="startDateTime" [disabled]="isDisabled()" />
+      <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+      <mat-datepicker #startPicker></mat-datepicker>
+    </mat-form-field>
+
+    <!-- Start Time -->
+    <mat-form-field>
+      <mat-label>Start Time</mat-label>
+      <input matInput [matTimepicker]="startTimePicker" [(ngModel)]="startDateTime" [disabled]="isDisabled()" />
+      <mat-timepicker-toggle matSuffix [for]="startTimePicker"></mat-timepicker-toggle>
+      <mat-timepicker #startTimePicker></mat-timepicker>
+    </mat-form-field>
+
+    <!-- End Date -->
+    <mat-form-field>
+      <mat-label>End Date</mat-label>
+      <input matInput [matDatepicker]="endPicker" [(ngModel)]="endDateTime" [disabled]="isDisabled()" />
+      <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+      <mat-datepicker #endPicker></mat-datepicker>
+    </mat-form-field>
+
+    <!-- End Time -->
+    <mat-form-field>
+      <mat-label>End Time</mat-label>
+      <input matInput [matTimepicker]="endTimePicker" [(ngModel)]="endDateTime" [disabled]="isDisabled()" />
+      <mat-timepicker-toggle matSuffix [for]="endTimePicker"></mat-timepicker-toggle>
+      <mat-timepicker #endTimePicker></mat-timepicker>
+    </mat-form-field>
   </div>
-  
+
+  <div class="divider"></div>
+
+  <div class="mode-section">
+    <mat-radio-group [(ngModel)]="mode" (change)="onModeChange(mode)">
+      <mat-radio-button value="live">Live Mode</mat-radio-button>
+      <mat-radio-button value="manual">Manual</mat-radio-button>
+    </mat-radio-group>    
+  </div>
+
+  <div class="action-row">
+    <button mat-flat-button color="primary" (click)="confirm()">
+      <mat-icon>done</mat-icon>
+      Confirm
+    </button>
+  </div>
+</div>
