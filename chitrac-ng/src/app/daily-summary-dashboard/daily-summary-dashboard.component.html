@@ -2,12 +2,12 @@
   <div class="container" [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }">
 
         <!-- LOADING OVERLAY -->
-  <div class="loading-overlay" *ngIf="isLoading">
+  <!-- <div class="loading-overlay" *ngIf="isLoading">
     <div class="loading-content">
       <div class="loading-spinner"></div>
       <div class="loading-text">Fetching data...</div>
     </div>
-  </div>
+  </div> -->
 
     
   
@@ -51,28 +51,19 @@
       </div>
     </div>
 
-    <div class="controls">
-      <div class="live-mode-container">
-        <mat-slide-toggle
-          [(ngModel)]="liveMode"
-          (change)="onLiveModeChange($event.checked)"
-          color="primary"
-          [aria-label]="'Toggle Live Mode'"
-        >
-          Live Mode
-        </mat-slide-toggle>
-      </div>
-
+    <!-- <div class="controls">
       <app-date-time-picker 
         label="Start Time" 
         [(value)]="startTime"
         (valueChange)="onDateChange()"
-      ></app-date-time-picker>
+        [disabled]="liveMode">
+      </app-date-time-picker>
       <app-date-time-picker 
         label="End Time" 
         [(value)]="endTime"
         (valueChange)="onDateChange()"
-      ></app-date-time-picker>
+        [disabled]="liveMode">
+      </app-date-time-picker>
   
       <div class="button-group">
         <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="isLoading || !startTime || !endTime">
@@ -80,7 +71,7 @@
           {{ isLoading ? 'Loading...' : 'Fetch Data' }}
         </button>
       </div>
-    </div>
+    </div> -->
   </div>
 </div>
   

@@ -27,6 +27,7 @@ import { OperatorCountbyitemChartComponent } from "../operator-countbyitem-chart
 import { getStatusDotByCode } from '../../utils/status-utils';
 import { DailyDashboardService } from '../services/daily-dashboard.service';
 import { PollingService } from '../services/polling-service.service';
+import { DateTimeService } from '../services/date-time.service';
 
 @Component({
     selector: "app-daily-summary-dashboard",
@@ -76,7 +77,8 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     private elRef: ElementRef,
     private dailyDashboardService: DailyDashboardService,
     private dialog: MatDialog,
-    private pollingService: PollingService
+    private pollingService: PollingService,
+    private dateTimeService: DateTimeService
   ) {}
 
   ngOnInit(): void {
@@ -95,6 +97,45 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     this.observer.observe(document.body, {
       attributes: true,
       attributeFilter: ["class"],
+    });
+
+    // Subscribe to live mode changes
+    this.dateTimeService.liveMode$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(isLive => {
+      this.liveMode = isLive;
+      if (isLive) {
+        // Reset startTime to today at 00:00
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        this.startTime = this.formatDateForInput(start);
+        this.dateTimeService.setStartTime(this.startTime);
+
+        // Reset endTime to now
+        this.endTime = this.pollingService.updateEndTimestampToNow();
+        this.dateTimeService.setEndTime(this.endTime);
+
+        // Initial data fetch
+        this.fetchData();
+        this.setupPolling();
+      } else {
+        this.stopPolling();
+        this.clearData();
+      }
+    });
+
+    // Subscribe to confirm trigger
+    this.dateTimeService.confirmTrigger$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+      this.liveMode = false; // turn off polling
+      this.stopPolling();
+
+      // get times from the shared service
+      this.startTime = this.dateTimeService.getStartTime();
+      this.endTime = this.dateTimeService.getEndTime();
+
+      this.fetchData(); // use them to fetch data
     });
   }
 
@@ -120,27 +161,6 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     this.renderer.setStyle(element, "color", isDark ? "#e0e0e0" : "#000000");
   }
 
-  onLiveModeChange(checked: boolean): void {
-    this.liveMode = checked;
-
-    if (this.liveMode) {
-      // Reset startTime to today at 00:00
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-      this.startTime = this.formatDateForInput(start);
-
-      // Reset endTime to now
-      this.endTime = this.pollingService.updateEndTimestampToNow();
-
-      // Initial data fetch
-      this.fetchData();
-      this.setupPolling();
-    } else {
-      this.stopPolling();
-      this.clearData();
-    }
-  }
-
   private setupPolling(): void {
     if (this.liveMode) {
       // Initial data fetch
@@ -154,6 +174,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       this.pollingSubscription = this.pollingService.poll(
         () => {
           this.endTime = this.pollingService.updateEndTimestampToNow();
+          this.dateTimeService.setEndTime(this.endTime);
           return this.dailyDashboardService.getDailySummaryDashboard(this.startTime, this.endTime)
             .pipe(
               tap((data: any) => {
@@ -235,10 +256,10 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   }
 
   onDateChange(): void {
-    if (this.liveMode) {
-      this.liveMode = false;
-      this.stopPolling();
-    }
+    this.dateTimeService.setStartTime(this.startTime);
+    this.dateTimeService.setEndTime(this.endTime);
+    this.dateTimeService.setLiveMode(false);
+    this.stopPolling();
     this.clearData();
   }
 
