@@ -28,6 +28,8 @@ import { MachineReportComponent } from './reports/machine-report/machine-report.
 import { OperatorReportComponent } from './reports/operator-report/operator-report.component';
 import { ItemReportComponent } from './reports/item-report/item-report.component';
 import { AC360SixLaneComponent } from './ac360-six-lane/ac360-six-lane.component';
+import { BlanketBlasterone } from './blanket-blasterone/blanket-blasterone';
+import { BlanketBlastertwo } from './blanket-blastertwo/blanket-blastertwo';
 
 export const routes: Routes = [
 	{ path: 'ng/configGridTest', component: ConfigGridTestComponent },
@@ -57,5 +59,7 @@ export const routes: Routes = [
 	{ path: 'ng/reports/operator-report', component: OperatorReportComponent },
 	{ path: 'ng/reports/item-report', component: ItemReportComponent },	
 	{ path: 'ng/ac360-six-lane', component: AC360SixLaneComponent },
+	{ path: 'ng/blanket-blaster-one', component: BlanketBlasterone },
+	{ path: 'ng/blanket-blaster-two', component: BlanketBlastertwo },
 	{ path: 'ng/*', redirectTo: 'ng/home' }
 	];

@@ -1,6 +1,6 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subscription, timer } from 'rxjs';
-import { startWith, switchMap, share, retry } from 'rxjs/operators';
+import { Component, OnInit, OnDestroy, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Subscription, timer, Subject } from 'rxjs';
+import { startWith, switchMap, share, retry, takeUntil } from 'rxjs/operators';
 import { MatButtonModule } from "@angular/material/button";
 import { DemoFlipperService } from '../../services/demo-flipper.service';
 import { FormsModule } from '@angular/forms';
@@ -11,6 +11,8 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
+import { DateTimeService } from '../../services/date-time.service';
+import { PollingService } from '../../services/polling-service.service';
 //import { MachineService } from '../machine.service';
 //import { Duration } from 'luxon';
 
@@ -20,7 +22,9 @@ import { MatIconModule } from '@angular/material/icon';
     styleUrls: ['./demo-flipper.component.scss'],
     standalone: false
 })
-export class DemoFlipperComponent implements OnInit, OnDestroy {
+export class DemoFlipperComponent implements OnInit, OnDestroy, OnChanges {
+  @Input() serialNumber: string = '';
+  @Input() machineName: string = '';
 
   sub: Subscription;
   subFiveMinutes: Subscription;
@@ -29,17 +33,21 @@ export class DemoFlipperComponent implements OnInit, OnDestroy {
   subDaily: Subscription;
   subStatus: Subscription;
 
-  serialNumber: string = '';
+  public liveMode: boolean = false;
+  public hasFetchedData: boolean = false;
+  public realDataArray: any[] = [];
+
+  private pollingTimeout: any = null;
+  private destroy$ = new Subject<void>();
+  private readonly POLLING_INTERVAL = 6000; // 6 seconds
+
   selectedDate: string | null = null;
 
   ident(index: number, lane: any): number {
     return index;
   }
 
-  public realDataArray: any[] = [];
-
-
- public samplyeDataArray =  [{
+  public samplyeDataArray =  [{
         "status": 1,
         "fault": "Run",
         "operator": "Maribel Sarco",
@@ -325,7 +333,123 @@ export class DemoFlipperComponent implements OnInit, OnDestroy {
       }
     }];
 
-  constructor(private demoFlipperService: DemoFlipperService) { }
+  constructor(
+    private demoFlipperService: DemoFlipperService,
+    private dateTimeService: DateTimeService,
+    private pollingService: PollingService
+  ) { }
+
+  ngOnInit() {
+    // Initial setup with DateTimeService
+    const isLive = this.dateTimeService.getLiveMode();
+    const wasConfirmed = this.dateTimeService.getConfirmed();
+
+    if (!isLive && wasConfirmed) {
+      this.fetchData();
+    }
+
+    // Subscribe to live mode changes
+    this.dateTimeService.liveMode$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((isLive: boolean) => {
+        this.liveMode = isLive;
+
+        if (this.liveMode) {
+          this.fetchData();
+          this.startLivePolling();
+        } else {
+          this.stopLivePolling();
+          this.realDataArray = [];
+        }
+      });
+
+    // Subscribe to manual confirm from modal
+    this.dateTimeService.confirmTrigger$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.liveMode = false;
+        this.stopLivePolling();
+        this.fetchData();
+      });
+
+    // Initial data fetch if we have a serial number
+    if (this.serialNumber) {
+      this.fetchData();
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['serialNumber'] && this.serialNumber) {
+      this.fetchData();
+    }
+  }
+
+  ngOnDestroy() {
+    if (this.sub) this.sub.unsubscribe();
+    if (this.subFiveMinutes) this.subFiveMinutes.unsubscribe();
+    if (this.subFifteenMinutes) this.subFifteenMinutes.unsubscribe();
+    if (this.subHourly) this.subHourly.unsubscribe();
+    if (this.subDaily) this.subDaily.unsubscribe();
+    if (this.subStatus) this.subStatus.unsubscribe();
+    this.stopLivePolling();
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  fetchData() {
+    if (!this.serialNumber) return;
+    
+    const date = this.dateTimeService.getStartTime()?.split('T')[0] || new Date().toISOString().split('T')[0];
+    
+    this.demoFlipperService.getLiveEfficiencySummary(Number(this.serialNumber), date)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result: any) => {
+          this.realDataArray = result.flipperData;
+          this.hasFetchedData = true;
+        },
+        error: (error: any) => {
+          console.error('Service error:', error);
+        }
+      });
+  }
+
+  private startLivePolling() {
+    if (!this.serialNumber) return;
+
+    const date = this.dateTimeService.getStartTime()?.split('T')[0] || new Date().toISOString().split('T')[0];
+
+    const poll = () => {
+      this.demoFlipperService.getLiveEfficiencySummary(Number(this.serialNumber), date)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (result: any) => {
+            this.realDataArray = result.flipperData;
+            this.hasFetchedData = true;
+
+            if (this.liveMode) {
+              this.pollingTimeout = setTimeout(poll, this.POLLING_INTERVAL);
+            }
+          },
+          error: (err) => {
+            console.error("Polling error:", err);
+
+            if (this.liveMode) {
+              this.pollingTimeout = setTimeout(poll, this.POLLING_INTERVAL);
+            }
+          }
+        });
+    };
+
+    poll();
+  }
+
+  private stopLivePolling() {
+    if (this.pollingTimeout) {
+      clearTimeout(this.pollingTimeout);
+      this.pollingTimeout = null;
+    }
+  }
 
   public colorPicker = function(result: any) {
     if ((result.runTime < ((result.timeframe * 60) * 0.85)) && (result.timeframe != 1440 && result.timeframe != 5)) {
@@ -339,64 +463,5 @@ export class DemoFlipperComponent implements OnInit, OnDestroy {
         return '#FF0000';
       }
     }
-  }
-
-  ngOnInit() {
-    // Using dummy data instead of service calls
-    this.subFiveMinutes = timer(1, 500)
-      .pipe(
-        startWith(0),
-      ).subscribe(() => {
-        // Keep existing data
-      });
-
-    this.subFifteenMinutes = timer(1, 1000)
-      .pipe(
-        startWith(0),
-      ).subscribe(() => {
-        // Keep existing data
-      });
-
-    this.subHourly = timer(1, 1000)
-      .pipe(
-        startWith(0),
-      ).subscribe(() => {
-        // Keep existing data
-      });
-
-    this.subDaily = timer(1, 1000)
-      .pipe(
-        startWith(0),
-      ).subscribe(() => {
-        // Keep existing data
-      });
-
-    this.subStatus = timer(1, 500)
-      .pipe(
-        startWith(0),
-      ).subscribe(() => {
-        // Keep existing data
-      });
-  }
-
-  ngOnDestroy() {
-    if (this.sub) this.sub.unsubscribe();
-    if (this.subFiveMinutes) this.subFiveMinutes.unsubscribe();
-    if (this.subFifteenMinutes) this.subFifteenMinutes.unsubscribe();
-    if (this.subHourly) this.subHourly.unsubscribe();
-    if (this.subDaily) this.subDaily.unsubscribe();
-    if (this.subStatus) this.subStatus.unsubscribe();
-  }
-
-  fetchData() {
-    // Call the service and log the result
-    this.demoFlipperService.getLiveEfficiencySummary(Number(this.serialNumber), this.selectedDate).subscribe(
-      (result: any) => {
-        this.realDataArray = result.flipperData;
-      },
-      (error: any) => {
-        console.error('Service error:', error);
-      }
-    );
   }
 }
