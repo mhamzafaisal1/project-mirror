@@ -34,11 +34,10 @@ interface StackedBarPoint {
 }
 
 @Component({
-  selector: 'app-stacked-bar-chart',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './stacked-bar-chart.component.html',
-  styleUrl: './stacked-bar-chart.component.scss'
+    selector: 'app-stacked-bar-chart',
+    imports: [CommonModule],
+    templateUrl: './stacked-bar-chart.component.html',
+    styleUrl: './stacked-bar-chart.component.scss'
 })
 export class StackedBarChartComponent implements OnInit, OnDestroy {
   @Input() data: StackedBarChartData | null = null;

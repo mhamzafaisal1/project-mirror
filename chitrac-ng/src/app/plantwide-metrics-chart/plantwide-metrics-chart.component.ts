@@ -3,11 +3,10 @@ import { CommonModule } from '@angular/common';
 import { MultipleBarAndLineChartComponent } from '../components/multiple-bar-and-line-chart/multiple-bar-and-line-chart.component';
 import { MultipleBarChartComponent } from '../components/multiple-bar-chart/multiple-bar-chart.component';
 @Component({
-  selector: 'app-plantwide-metrics-chart',
-  standalone: true,
-  imports: [CommonModule, MultipleBarAndLineChartComponent, MultipleBarChartComponent],
-  templateUrl: './plantwide-metrics-chart.component.html',
-  styleUrls: ['./plantwide-metrics-chart.component.scss']
+    selector: 'app-plantwide-metrics-chart',
+    imports: [CommonModule, MultipleBarAndLineChartComponent, MultipleBarChartComponent],
+    templateUrl: './plantwide-metrics-chart.component.html',
+    styleUrls: ['./plantwide-metrics-chart.component.scss']
 })
 export class PlantwideMetricsChartComponent implements OnChanges {
   @Input() data: {

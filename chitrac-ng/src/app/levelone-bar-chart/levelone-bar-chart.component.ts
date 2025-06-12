@@ -6,11 +6,10 @@ import { MultipleBarChartComponent, BarChartData } from '../components/multiple-
 import { StackedBarChartComponent, StackedBarChartData } from '../components/stacked-bar-chart/stacked-bar-chart.component';
 
 @Component({
-  selector: 'app-levelone-bar-chart',
-  standalone: true,
-  imports: [CommonModule, BarChartComponent, MultipleBarChartComponent, StackedBarChartComponent],
-  templateUrl: './levelone-bar-chart.component.html',
-  styleUrls: ['./levelone-bar-chart.component.scss']
+    selector: 'app-levelone-bar-chart',
+    imports: [CommonModule, BarChartComponent, MultipleBarChartComponent, StackedBarChartComponent],
+    templateUrl: './levelone-bar-chart.component.html',
+    styleUrls: ['./levelone-bar-chart.component.scss']
 })
 export class LeveloneBarChartComponent {
   singleChartData: BarChartDataPoint[] = [];

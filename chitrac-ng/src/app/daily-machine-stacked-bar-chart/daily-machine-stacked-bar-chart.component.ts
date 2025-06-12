@@ -11,14 +11,13 @@ interface MachineStatus {
 }
 
 @Component({
-  selector: 'app-daily-machine-stacked-bar-chart',
-  standalone: true,
-  imports: [
-    CommonModule,
-    StackedBarChartComponent
-  ],
-  templateUrl: './daily-machine-stacked-bar-chart.component.html',
-  styleUrls: ['./daily-machine-stacked-bar-chart.component.scss']
+    selector: 'app-daily-machine-stacked-bar-chart',
+    imports: [
+        CommonModule,
+        StackedBarChartComponent
+    ],
+    templateUrl: './daily-machine-stacked-bar-chart.component.html',
+    styleUrls: ['./daily-machine-stacked-bar-chart.component.scss']
 })
 export class DailyMachineStackedBarChartComponent implements OnChanges {
   @Input() data: MachineStatus[] | null = null;

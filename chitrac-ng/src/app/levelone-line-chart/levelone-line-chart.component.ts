@@ -4,11 +4,10 @@ import { HttpClient } from '@angular/common/http';
 import { LineChartComponent, LineChartDataPoint } from '../components/line-chart/line-chart.component';
 
 @Component({
-  selector: 'app-levelone-line-chart',
-  standalone: true,
-  imports: [CommonModule, LineChartComponent],
-  templateUrl: './levelone-line-chart.component.html',
-  styleUrls: ['./levelone-line-chart.component.scss']
+    selector: 'app-levelone-line-chart',
+    imports: [CommonModule, LineChartComponent],
+    templateUrl: './levelone-line-chart.component.html',
+    styleUrls: ['./levelone-line-chart.component.scss']
 })
 export class LeveloneLineChartComponent implements OnInit {
   data: LineChartDataPoint[] = [];

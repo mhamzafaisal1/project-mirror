@@ -3,11 +3,10 @@ import { CommonModule } from '@angular/common';
 import { BarChartComponent, BarChartDataPoint } from '../components/bar-chart/bar-chart.component';
 
 @Component({
-  selector: 'app-daily-count-bar-chart',
-  standalone: true,
-  imports: [CommonModule, BarChartComponent],
-  templateUrl: './daily-count-bar-chart.component.html',
-  styleUrls: ['./daily-count-bar-chart.component.scss']
+    selector: 'app-daily-count-bar-chart',
+    imports: [CommonModule, BarChartComponent],
+    templateUrl: './daily-count-bar-chart.component.html',
+    styleUrls: ['./daily-count-bar-chart.component.scss']
 })
 export class DailyCountBarChartComponent implements OnChanges {
   @Input() data: { date: string; count: number }[] = [];

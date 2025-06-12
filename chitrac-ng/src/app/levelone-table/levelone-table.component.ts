@@ -4,11 +4,10 @@ import { CommonModule } from '@angular/common';
 import { BaseTableComponent } from '../components/base-table/base-table.component';
 
 @Component({
-  selector: 'app-levelone-table',
-  standalone: true,
-  imports: [CommonModule, BaseTableComponent],
-  templateUrl: './levelone-table.component.html',
-  styleUrls: ['./levelone-table.component.scss']
+    selector: 'app-levelone-table',
+    imports: [CommonModule, BaseTableComponent],
+    templateUrl: './levelone-table.component.html',
+    styleUrls: ['./levelone-table.component.scss']
 })
 export class LeveloneTableComponent {
   columns: string[] = [];

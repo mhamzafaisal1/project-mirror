@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { RouterModule, Routes } from '@angular/router';
 
 import { DemoFlipperComponent } from './demo-flipper/demo-flipper.component';
 import { DataBarComponent } from './lane-components/data-bar/data-bar.component';
@@ -14,6 +15,10 @@ import { LaneFaultComponent } from './lane-fault/lane-fault.component';
 import { LaneRunningComponent } from './lane-running/lane-running.component';
 import { LaneRunningGreyedComponent } from './lane-running-greyed/lane-running-greyed.component';
 import { LaneStopComponent } from './lane-stop/lane-stop.component';
+
+const routes: Routes = [
+  { path: '', component: DemoFlipperComponent }
+];
 
 @NgModule({
   declarations: [
@@ -32,7 +37,8 @@ import { LaneStopComponent } from './lane-stop/lane-stop.component';
     MatDatepickerModule,
     MatNativeDateModule,
     MatButtonModule,
-    MatIconModule
+    MatIconModule,
+    RouterModule.forChild(routes)
   ],
   exports: [
     DemoFlipperComponent,

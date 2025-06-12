@@ -16,11 +16,10 @@ export interface PieChartDataPoint {
 }
 
 @Component({
-  selector: 'pie-chart',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './pie-chart.component.html',
-  styleUrls: ['./pie-chart.component.scss']
+    selector: 'pie-chart',
+    imports: [CommonModule],
+    templateUrl: './pie-chart.component.html',
+    styleUrls: ['./pie-chart.component.scss']
 })
 export class PieChartComponent implements OnChanges, AfterViewInit {
   @Input() data: PieChartDataPoint[] = [];

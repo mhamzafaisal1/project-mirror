@@ -15,6 +15,7 @@ import { DateTimePickerComponent } from '../components/date-time-picker/date-tim
 import { OperatorAnalyticsService } from '../services/operator-analytics.service';
 import { getStatusDotByCode } from '../../utils/status-utils';
 import { PollingService } from '../services/polling-service.service';
+import { DateTimeService } from '../services/date-time.service';
 
 import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
 import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
@@ -26,24 +27,23 @@ import { OperatorPerformanceChartComponent } from '../operator-performance-chart
 import { OperatorLineChartComponent } from '../operator-line-chart/operator-line-chart.component';
 
 @Component({
-  selector: 'app-operator-analytics-dashboard',
-  standalone: true,
-  imports: [
-    CommonModule, 
-    HttpClientModule, 
-    FormsModule, 
-    BaseTableComponent, 
-    DateTimePickerComponent,
-    MatTableModule,
-    MatSortModule,
-    MatButtonModule,
-    OperatorPerformanceChartComponent,
-    OperatorLineChartComponent,
-    MatIconModule,
-    MatSlideToggleModule
-  ],
-  templateUrl: './operator-analytics-dashboard.component.html',
-  styleUrl: './operator-analytics-dashboard.component.scss'
+    selector: 'app-operator-analytics-dashboard',
+    imports: [
+        CommonModule,
+        HttpClientModule,
+        FormsModule,
+        BaseTableComponent,
+        DateTimePickerComponent,
+        MatTableModule,
+        MatSortModule,
+        MatButtonModule,
+        OperatorPerformanceChartComponent,
+        OperatorLineChartComponent,
+        MatIconModule,
+        MatSlideToggleModule
+    ],
+    templateUrl: './operator-analytics-dashboard.component.html',
+    styleUrl: './operator-analytics-dashboard.component.scss'
 })
 export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   isDarkTheme: boolean = false;
@@ -70,10 +70,21 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     private dialog: MatDialog,
     private renderer: Renderer2,
     private elRef: ElementRef,
-    private pollingService: PollingService
+    private pollingService: PollingService,
+    private dateTimeService: DateTimeService
   ) {}
 
   ngOnInit(): void {
+
+    const isLive = this.dateTimeService.getLiveMode();
+    const wasConfirmed = this.dateTimeService.getConfirmed();
+  
+    if (!isLive && wasConfirmed) {
+      this.startTime = this.dateTimeService.getStartTime();
+      this.endTime = this.dateTimeService.getEndTime();
+      this.fetchAnalyticsData();
+    }
+
     const now = new Date();
     const start = new Date();
     start.setHours(0, 0, 0, 0);
@@ -87,6 +98,46 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     this.observer.observe(document.body, {
       attributes: true,
       attributeFilter: ['class']
+    });
+
+    // Subscribe to live mode changes
+    this.dateTimeService.liveMode$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(isLive => {
+      this.liveMode = isLive;
+      if (isLive) {
+        // Reset startTime to today at 00:00
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        this.startTime = this.formatDateForInput(start);
+        this.dateTimeService.setStartTime(this.startTime);
+
+        // Reset endTime to now
+        this.endTime = this.pollingService.updateEndTimestampToNow();
+        this.dateTimeService.setEndTime(this.endTime);
+
+        // Initial data fetch
+        this.fetchAnalyticsData();
+        this.setupPolling();
+      } else {
+        this.stopPolling();
+        this.operatorData = [];
+        this.rows = [];
+      }
+    });
+
+    // Subscribe to confirm trigger
+    this.dateTimeService.confirmTrigger$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+      this.liveMode = false; // turn off polling
+      this.stopPolling();
+
+      // get times from the shared service
+      this.startTime = this.dateTimeService.getStartTime();
+      this.endTime = this.dateTimeService.getEndTime();
+
+      this.fetchAnalyticsData(); // use them to fetch data
     });
   }
 
@@ -108,28 +159,6 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     this.renderer.setStyle(element, 'color', isDark ? '#e0e0e0' : '#000000');
   }
 
-  onLiveModeChange(checked: boolean): void {
-    this.liveMode = checked;
-
-    if (this.liveMode) {
-      // Reset startTime to today at 00:00
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-      this.startTime = this.formatDateForInput(start);
-
-      // Reset endTime to now
-      this.endTime = this.pollingService.updateEndTimestampToNow();
-
-      // Initial data fetch
-      this.fetchAnalyticsData();
-      this.setupPolling();
-    } else {
-      this.stopPolling();
-      this.operatorData = [];
-      this.rows = [];
-    }
-  }
-
   private setupPolling(): void {
     if (this.liveMode) {
       // Initial data fetch
@@ -143,6 +172,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
       this.pollingSubscription = this.pollingService.poll(
         () => {
           this.endTime = this.pollingService.updateEndTimestampToNow();
+          this.dateTimeService.setEndTime(this.endTime);
           return this.analyticsService.getOperatorDashboard(this.startTime, this.endTime, this.operatorId)
             .pipe(
               tap((data: any) => {
@@ -203,10 +233,10 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   }
 
   onDateChange(): void {
-    if (this.liveMode) {
-      this.liveMode = false;
-      this.stopPolling();
-    }
+    this.dateTimeService.setStartTime(this.startTime);
+    this.dateTimeService.setEndTime(this.endTime);
+    this.dateTimeService.setLiveMode(false);
+    this.stopPolling();
     this.operatorData = [];
     this.rows = [];
   }

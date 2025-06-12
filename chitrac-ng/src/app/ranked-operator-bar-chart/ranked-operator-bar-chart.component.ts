@@ -3,11 +3,10 @@ import { CommonModule } from '@angular/common';
 import { BarChartComponent, BarChartDataPoint } from '../components/bar-chart/bar-chart.component';
 
 @Component({
-  selector: 'app-ranked-operator-bar-chart',
-  standalone: true,
-  imports: [CommonModule, BarChartComponent],
-  templateUrl: './ranked-operator-bar-chart.component.html',
-  styleUrls: ['./ranked-operator-bar-chart.component.scss']
+    selector: 'app-ranked-operator-bar-chart',
+    imports: [CommonModule, BarChartComponent],
+    templateUrl: './ranked-operator-bar-chart.component.html',
+    styleUrls: ['./ranked-operator-bar-chart.component.scss']
 })
 export class RankedOperatorBarChartComponent implements OnChanges {
   @Input() data: any[] = [];

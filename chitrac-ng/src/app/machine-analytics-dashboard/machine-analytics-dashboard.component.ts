@@ -46,21 +46,20 @@ interface ItemSummary {
 }
 
 @Component({
-  selector: 'app-machine-analytics-dashboard',
-  standalone: true,
-  imports: [
-    CommonModule,
-    HttpClientModule,
-    FormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    BaseTableComponent,
-    DateTimePickerComponent,
-    MachineItemStackedBarChartComponent
-  ],
-  templateUrl: './machine-analytics-dashboard.component.html',
-  styleUrls: ['./machine-analytics-dashboard.component.scss']
+    selector: 'app-machine-analytics-dashboard',
+    imports: [
+        CommonModule,
+        HttpClientModule,
+        FormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        BaseTableComponent,
+        DateTimePickerComponent,
+        MachineItemStackedBarChartComponent
+    ],
+    templateUrl: './machine-analytics-dashboard.component.html',
+    styleUrls: ['./machine-analytics-dashboard.component.scss']
 })
 export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
   startTime: string = '';

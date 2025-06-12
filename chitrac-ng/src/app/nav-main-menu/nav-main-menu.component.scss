@@ -49,3 +49,58 @@
 .dark-theme .nav-section-title {
   color: rgba(255, 255, 255, 0.7);
 }
+
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; // Adjust spacing between all icons/toggle
+}
+
+.calendar-btn {
+  margin-right: 0.5rem;
+}
+
+.light-theme .calendar-icon {
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.light-icon,
+.dark-icon {
+  font-size: 20px;
+  vertical-align: middle;
+  color: var(--theme-color-on-surface);
+  display: flex;
+  align-items: center;
+}
+
+.dark-toggle {
+  margin: 0 0.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  
+  mat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dark-toggle {
+    margin: 0 0.25rem;
+    display: flex;
+    align-items: center;
+    
+    ::ng-deep .mdc-switch {
+      --mdc-switch-selected-track-color: var(--theme-color-primary);
+      --mdc-switch-selected-handle-color: var(--theme-color-primary);
+      --mdc-switch-unselected-track-color: var(--theme-color-surface-variant);
+      --mdc-switch-unselected-handle-color: var(--theme-color-outline);
+    }
+  }
+}

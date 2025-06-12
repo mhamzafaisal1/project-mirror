@@ -22,21 +22,20 @@ import { ItemConfig } from '../shared/models/item.model';
 import { debounceTime, distinctUntilChanged } from "rxjs/operators";
 
 @Component({
-  selector: 'app-item-dialog-cu',
-  standalone: true,
-  imports: [CommonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    FormsModule,
-    ReactiveFormsModule,
-    MatButtonModule,
-    MatDialogTitle,
-    MatDialogContent,
-    MatDialogActions,
-    MatDialogClose,
-    MatSlideToggleModule],
-  templateUrl: './item-dialog-cu.component.html',
-  styleUrl: './item-dialog-cu.component.scss'
+    selector: 'app-item-dialog-cu',
+    imports: [CommonModule,
+        MatFormFieldModule,
+        MatInputModule,
+        FormsModule,
+        ReactiveFormsModule,
+        MatButtonModule,
+        MatDialogTitle,
+        MatDialogContent,
+        MatDialogActions,
+        MatDialogClose,
+        MatSlideToggleModule],
+    templateUrl: './item-dialog-cu.component.html',
+    styleUrl: './item-dialog-cu.component.scss'
 })
 export class ItemDialogCuComponent implements OnInit {
   @Output() submitEvent = new EventEmitter();

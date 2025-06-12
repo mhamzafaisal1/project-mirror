@@ -16,11 +16,10 @@ import { CarouselComponent } from '../carousel-component/carousel-component.comp
 import { UseCarouselComponent } from '../../use-carousel/use-carousel.component';
 
 @Component({
-  selector: 'app-modal-wrapper-component',
-  standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule], 
-  templateUrl: './modal-wrapper-component.component.html',
-  styleUrls: ['./modal-wrapper-component.component.scss']
+    selector: 'app-modal-wrapper-component',
+    imports: [CommonModule, MatButtonModule, MatIconModule],
+    templateUrl: './modal-wrapper-component.component.html',
+    styleUrls: ['./modal-wrapper-component.component.scss']
 })
 export class ModalWrapperComponent implements AfterViewInit, OnDestroy {
   @ViewChild('container', { read: ViewContainerRef }) container!: ViewContainerRef;

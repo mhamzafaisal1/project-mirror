@@ -15,11 +15,10 @@ interface Machine {
 }
 
 @Component({
-  selector: 'app-machine-analytics-chart',
-  standalone: true,
-  imports: [CommonModule, FormsModule, MultipleBarChartComponent],
-  templateUrl: './machine-analytics-chart.component.html',
-  styleUrls: ['./machine-analytics-chart.component.css']
+    selector: 'app-machine-analytics-chart',
+    imports: [CommonModule, FormsModule, MultipleBarChartComponent],
+    templateUrl: './machine-analytics-chart.component.html',
+    styleUrls: ['./machine-analytics-chart.component.css']
 })
 export class MachineAnalyticsChartComponent implements OnInit {
   charts: BarChartData[] = [];

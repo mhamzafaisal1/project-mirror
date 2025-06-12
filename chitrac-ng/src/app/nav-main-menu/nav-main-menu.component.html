@@ -92,10 +92,10 @@
   <a mat-list-item routerLink="/ng/screens/large-piece-2" (click)="closeMenu()">
     <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Large Piece Line 2</span>
   </a>
-  <a mat-list-item routerLink="/ng/screens/blanket-blaster-1" (click)="closeMenu()">
+  <a mat-list-item routerLink="/ng/blanket-blaster-one" (click)="closeMenu()">
     <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Blanket Blaster 1</span>
   </a>
-  <a mat-list-item routerLink="/ng/screens/blanket-blaster-2" (click)="closeMenu()">
+  <a mat-list-item routerLink="/ng/blanket-blaster-two" (click)="closeMenu()">
     <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Blanket Blaster 2</span>
   </a>
   <a mat-list-item routerLink="/ng/screens/small-piece-1" (click)="closeMenu()">
@@ -153,17 +153,57 @@
 
   <mat-sidenav-content>
     <mat-toolbar>
+      <!-- Left: menu toggle and title -->
+      <!-- Left: menu toggle and title -->
       <button (click)="toggleMenu()" mat-icon-button>
         <mat-icon *ngIf="shownMenu == ''">chevron_right</mat-icon>
         <mat-icon *ngIf="shownMenu != ''">chevron_left</mat-icon>
       </button>
       <span><a href="/">ChiTrac V2</a></span>
+    
+      <!-- Spacer -->
+    
+      <!-- Spacer -->
       <span class="spacer"></span>
-      <mat-icon style="padding-right: 0.25em">light_mode</mat-icon>
-      <mat-slide-toggle (click)="darkModeToggle()" [checked]="isDarkMode">
-      </mat-slide-toggle>
-      <mat-icon style="padding-left: 0.25em">dark_mode</mat-icon>
+    
+      <!-- Right: calendar + dark mode controls -->
+      <span class="toolbar-actions">
+        <button
+        #dateMenuTrigger="matMenuTrigger"
+        mat-icon-button
+        class="calendar-btn"
+        [matMenuTriggerFor]="dateMenu"
+      >
+        <mat-icon class="calendar-icon">calendar_today</mat-icon>
+      </button>
+      
+    
+        <mat-menu
+        #dateMenu="matMenu"
+        class="date-menu-wrapper"
+        [overlapTrigger]="false"
+        xPosition="after"
+        yPosition="below"
+        [hasBackdrop]="true"
+        (closed)="shownMenu = ''"
+      >
+        <div (click)="$event.stopPropagation()">
+          <app-date-time-modal (closeModal)="onDateTimeModalClose()" />
+        </div>
+      </mat-menu>
+      
+    
+        <mat-icon class="light-icon">light_mode</mat-icon>
+        <mat-slide-toggle
+          class="dark-toggle"
+          (click)="darkModeToggle()"
+          [checked]="isDarkMode"
+        ></mat-slide-toggle>
+        <mat-icon class="dark-icon">dark_mode</mat-icon>
+      </span>
     </mat-toolbar>
+    
+    
     <div class="sidenav-content">
       <router-outlet />
     </div>

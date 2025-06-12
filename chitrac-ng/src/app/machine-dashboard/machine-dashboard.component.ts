@@ -11,7 +11,6 @@ import { FormsModule } from "@angular/forms";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatButtonModule } from "@angular/material/button";
-import { MatSlideToggleModule } from "@angular/material/slide-toggle";
 import { MatIconModule } from "@angular/material/icon";
 import { MatDialog } from "@angular/material/dialog";
 import { Subject, tap, takeUntil } from "rxjs";
@@ -20,6 +19,7 @@ import { BaseTableComponent } from "../components/base-table/base-table.componen
 import { DateTimePickerComponent } from "../components/date-time-picker/date-time-picker.component";
 import { MachineAnalyticsService } from "../services/machine-analytics.service";
 import { PollingService } from "../services/polling-service.service";
+import { DateTimeService } from "../services/date-time.service";
 import { getStatusDotByCode } from "../../utils/status-utils";
 import { ModalWrapperComponent } from "../components/modal-wrapper-component/modal-wrapper-component.component";
 import { UseCarouselComponent } from "../use-carousel/use-carousel.component";
@@ -29,22 +29,20 @@ import { MachineFaultHistoryComponent } from "../machine-fault-history/machine-f
 import { OperatorPerformanceChartComponent } from "../operator-performance-chart/operator-performance-chart.component";
 
 @Component({
-  selector: "app-machine-dashboard",
-  standalone: true,
-  imports: [
-    CommonModule,
-    HttpClientModule,
-    FormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    BaseTableComponent,
-    DateTimePickerComponent,
-    MatSlideToggleModule,
-  ],
-  templateUrl: "./machine-dashboard.component.html",
-  styleUrls: ["./machine-dashboard.component.scss"],
+    selector: "app-machine-dashboard",
+    imports: [
+        CommonModule,
+        HttpClientModule,
+        FormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        BaseTableComponent,
+        DateTimePickerComponent,
+    ],
+    templateUrl: "./machine-dashboard.component.html",
+    styleUrls: ["./machine-dashboard.component.scss"]
 })
 export class MachineDashboardComponent implements OnInit, OnDestroy {
   startTime: string = "";
@@ -72,19 +70,65 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
     private renderer: Renderer2,
     private elRef: ElementRef,
     private dialog: MatDialog,
-    private pollingService: PollingService
+    private pollingService: PollingService,
+    private dateTimeService: DateTimeService
   ) {}
 
   ngOnInit(): void {
+
+    const isLive = this.dateTimeService.getLiveMode();
+    const wasConfirmed = this.dateTimeService.getConfirmed();
+  
+    if (!isLive && wasConfirmed) {
+      this.startTime = this.dateTimeService.getStartTime();
+      this.endTime = this.dateTimeService.getEndTime();
+      this.fetchAnalyticsData();
+    }
     const now = new Date();
     const start = new Date();
     start.setHours(0, 0, 0, 0);
+
     this.startTime = this.formatDateForInput(start);
     this.endTime = this.formatDateForInput(now);
 
     this.detectTheme();
     this.observer = new MutationObserver(() => this.detectTheme());
     this.observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+
+    // Subscribe to live mode changes
+    this.dateTimeService.liveMode$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((isLive: boolean) => {
+        this.liveMode = isLive;
+
+        if (this.liveMode) {
+          const start = new Date();
+          start.setHours(0, 0, 0, 0);
+          this.startTime = this.formatDateForInput(start);
+          this.endTime = this.pollingService.updateEndTimestampToNow();
+
+          this.fetchAnalyticsData();
+          this.setupPolling();
+        } else {
+          this.stopPolling();
+          this.machineData = [];
+          this.rows = [];
+        }
+      });
+
+    // Subscribe to confirm action
+    this.dateTimeService.confirmTrigger$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.liveMode = false; // turn off polling
+        this.stopPolling();
+
+        // get times from the shared service
+        this.startTime = this.dateTimeService.getStartTime();
+        this.endTime = this.dateTimeService.getEndTime();
+
+        this.fetchAnalyticsData(); // use them to fetch data
+      });
   }
 
   ngOnDestroy(): void {
@@ -100,24 +144,6 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
     const element = this.elRef.nativeElement;
     this.renderer.setStyle(element, "background-color", isDark ? "#121212" : "#ffffff");
     this.renderer.setStyle(element, "color", isDark ? "#e0e0e0" : "#000000");
-  }
-
-  onLiveModeChange(checked: boolean): void {
-    this.liveMode = checked;
-
-    if (this.liveMode) {
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-      this.startTime = this.formatDateForInput(start);
-      this.endTime = this.pollingService.updateEndTimestampToNow();
-
-      this.fetchAnalyticsData();
-      this.setupPolling();
-    } else {
-      this.stopPolling();
-      this.machineData = [];
-      this.rows = [];
-    }
   }
 
   private setupPolling(): void {

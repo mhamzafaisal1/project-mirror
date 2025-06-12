@@ -26,21 +26,20 @@ interface OperatorSummaryRow {
 }
 
 @Component({
-  selector: 'app-operator-report',
-  standalone: true,
-  imports: [
-    CommonModule,
-    HttpClientModule,
-    FormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    BaseTableComponent,
-    DateTimePickerComponent
-  ],
-  templateUrl: './operator-report.component.html',
-  styleUrls: ['./operator-report.component.scss']
+    selector: 'app-operator-report',
+    imports: [
+        CommonModule,
+        HttpClientModule,
+        FormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        BaseTableComponent,
+        DateTimePickerComponent
+    ],
+    templateUrl: './operator-report.component.html',
+    styleUrls: ['./operator-report.component.scss']
 })
 export class OperatorReportComponent implements OnInit, OnDestroy {
   startTime: string = '';

@@ -18,11 +18,10 @@ export interface BarChartDataPoint {
 }
 
 @Component({
-  selector: 'bar-chart',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './bar-chart.component.html',
-  styleUrls: ['./bar-chart.component.scss']
+    selector: 'bar-chart',
+    imports: [CommonModule],
+    templateUrl: './bar-chart.component.html',
+    styleUrls: ['./bar-chart.component.scss']
 })
 export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
   @Input() data: BarChartDataPoint[] = [];

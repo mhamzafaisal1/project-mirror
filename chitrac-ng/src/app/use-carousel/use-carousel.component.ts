@@ -6,17 +6,16 @@ import { MatButtonModule } from '@angular/material/button';
 import { CarouselComponent } from '../components/carousel-component/carousel-component.component';
 
 @Component({
-  selector: 'app-use-carousel',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatTabsModule,
-    MatIconModule,
-    MatButtonModule,
-    CarouselComponent
-  ],
-  templateUrl: './use-carousel.component.html',
-  styleUrls: ['./use-carousel.component.scss']
+    selector: 'app-use-carousel',
+    imports: [
+        CommonModule,
+        MatTabsModule,
+        MatIconModule,
+        MatButtonModule,
+        CarouselComponent
+    ],
+    templateUrl: './use-carousel.component.html',
+    styleUrls: ['./use-carousel.component.scss']
 })
 export class UseCarouselComponent implements OnChanges {
   @Input() tabData: { label: string; component: any; componentInputs?: any }[] = [];

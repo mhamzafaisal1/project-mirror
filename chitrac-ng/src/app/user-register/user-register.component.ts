@@ -15,16 +15,15 @@ import { MatInputModule } from '@angular/material/input';
 import { UserService } from '../user.service';
 
 @Component({
-  selector: 'app-user-register',
-  standalone: true,
-  imports: [CommonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    FormsModule,
-    ReactiveFormsModule,
-    MatButtonModule],
-  templateUrl: './user-register.component.html',
-  styleUrl: './user-register.component.scss'
+    selector: 'app-user-register',
+    imports: [CommonModule,
+        MatFormFieldModule,
+        MatInputModule,
+        FormsModule,
+        ReactiveFormsModule,
+        MatButtonModule],
+    templateUrl: './user-register.component.html',
+    styleUrl: './user-register.component.scss'
 })
 export class UserRegisterComponent {
 

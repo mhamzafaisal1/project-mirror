@@ -7,11 +7,10 @@ import { startWith, switchMap, share, retry } from 'rxjs/operators';
 import { AlphaService } from '../alpha.service';
 
 @Component({
-  selector: 'levelone-dashboard',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './levelone-dashboard.component.html',
-  styleUrl: './levelone-dashboard.component.scss'
+    selector: 'levelone-dashboard',
+    imports: [CommonModule],
+    templateUrl: './levelone-dashboard.component.html',
+    styleUrl: './levelone-dashboard.component.scss'
 })
 export class LeveloneDashboardComponent {
   sub: Subscription;

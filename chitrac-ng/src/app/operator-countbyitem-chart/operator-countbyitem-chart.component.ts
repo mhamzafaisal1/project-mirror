@@ -29,21 +29,20 @@ interface StackedBarChartData {
 }
 
 @Component({
-  selector: 'app-operator-countbyitem-chart',
-  standalone: true,
-  imports: [
-    CommonModule, 
-    FormsModule, 
-    MatDialogModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatIconModule,
-    DateTimePickerComponent, 
-    StackedBarChartComponent
-  ],
-  templateUrl: './operator-countbyitem-chart.component.html',
-  styleUrl: './operator-countbyitem-chart.component.scss'
+    selector: 'app-operator-countbyitem-chart',
+    imports: [
+        CommonModule,
+        FormsModule,
+        MatDialogModule,
+        MatButtonModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatIconModule,
+        DateTimePickerComponent,
+        StackedBarChartComponent
+    ],
+    templateUrl: './operator-countbyitem-chart.component.html',
+    styleUrl: './operator-countbyitem-chart.component.scss'
 })
 export class OperatorCountbyitemChartComponent implements OnInit, OnDestroy, OnChanges {
   @Input() operatorId?: number;

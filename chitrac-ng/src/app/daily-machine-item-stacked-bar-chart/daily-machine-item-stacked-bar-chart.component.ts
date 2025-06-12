@@ -3,11 +3,10 @@ import { CommonModule } from '@angular/common';
 import { StackedBarChartComponent, StackedBarChartData } from '../components/stacked-bar-chart/stacked-bar-chart.component';
 
 @Component({
-  selector: 'app-daily-machine-item-stacked-bar-chart',
-  standalone: true,
-  imports: [CommonModule, StackedBarChartComponent],
-  templateUrl: './daily-machine-item-stacked-bar-chart.component.html',
-  styleUrls: ['./daily-machine-item-stacked-bar-chart.component.scss']
+    selector: 'app-daily-machine-item-stacked-bar-chart',
+    imports: [CommonModule, StackedBarChartComponent],
+    templateUrl: './daily-machine-item-stacked-bar-chart.component.html',
+    styleUrls: ['./daily-machine-item-stacked-bar-chart.component.scss']
 })
 export class DailyMachineItemStackedBarChartComponent implements OnChanges {
   @Input() data: StackedBarChartData | null = null;

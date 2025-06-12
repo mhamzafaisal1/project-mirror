@@ -24,20 +24,19 @@ interface ItemSummaryRow {
 }
 
 @Component({
-  selector: 'app-operator-item-summary-table',
-  standalone: true,
-  imports: [
-    CommonModule, 
-    FormsModule, 
-    MatButtonModule, 
-    MatIconModule,
-    MatInputModule,
-    MatFormFieldModule,
-    DateTimePickerComponent, 
-    BaseTableComponent
-  ],
-  templateUrl: './operator-item-summary-table.component.html',
-  styleUrls: ['./operator-item-summary-table.component.scss']
+    selector: 'app-operator-item-summary-table',
+    imports: [
+        CommonModule,
+        FormsModule,
+        MatButtonModule,
+        MatIconModule,
+        MatInputModule,
+        MatFormFieldModule,
+        DateTimePickerComponent,
+        BaseTableComponent
+    ],
+    templateUrl: './operator-item-summary-table.component.html',
+    styleUrls: ['./operator-item-summary-table.component.scss']
 })
 export class OperatorItemSummaryTableComponent implements OnInit, OnChanges {
   @Input() startTime: string = '';

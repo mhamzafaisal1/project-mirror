@@ -30,11 +30,10 @@ import { ConfigurationService } from '../configuration.service';
 
 
 @Component({
-  selector: 'operator-grid',
-  standalone: true,
-  imports: [CommonModule, MatTableModule, MatPaginator, MatSortModule, MatCheckboxModule, MatDividerModule, MatButtonModule, MatIconModule],
-  templateUrl: './operator-grid.component.html',
-  styleUrl: './operator-grid.component.scss'
+    selector: 'operator-grid',
+    imports: [CommonModule, MatTableModule, MatPaginator, MatSortModule, MatCheckboxModule, MatDividerModule, MatButtonModule, MatIconModule],
+    templateUrl: './operator-grid.component.html',
+    styleUrl: './operator-grid.component.scss'
 })
 export class OperatorGridComponent implements OnInit, OnDestroy {
   operators: OperatorConfig[];

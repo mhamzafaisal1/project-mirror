@@ -14,11 +14,10 @@ import { StatusConfig } from '../shared/models/status.model';
 import { ConfigurationService } from '../configuration.service';
 
 @Component({
-  selector: 'app-config-grid-test',
-  standalone: true,
-  imports: [CommonModule, MatTableModule, MatPaginator, MatCardModule],
-  templateUrl: './config-grid-test.component.html',
-  styleUrl: './config-grid-test.component.scss'
+    selector: 'app-config-grid-test',
+    imports: [CommonModule, MatTableModule, MatPaginator, MatCardModule],
+    templateUrl: './config-grid-test.component.html',
+    styleUrl: './config-grid-test.component.scss'
 })
 export class ConfigGridTestComponent implements OnInit, OnDestroy {
   public statuses: StatusConfig[];

@@ -22,11 +22,10 @@ export interface MultipleBarChartData {
 }
 
 @Component({
-  selector: 'app-multiple-bar-and-line-chart',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './multiple-bar-and-line-chart.component.html',
-  styleUrls: ['./multiple-bar-and-line-chart.component.scss']
+    selector: 'app-multiple-bar-and-line-chart',
+    imports: [CommonModule],
+    templateUrl: './multiple-bar-and-line-chart.component.html',
+    styleUrls: ['./multiple-bar-and-line-chart.component.scss']
 })
 export class MultipleBarAndLineChartComponent implements OnChanges, OnDestroy, AfterViewInit {
   @Input() data: MultipleBarChartData | null = null;

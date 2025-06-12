@@ -4,29 +4,27 @@ import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Subject, takeUntil, tap } from 'rxjs';
 
 import { BaseTableComponent } from '../components/base-table/base-table.component';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
 import { ItemAnalyticsService } from '../services/item-analytics.service';
 import { PollingService } from '../services/polling-service.service';
+import { DateTimeService } from '../services/date-time.service';
 
 @Component({
-  selector: 'app-item-analytics-dashboard',
-  standalone: true,
-  imports: [
-    CommonModule,
-    HttpClientModule,
-    FormsModule,
-    MatButtonModule,
-    MatIconModule,
-    MatSlideToggleModule,
-    BaseTableComponent,
-    DateTimePickerComponent
-  ],
-  templateUrl: './item-analytics-dashboard.component.html',
-  styleUrl: './item-analytics-dashboard.component.scss'
+    selector: 'app-item-analytics-dashboard',
+    imports: [
+        CommonModule,
+        HttpClientModule,
+        FormsModule,
+        MatButtonModule,
+        MatIconModule,
+        BaseTableComponent,
+        DateTimePickerComponent
+    ],
+    templateUrl: './item-analytics-dashboard.component.html',
+    styleUrl: './item-analytics-dashboard.component.scss'
 })
 export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
   startTime = '';
@@ -45,10 +43,21 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
     private analyticsService: ItemAnalyticsService,
     private renderer: Renderer2,
     private elRef: ElementRef,
-    private pollingService: PollingService
+    private pollingService: PollingService,
+    private dateTimeService: DateTimeService
   ) {}
 
   ngOnInit(): void {
+
+    const isLive = this.dateTimeService.getLiveMode();
+    const wasConfirmed = this.dateTimeService.getConfirmed();
+  
+    if (!isLive && wasConfirmed) {
+      this.startTime = this.dateTimeService.getStartTime();
+      this.endTime = this.dateTimeService.getEndTime();
+      this.fetchItemAnalytics();
+    }
+
     const now = new Date();
     const start = new Date();
     start.setHours(0, 0, 0, 0);
@@ -58,6 +67,45 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
     this.detectTheme();
     this.observer = new MutationObserver(() => this.detectTheme());
     this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    // Subscribe to live mode changes
+    this.dateTimeService.liveMode$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(isLive => {
+      this.liveMode = isLive;
+      if (isLive) {
+        // Reset startTime to today at 00:00
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        this.startTime = this.formatDateForInput(start);
+        this.dateTimeService.setStartTime(this.startTime);
+
+        // Reset endTime to now
+        this.endTime = this.pollingService.updateEndTimestampToNow();
+        this.dateTimeService.setEndTime(this.endTime);
+
+        // Initial data fetch
+        this.fetchItemAnalytics();
+        this.setupPolling();
+      } else {
+        this.stopPolling();
+        this.rows = [];
+      }
+    });
+
+    // Subscribe to confirm trigger
+    this.dateTimeService.confirmTrigger$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+      this.liveMode = false; // turn off polling
+      this.stopPolling();
+
+      // get times from the shared service
+      this.startTime = this.dateTimeService.getStartTime();
+      this.endTime = this.dateTimeService.getEndTime();
+
+      this.fetchItemAnalytics(); // use them to fetch data
+    });
   }
 
   ngOnDestroy(): void {
@@ -78,27 +126,6 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
     this.renderer.setStyle(element, 'color', isDark ? '#e0e0e0' : '#000000');
   }
 
-  onLiveModeChange(checked: boolean): void {
-    this.liveMode = checked;
-
-    if (this.liveMode) {
-      // Reset startTime to today at 00:00
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-      this.startTime = this.formatDateForInput(start);
-
-      // Reset endTime to now
-      this.endTime = this.pollingService.updateEndTimestampToNow();
-
-      // Initial data fetch
-      this.fetchItemAnalytics();
-      this.setupPolling();
-    } else {
-      this.stopPolling();
-      this.rows = [];
-    }
-  }
-
   private setupPolling(): void {
     if (this.liveMode) {
       // Initial data fetch
@@ -112,6 +139,7 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
       this.pollingSubscription = this.pollingService.poll(
         () => {
           this.endTime = this.pollingService.updateEndTimestampToNow();
+          this.dateTimeService.setEndTime(this.endTime);
           return this.analyticsService.getItemAnalytics(this.startTime, this.endTime)
             .pipe(
               tap((data: any[]) => {
@@ -164,10 +192,10 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
   }
 
   onDateChange(): void {
-    if (this.liveMode) {
-      this.liveMode = false;
-      this.stopPolling();
-    }
+    this.dateTimeService.setStartTime(this.startTime);
+    this.dateTimeService.setEndTime(this.endTime);
+    this.dateTimeService.setLiveMode(false);
+    this.stopPolling();
     this.rows = [];
   }
 

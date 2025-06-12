@@ -15,17 +15,17 @@ import { MatInputModule } from '@angular/material/input';
 import { UserService } from '../user.service';
 
 @Component({
-  selector: 'app-user-login',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    FormsModule,
-    ReactiveFormsModule,
-    MatButtonModule],
-  templateUrl: './user-login.component.html',
-  styleUrl: './user-login.component.scss'
+    selector: 'app-user-login',
+    imports: [
+        CommonModule,
+        MatFormFieldModule,
+        MatInputModule,
+        FormsModule,
+        ReactiveFormsModule,
+        MatButtonModule
+    ],
+    templateUrl: './user-login.component.html',
+    styleUrl: './user-login.component.scss'
 })
 export class UserLoginComponent {
 
