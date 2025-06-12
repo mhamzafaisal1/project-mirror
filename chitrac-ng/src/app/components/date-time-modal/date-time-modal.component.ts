@@ -75,6 +75,8 @@ export class DateTimeModalComponent {
   confirm(): void {
     this.dateTimeService.setStartTime(this.startDateTime.toISOString());
     this.dateTimeService.setEndTime(this.endDateTime.toISOString());
+    this.dateTimeService.setLiveMode(false); 
+    this.dateTimeService.setConfirmed(true);
     this.dateTimeService.triggerConfirm();
     this.closeModal.emit();
   }

@@ -82,6 +82,16 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+
+    const isLive = this.dateTimeService.getLiveMode();
+    const wasConfirmed = this.dateTimeService.getConfirmed();
+  
+    if (!isLive && wasConfirmed) {
+      this.startTime = this.dateTimeService.getStartTime();
+      this.endTime = this.dateTimeService.getEndTime();
+      this.fetchData();
+    }
+
     const end = new Date();
     const start = new Date();
     start.setHours(0, 0, 0, 0);

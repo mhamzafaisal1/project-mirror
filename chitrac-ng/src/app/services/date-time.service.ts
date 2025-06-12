@@ -1,17 +1,33 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Subject } from 'rxjs';
+import { Injectable } from "@angular/core";
+import { BehaviorSubject, Subject } from "rxjs";
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root",
 })
 export class DateTimeService {
-  private startTimeSubject = new BehaviorSubject<string>('');
-  private endTimeSubject = new BehaviorSubject<string>('');
+  private startTimeSubject = new BehaviorSubject<string>("");
+  private endTimeSubject = new BehaviorSubject<string>("");
   private confirmTriggerSubject = new Subject<void>();
+  private confirmedSubject = new BehaviorSubject<boolean>(false);
+  private lastConfirmedAt: Date | null = null;
 
   startTime$ = this.startTimeSubject.asObservable();
   endTime$ = this.endTimeSubject.asObservable();
   confirmTrigger$ = this.confirmTriggerSubject.asObservable();
+  confirmed$ = this.confirmedSubject.asObservable();
+
+  setConfirmed(value: boolean) {
+    this.confirmedSubject.next(value);
+    this.lastConfirmedAt = value ? new Date() : null;
+  }
+
+  getConfirmed(): boolean {
+    return this.confirmedSubject.getValue();
+  }
+
+  getLastConfirmedAt(): Date | null {
+    return this.lastConfirmedAt;
+  }
 
   setStartTime(time: string) {
     this.startTimeSubject.next(time);
@@ -34,14 +50,13 @@ export class DateTimeService {
   }
 
   private liveModeSubject = new BehaviorSubject<boolean>(true); // live mode ON by default
-liveMode$ = this.liveModeSubject.asObservable();
+  liveMode$ = this.liveModeSubject.asObservable();
 
-setLiveMode(isLive: boolean) {
-  this.liveModeSubject.next(isLive);
-}
+  setLiveMode(isLive: boolean) {
+    this.liveModeSubject.next(isLive);
+  }
 
-getLiveMode(): boolean {
-  return this.liveModeSubject.getValue();
-}
-
+  getLiveMode(): boolean {
+    return this.liveModeSubject.getValue();
+  }
 }
