@@ -65,6 +65,8 @@ module.exports = function (server) {
     calculateMisfeeds,
   } = require("../../utils/analytics");
 
+  const { getBookendedStates } = require("../../utils/miscFunctions");
+
   // router.get("/machine-dashboard", async (req, res) => {
   //   try {
   //     const { start, end, serial } = parseAndValidateQueryParams(req);
@@ -184,16 +186,20 @@ module.exports = function (server) {
   router.get("/machine-dashboard", async (req, res) => {
     try {
       const { start, end, serial } = parseAndValidateQueryParams(req);
-      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
-
       const targetSerials = serial ? [serial] : [];
+      const bookendedStates = await getBookendedStates(
+        db,
+        targetSerials,
+        start,
+        end
+      );
 
       const groupedData = await fetchGroupedAnalyticsData(
         db,
-        paddedStart,
-        paddedEnd,
+        start,
+        end,
         "machine",
-        { targetSerials }
+        { targetSerials, preloadedStates: bookendedStates }
       );
 
       const results = await Promise.all(
@@ -604,390 +610,418 @@ module.exports = function (server) {
   //   }
   // });
 
-//   router.get("/flipper-live-summary", async (req, res) => {
-//     try {
-//       const { serial, date } = req.query;
-//       const recentState = await getMostRecentStateForMachine(db, serial, date);
-
-//       if (!recentState) {
-//         return res.status(404).json({
-//           message: "No state found for this machine on the given date.",
-//         });
-//       }
-
-//       const baseFlipperData = buildInitialFlipperOutputs(recentState);
-
-//       const now = new Date();
-//       const start = new Date(`${date}T00:00:00.000Z`);
-//       const end = new Date(`${date}T${now.toISOString().split("T")[1]}`);
-//       const timeFrames = {
-//         AllDay: { start: new Date(`${date}T00:00:00.000Z`), end: now },
-//         LastHour: { start: new Date(now.getTime() - 60 * 60 * 1000), end: now },
-//         Last15Min: { start: new Date(now.getTime() - 15 * 60 * 1000), end: now },
-//         Last6Min: { start: new Date(now.getTime() - 6 * 60 * 1000), end: now },
-//       };
-
-//       const finalFlipperData = [];
-      
-//       // Fetch state cycles and filter by operator
-//       const machineStates = await fetchStatesForMachine(
-//         db,
-//         parseInt(serial),
-//         start,
-//         end
-//       );
-
-//       for (const entry of baseFlipperData) {
-//         const allCounts = await getCountsForMachine(
-//           db,
-//           parseInt(serial),
-//           start,
-//           end,
-//           entry.operatorId
-//         );
-
-//         const grouped = groupCountsByOperatorAndMachine(allCounts);
-//         const key = `${entry.operatorId}-${serial}`;
-
-//         const all = grouped[key]?.counts || [];
-//         const valid = grouped[key]?.validCounts || [];
-
-//         const firstValid = valid[0] || {};
-//         const operatorName = firstValid?.operator?.name || "Unknown";
-//         const itemName = firstValid?.item?.name || "";
-//         const itemCode = firstValid?.item?.id || 0;
-
-//         const operatorStates = machineStates.filter((s) =>
-//           s.operators?.some((op) => Number(op.id) === Number(entry.operatorId))
-//         );
-
-
-//         const runningCycles = extractAllCyclesFromStates(
-//           operatorStates,
-//           start,
-//           end
-//         ).running;
-//         const runtimeMs = runningCycles.reduce((sum, c) => sum + c.duration, 0);
-
-//         const efficiencyValue = calculateEfficiency(
-//           runtimeMs,
-//           valid.length,
-//           valid
-//         );
-//         const efficiency = {
-//           AllDay: {
-//             value: Math.round(efficiencyValue * 100), // convert to %
-//             label: "All Day",
-//             color:
-//               efficiencyValue >= 0.9
-//                 ? "#008000"
-//                 : efficiencyValue >= 0.7
-//                 ? "#F89406"
-//                 : "#FF0000",
-//           },
-//         };
-
-//         finalFlipperData.push({
-//           status: entry.status,
-//           fault: entry.fault,
-//           operator: operatorName,
-//           operatorId: entry.operatorId,
-//           machine: entry.machine,
-//           efficiency,
-//           batch: {
-//             item: itemName,
-//             code: itemCode,
-//           },
-//         });
-//       }
-
-//       return res.json({ flipperData: finalFlipperData });
-//     } catch (err) {
-//       logger.error("Error in /flipper-live-summary:", err);
-//       return res.status(500).json({ error: "Internal server error" });
-//     }
-//   });
-
-// router.get("/flipper-live-summary", async (req, res) => {
-//   try {
-//     const { serial, date } = req.query;
-
-//     const recentState = await getMostRecentStateForMachine(db, serial, date);
-//     if (!recentState) {
-//       return res.status(404).json({
-//         message: "No state found for this machine on the given date.",
-//       });
-//     }
-
-//     const baseFlipperData = buildInitialFlipperOutputs(recentState);
-
-//     const now = new Date();
-//     const dayStart = new Date(`${date}T00:00:00.000Z`);
-//     const currentTime = new Date(`${date}T${now.toISOString().split("T")[1]}`);
-
-//     const timeFrames = {
-//       AllDay: { start: dayStart, end: currentTime },
-//       LastHour: { start: new Date(currentTime.getTime() - 60 * 60 * 1000), end: currentTime },
-//     };
-
-//     const machineStates = await fetchStatesForMachine(db, parseInt(serial), dayStart, currentTime);
-
-//     const finalFlipperData = [];
-
-//     for (const entry of baseFlipperData) {
-//       const allCounts = await getCountsForMachine(db, parseInt(serial), dayStart, currentTime, entry.operatorId);
-//       const grouped = groupCountsByOperatorAndMachine(allCounts);
-//       const key = `${entry.operatorId}-${serial}`;
-//       const all = grouped[key]?.counts || [];
-//       const valid = grouped[key]?.validCounts || [];
-
-//       const firstValid = valid[0] || {};
-//       const operatorName = firstValid?.operator?.name || "Unknown";
-//       const itemName = firstValid?.item?.name || "";
-//       const itemCode = firstValid?.item?.id || 0;
-
-//       const operatorStates = machineStates.filter((s) =>
-//         s.operators?.some((op) => Number(op.id) === Number(entry.operatorId))
-//       );
-
-//       const efficiency = {};
-
-//       for (const [label, { start, end }] of Object.entries(timeFrames)) {
-//         const filteredValid = valid.filter(
-//           (c) => new Date(c.timestamp) >= start && new Date(c.timestamp) <= end
-//         );
-
-//         const relevantStates = operatorStates.filter(
-//           (s) => new Date(s.timestamp) >= start && new Date(s.timestamp) <= end
-//         );
-
-//         const runningCycles = extractAllCyclesFromStates(relevantStates, start, end).running;
-//         const runtimeMs = runningCycles.reduce((sum, c) => sum + c.duration, 0);
-
-//         const eff = calculateEfficiency(runtimeMs, filteredValid.length, filteredValid);
-
-//         efficiency[label] = {
-//           value: Math.round(eff * 100),
-//           label,
-//           color:
-//             eff >= 0.9 ? "#008000" :
-//             eff >= 0.7 ? "#F89406" :
-//             "#FF0000",
-//         };
-//       }
-
-//       finalFlipperData.push({
-//         status: entry.status,
-//         fault: entry.fault,
-//         operator: operatorName,
-//         operatorId: entry.operatorId,
-//         machine: entry.machine,
-//         efficiency,
-//         batch: {
-//           item: itemName,
-//           code: itemCode,
-//         },
-//       });
-//     }
-
-//     return res.json({ flipperData: finalFlipperData });
-//   } catch (err) {
-//     logger.error("Error in /flipper-live-summary:", err);
-//     return res.status(500).json({ error: "Internal server error" });
-//   }
-// });
-
-// router.get("/flipper-live-summary", async (req, res) => {
-//   try {
-//     const { serial, date } = req.query;
-
-//     const recentState = await getMostRecentStateForMachine(db, serial, date);
-//     if (!recentState) {
-//       return res.status(404).json({
-//         message: "No state found for this machine on the given date.",
-//       });
-//     }
-
-//     const baseFlipperData = buildInitialFlipperOutputs(recentState);
-
-//     const now = new Date();
-//     const dayStart = new Date(`${date}T00:00:00.000Z`);
-//     const currentTime = new Date(`${date}T${now.toISOString().split("T")[1]}`); // time from real 'now' on passed date
-    
-
-//     const timeFrames = {
-//       AllDay: { start: dayStart, end: currentTime },
-//       LastHour: { start: new Date(currentTime.getTime() - 60 * 60 * 1000), end: currentTime },
-//       Last15Min: { start: new Date(currentTime.getTime() - 15 * 60 * 1000), end: currentTime },
-//     };
-    
-//     const machineStates = await fetchStatesForMachine(db, parseInt(serial), dayStart, now);
-
-//     const finalFlipperData = [];
-
-//     for (const entry of baseFlipperData) {
-//       const allCounts = await getCountsForMachine(db, parseInt(serial), dayStart, now, entry.operatorId);
-//       const grouped = groupCountsByOperatorAndMachine(allCounts);
-//       const key = `${entry.operatorId}-${serial}`;
-//       const all = grouped[key]?.counts || [];
-//       const valid = grouped[key]?.validCounts || [];
-
-//       const firstValid = valid[0] || {};
-//       const operatorName = firstValid?.operator?.name || "Unknown";
-//       const itemName = firstValid?.item?.name || "";
-//       const itemCode = firstValid?.item?.id || 0;
-
-//       const operatorStates = machineStates.filter((s) =>
-//         s.operators?.some((op) => Number(op.id) === Number(entry.operatorId))
-//       );
-
-//       const efficiency = {};
-
-//       for (const [label, { start, end }] of Object.entries(timeFrames)) {
-//         const filteredValid = valid.filter(
-//           (c) => new Date(c.timestamp) >= start && new Date(c.timestamp) <= end
-//         );
-
-//         const relevantStates = operatorStates.filter(
-//           (s) => new Date(s.timestamp) >= start && new Date(s.timestamp) <= end
-//         );
-
-//         const runningCycles = extractAllCyclesFromStates(relevantStates, start, end).running;
-//         const runtimeMs = runningCycles.reduce((sum, c) => sum + c.duration, 0);
-
-//         const eff = calculateEfficiency(runtimeMs, filteredValid.length, filteredValid);
-
-//         efficiency[label] = {
-//           value: Math.round(eff * 100),
-//           label,
-//           color:
-//             eff >= 0.9 ? "#008000" :
-//             eff >= 0.7 ? "#F89406" :
-//             "#FF0000",
-//         };
-//       }
-
-//       finalFlipperData.push({
-//         status: entry.status,
-//         fault: entry.fault,
-//         operator: operatorName,
-//         operatorId: entry.operatorId,
-//         machine: entry.machine,
-//         efficiency,
-//         batch: {
-//           item: itemName,
-//           code: itemCode,
-//         },
-//       });
-//     }
-
-//     return res.json({ flipperData: finalFlipperData });
-//   } catch (err) {
-//     logger.error("Error in /flipper-live-summary:", err);
-//     return res.status(500).json({ error: "Internal server error" });
-//   }
-// });
-
-router.get("/flipper-live-summary", async (req, res) => {
-  try {
-    const { serial, date } = req.query;
-
-    const recentState = await getMostRecentStateForMachine(db, serial, date);
-    if (!recentState) {
-      return res.status(404).json({
-        message: "No state found for this machine on the given date.",
-      });
-    }
-
-    const baseFlipperData = buildInitialFlipperOutputs(recentState);
-
-    const now = new Date();
-    const dayStart = new Date(`${date}T00:00:00.000Z`);
-    const currentTime = new Date(`${date}T${now.toISOString().split("T")[1]}`);
-
-    const timeFrames = {
-      today: { start: dayStart, end: currentTime },
-      lastHour: { start: new Date(currentTime.getTime() - 60 * 60 * 1000), end: currentTime },
-      lastFifteenMinutes: { start: new Date(currentTime.getTime() - 15 * 60 * 1000), end: currentTime },
-      lastSixMinutes: { start: new Date(currentTime.getTime() - 6 * 60 * 1000), end: currentTime },
-    };
-
-    const machineStates = await fetchStatesForMachine(db, parseInt(serial), dayStart, now);
-
-    const finalFlipperData = [];
-
-    for (const entry of baseFlipperData) {
-      const allCounts = await getCountsForMachine(db, parseInt(serial), dayStart, now, entry.operatorId);
-      const grouped = groupCountsByOperatorAndMachine(allCounts);
-      const key = `${entry.operatorId}-${serial}`;
-      const all = grouped[key]?.counts || [];
-      const valid = grouped[key]?.validCounts || [];
-
-      const firstValid = valid[0] || {};
-      const operatorName = firstValid?.operator?.name || "Unknown";
-      const itemName = firstValid?.item?.name || "";
-      const itemCode = firstValid?.item?.id || 0;
-
-      const operatorStates = machineStates.filter((s) =>
-        s.operators?.some((op) => Number(op.id) === Number(entry.operatorId))
-      );
-
-      const efficiency = {};
-
-      for (const [label, { start, end }] of Object.entries(timeFrames)) {
-        const filteredValid = valid.filter(
-          (c) => new Date(c.timestamp) >= start && new Date(c.timestamp) <= end
-        );
-
-        const relevantStates = operatorStates.filter(
-          (s) => new Date(s.timestamp) >= start && new Date(s.timestamp) <= end
-        );
-
-        const runningCycles = extractAllCyclesFromStates(relevantStates, start, end).running;
-        const runtimeMs = runningCycles.reduce((sum, c) => sum + c.duration, 0);
-
-        const eff = calculateEfficiency(runtimeMs, filteredValid.length, filteredValid);
-
-        efficiency[label] = {
-          value: Math.round(eff * 100),
-          label,
-          color:
-            eff >= 0.9 ? "#008000" :
-            eff >= 0.7 ? "#F89406" :
-            "#FF0000",
-        };
+  //   router.get("/flipper-live-summary", async (req, res) => {
+  //     try {
+  //       const { serial, date } = req.query;
+  //       const recentState = await getMostRecentStateForMachine(db, serial, date);
+
+  //       if (!recentState) {
+  //         return res.status(404).json({
+  //           message: "No state found for this machine on the given date.",
+  //         });
+  //       }
+
+  //       const baseFlipperData = buildInitialFlipperOutputs(recentState);
+
+  //       const now = new Date();
+  //       const start = new Date(`${date}T00:00:00.000Z`);
+  //       const end = new Date(`${date}T${now.toISOString().split("T")[1]}`);
+  //       const timeFrames = {
+  //         AllDay: { start: new Date(`${date}T00:00:00.000Z`), end: now },
+  //         LastHour: { start: new Date(now.getTime() - 60 * 60 * 1000), end: now },
+  //         Last15Min: { start: new Date(now.getTime() - 15 * 60 * 1000), end: now },
+  //         Last6Min: { start: new Date(now.getTime() - 6 * 60 * 1000), end: now },
+  //       };
+
+  //       const finalFlipperData = [];
+
+  //       // Fetch state cycles and filter by operator
+  //       const machineStates = await fetchStatesForMachine(
+  //         db,
+  //         parseInt(serial),
+  //         start,
+  //         end
+  //       );
+
+  //       for (const entry of baseFlipperData) {
+  //         const allCounts = await getCountsForMachine(
+  //           db,
+  //           parseInt(serial),
+  //           start,
+  //           end,
+  //           entry.operatorId
+  //         );
+
+  //         const grouped = groupCountsByOperatorAndMachine(allCounts);
+  //         const key = `${entry.operatorId}-${serial}`;
+
+  //         const all = grouped[key]?.counts || [];
+  //         const valid = grouped[key]?.validCounts || [];
+
+  //         const firstValid = valid[0] || {};
+  //         const operatorName = firstValid?.operator?.name || "Unknown";
+  //         const itemName = firstValid?.item?.name || "";
+  //         const itemCode = firstValid?.item?.id || 0;
+
+  //         const operatorStates = machineStates.filter((s) =>
+  //           s.operators?.some((op) => Number(op.id) === Number(entry.operatorId))
+  //         );
+
+  //         const runningCycles = extractAllCyclesFromStates(
+  //           operatorStates,
+  //           start,
+  //           end
+  //         ).running;
+  //         const runtimeMs = runningCycles.reduce((sum, c) => sum + c.duration, 0);
+
+  //         const efficiencyValue = calculateEfficiency(
+  //           runtimeMs,
+  //           valid.length,
+  //           valid
+  //         );
+  //         const efficiency = {
+  //           AllDay: {
+  //             value: Math.round(efficiencyValue * 100), // convert to %
+  //             label: "All Day",
+  //             color:
+  //               efficiencyValue >= 0.9
+  //                 ? "#008000"
+  //                 : efficiencyValue >= 0.7
+  //                 ? "#F89406"
+  //                 : "#FF0000",
+  //           },
+  //         };
+
+  //         finalFlipperData.push({
+  //           status: entry.status,
+  //           fault: entry.fault,
+  //           operator: operatorName,
+  //           operatorId: entry.operatorId,
+  //           machine: entry.machine,
+  //           efficiency,
+  //           batch: {
+  //             item: itemName,
+  //             code: itemCode,
+  //           },
+  //         });
+  //       }
+
+  //       return res.json({ flipperData: finalFlipperData });
+  //     } catch (err) {
+  //       logger.error("Error in /flipper-live-summary:", err);
+  //       return res.status(500).json({ error: "Internal server error" });
+  //     }
+  //   });
+
+  // router.get("/flipper-live-summary", async (req, res) => {
+  //   try {
+  //     const { serial, date } = req.query;
+
+  //     const recentState = await getMostRecentStateForMachine(db, serial, date);
+  //     if (!recentState) {
+  //       return res.status(404).json({
+  //         message: "No state found for this machine on the given date.",
+  //       });
+  //     }
+
+  //     const baseFlipperData = buildInitialFlipperOutputs(recentState);
+
+  //     const now = new Date();
+  //     const dayStart = new Date(`${date}T00:00:00.000Z`);
+  //     const currentTime = new Date(`${date}T${now.toISOString().split("T")[1]}`);
+
+  //     const timeFrames = {
+  //       AllDay: { start: dayStart, end: currentTime },
+  //       LastHour: { start: new Date(currentTime.getTime() - 60 * 60 * 1000), end: currentTime },
+  //     };
+
+  //     const machineStates = await fetchStatesForMachine(db, parseInt(serial), dayStart, currentTime);
+
+  //     const finalFlipperData = [];
+
+  //     for (const entry of baseFlipperData) {
+  //       const allCounts = await getCountsForMachine(db, parseInt(serial), dayStart, currentTime, entry.operatorId);
+  //       const grouped = groupCountsByOperatorAndMachine(allCounts);
+  //       const key = `${entry.operatorId}-${serial}`;
+  //       const all = grouped[key]?.counts || [];
+  //       const valid = grouped[key]?.validCounts || [];
+
+  //       const firstValid = valid[0] || {};
+  //       const operatorName = firstValid?.operator?.name || "Unknown";
+  //       const itemName = firstValid?.item?.name || "";
+  //       const itemCode = firstValid?.item?.id || 0;
+
+  //       const operatorStates = machineStates.filter((s) =>
+  //         s.operators?.some((op) => Number(op.id) === Number(entry.operatorId))
+  //       );
+
+  //       const efficiency = {};
+
+  //       for (const [label, { start, end }] of Object.entries(timeFrames)) {
+  //         const filteredValid = valid.filter(
+  //           (c) => new Date(c.timestamp) >= start && new Date(c.timestamp) <= end
+  //         );
+
+  //         const relevantStates = operatorStates.filter(
+  //           (s) => new Date(s.timestamp) >= start && new Date(s.timestamp) <= end
+  //         );
+
+  //         const runningCycles = extractAllCyclesFromStates(relevantStates, start, end).running;
+  //         const runtimeMs = runningCycles.reduce((sum, c) => sum + c.duration, 0);
+
+  //         const eff = calculateEfficiency(runtimeMs, filteredValid.length, filteredValid);
+
+  //         efficiency[label] = {
+  //           value: Math.round(eff * 100),
+  //           label,
+  //           color:
+  //             eff >= 0.9 ? "#008000" :
+  //             eff >= 0.7 ? "#F89406" :
+  //             "#FF0000",
+  //         };
+  //       }
+
+  //       finalFlipperData.push({
+  //         status: entry.status,
+  //         fault: entry.fault,
+  //         operator: operatorName,
+  //         operatorId: entry.operatorId,
+  //         machine: entry.machine,
+  //         efficiency,
+  //         batch: {
+  //           item: itemName,
+  //           code: itemCode,
+  //         },
+  //       });
+  //     }
+
+  //     return res.json({ flipperData: finalFlipperData });
+  //   } catch (err) {
+  //     logger.error("Error in /flipper-live-summary:", err);
+  //     return res.status(500).json({ error: "Internal server error" });
+  //   }
+  // });
+
+  // router.get("/flipper-live-summary", async (req, res) => {
+  //   try {
+  //     const { serial, date } = req.query;
+
+  //     const recentState = await getMostRecentStateForMachine(db, serial, date);
+  //     if (!recentState) {
+  //       return res.status(404).json({
+  //         message: "No state found for this machine on the given date.",
+  //       });
+  //     }
+
+  //     const baseFlipperData = buildInitialFlipperOutputs(recentState);
+
+  //     const now = new Date();
+  //     const dayStart = new Date(`${date}T00:00:00.000Z`);
+  //     const currentTime = new Date(`${date}T${now.toISOString().split("T")[1]}`); // time from real 'now' on passed date
+
+  //     const timeFrames = {
+  //       AllDay: { start: dayStart, end: currentTime },
+  //       LastHour: { start: new Date(currentTime.getTime() - 60 * 60 * 1000), end: currentTime },
+  //       Last15Min: { start: new Date(currentTime.getTime() - 15 * 60 * 1000), end: currentTime },
+  //     };
+
+  //     const machineStates = await fetchStatesForMachine(db, parseInt(serial), dayStart, now);
+
+  //     const finalFlipperData = [];
+
+  //     for (const entry of baseFlipperData) {
+  //       const allCounts = await getCountsForMachine(db, parseInt(serial), dayStart, now, entry.operatorId);
+  //       const grouped = groupCountsByOperatorAndMachine(allCounts);
+  //       const key = `${entry.operatorId}-${serial}`;
+  //       const all = grouped[key]?.counts || [];
+  //       const valid = grouped[key]?.validCounts || [];
+
+  //       const firstValid = valid[0] || {};
+  //       const operatorName = firstValid?.operator?.name || "Unknown";
+  //       const itemName = firstValid?.item?.name || "";
+  //       const itemCode = firstValid?.item?.id || 0;
+
+  //       const operatorStates = machineStates.filter((s) =>
+  //         s.operators?.some((op) => Number(op.id) === Number(entry.operatorId))
+  //       );
+
+  //       const efficiency = {};
+
+  //       for (const [label, { start, end }] of Object.entries(timeFrames)) {
+  //         const filteredValid = valid.filter(
+  //           (c) => new Date(c.timestamp) >= start && new Date(c.timestamp) <= end
+  //         );
+
+  //         const relevantStates = operatorStates.filter(
+  //           (s) => new Date(s.timestamp) >= start && new Date(s.timestamp) <= end
+  //         );
+
+  //         const runningCycles = extractAllCyclesFromStates(relevantStates, start, end).running;
+  //         const runtimeMs = runningCycles.reduce((sum, c) => sum + c.duration, 0);
+
+  //         const eff = calculateEfficiency(runtimeMs, filteredValid.length, filteredValid);
+
+  //         efficiency[label] = {
+  //           value: Math.round(eff * 100),
+  //           label,
+  //           color:
+  //             eff >= 0.9 ? "#008000" :
+  //             eff >= 0.7 ? "#F89406" :
+  //             "#FF0000",
+  //         };
+  //       }
+
+  //       finalFlipperData.push({
+  //         status: entry.status,
+  //         fault: entry.fault,
+  //         operator: operatorName,
+  //         operatorId: entry.operatorId,
+  //         machine: entry.machine,
+  //         efficiency,
+  //         batch: {
+  //           item: itemName,
+  //           code: itemCode,
+  //         },
+  //       });
+  //     }
+
+  //     return res.json({ flipperData: finalFlipperData });
+  //   } catch (err) {
+  //     logger.error("Error in /flipper-live-summary:", err);
+  //     return res.status(500).json({ error: "Internal server error" });
+  //   }
+  // });
+
+  router.get("/flipper-live-summary", async (req, res) => {
+    try {
+      const { serial, date } = req.query;
+
+      const recentState = await getMostRecentStateForMachine(db, serial, date);
+      if (!recentState) {
+        return res.status(404).json({
+          message: "No state found for this machine on the given date.",
+        });
       }
 
-      finalFlipperData.push({
-        status: entry.status,
-        fault: entry.fault,
-        operator: operatorName,
-        operatorId: entry.operatorId,
-        machine: entry.machine,
-        timers: {
-          on: 0,
-          ready: 0,
+      const baseFlipperData = buildInitialFlipperOutputs(recentState);
+
+      const now = new Date();
+      const dayStart = new Date(`${date}T00:00:00.000Z`);
+      const currentTime = new Date(
+        `${date}T${now.toISOString().split("T")[1]}`
+      );
+
+      const timeFrames = {
+        today: { start: dayStart, end: currentTime },
+        lastHour: {
+          start: new Date(currentTime.getTime() - 60 * 60 * 1000),
+          end: currentTime,
         },
-        displayTimers: {
-          on: '',
-          run: ''
+        lastFifteenMinutes: {
+          start: new Date(currentTime.getTime() - 15 * 60 * 1000),
+          end: currentTime,
         },
-        efficiency,
-        batch: {
-          item: itemName,
-          code: itemCode,
+        lastSixMinutes: {
+          start: new Date(currentTime.getTime() - 6 * 60 * 1000),
+          end: currentTime,
         },
-      });
+      };
+
+      const machineStates = await fetchStatesForMachine(
+        db,
+        parseInt(serial),
+        dayStart,
+        now
+      );
+
+      const finalFlipperData = [];
+
+      for (const entry of baseFlipperData) {
+        const allCounts = await getCountsForMachine(
+          db,
+          parseInt(serial),
+          dayStart,
+          now,
+          entry.operatorId
+        );
+        const grouped = groupCountsByOperatorAndMachine(allCounts);
+        const key = `${entry.operatorId}-${serial}`;
+        const all = grouped[key]?.counts || [];
+        const valid = grouped[key]?.validCounts || [];
+
+        const firstValid = valid[0] || {};
+        const operatorName = firstValid?.operator?.name || "Unknown";
+        const itemName = firstValid?.item?.name || "";
+        const itemCode = firstValid?.item?.id || 0;
+
+        const operatorStates = machineStates.filter((s) =>
+          s.operators?.some((op) => Number(op.id) === Number(entry.operatorId))
+        );
+
+        const efficiency = {};
+
+        for (const [label, { start, end }] of Object.entries(timeFrames)) {
+          const filteredValid = valid.filter(
+            (c) =>
+              new Date(c.timestamp) >= start && new Date(c.timestamp) <= end
+          );
+
+          const relevantStates = operatorStates.filter(
+            (s) =>
+              new Date(s.timestamp) >= start && new Date(s.timestamp) <= end
+          );
+
+          const runningCycles = extractAllCyclesFromStates(
+            relevantStates,
+            start,
+            end
+          ).running;
+          const runtimeMs = runningCycles.reduce(
+            (sum, c) => sum + c.duration,
+            0
+          );
+
+          const eff = calculateEfficiency(
+            runtimeMs,
+            filteredValid.length,
+            filteredValid
+          );
+
+          efficiency[label] = {
+            value: Math.round(eff * 100),
+            label,
+            color: eff >= 0.9 ? "#008000" : eff >= 0.7 ? "#F89406" : "#FF0000",
+          };
+        }
+
+        finalFlipperData.push({
+          status: entry.status,
+          fault: entry.fault,
+          operator: operatorName,
+          operatorId: entry.operatorId,
+          machine: entry.machine,
+          timers: {
+            on: 0,
+            ready: 0,
+          },
+          displayTimers: {
+            on: "",
+            run: "",
+          },
+          efficiency,
+          batch: {
+            item: itemName,
+            code: itemCode,
+          },
+        });
+      }
+
+      return res.json({ flipperData: finalFlipperData });
+    } catch (err) {
+      logger.error("Error in /flipper-live-summary:", err);
+      return res.status(500).json({ error: "Internal server error" });
     }
-
-    return res.json({ flipperData: finalFlipperData });
-  } catch (err) {
-    logger.error("Error in /flipper-live-summary:", err);
-    return res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-
+  });
 
   return router;
 };
