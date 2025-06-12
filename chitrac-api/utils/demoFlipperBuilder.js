@@ -347,12 +347,19 @@ async function getMostRecentStateForMachine(db, serial, dateStr) {
     const machineName = recentState.machine?.name || `Serial ${recentState.machine?.serial}`;
     const statusCode = recentState.status?.code ?? 0;
     const faultName = recentState.status?.name ?? "Unknown";
+    const serial = recentState.machine?.serial;
+
   
     const outputs = [];
-  
     for (const operator of recentState.operators) {
       if (operator.id === -1) continue;
-  
+    
+      const shouldSkip = (serial === 67801 || serial === 67802) && operator.station === 2;
+      if (shouldSkip) {
+        // console.log("Skipping operator due to station 2:", operator);
+        continue;
+      }
+    
       outputs.push({
         status: statusCode,
         fault: faultName,
@@ -360,6 +367,7 @@ async function getMostRecentStateForMachine(db, serial, dateStr) {
         machine: machineName
       });
     }
+    
   
     return outputs;
   }
