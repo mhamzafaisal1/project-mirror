@@ -179,80 +179,116 @@ const {
     };
   }
   
-  async function getBookendedStates(db, serials, start, end) {
+  // async function getBookendedStates(db, serials, start, end) {
+  //   const now = new Date();
+  //   const effectiveEnd = new Date(end) > now ? now.toISOString() : end;
+  
+  //   if (end !== effectiveEnd) {
+  //     console.log(`[Bookend] End date was in the future. Clamped to now: ${effectiveEnd}`);
+  //   }
+  
+  //   const result = {};
+  
+  //   for (const serial of serials) {
+  //     const serialInt = parseInt(serial);
+  
+  //     const [beforeStart, inRange, afterEnd] = await Promise.all([
+  //       db.collection("state")
+  //         .find({
+  //           "machine.serial": serialInt,
+  //           timestamp: { $lt: start }
+  //         })
+  //         .sort({ timestamp: -1 })
+  //         .limit(1)
+  //         .toArray(),
+  
+  //       db.collection("state")
+  //         .find({
+  //           "machine.serial": serialInt,
+  //           timestamp: { $gte: start, $lte: effectiveEnd }
+  //         })
+  //         .sort({ timestamp: 1 })
+  //         .toArray(),
+  
+  //       db.collection("state")
+  //         .find({
+  //           "machine.serial": serialInt,
+  //           timestamp: { $gt: effectiveEnd }
+  //         })
+  //         .sort({ timestamp: 1 })
+  //         .limit(1)
+  //         .toArray()
+  //     ]);
+  
+  //     if (beforeStart.length === 0) {
+  //       console.log(`[Bookend] No pre-start state found for serial ${serialInt} before ${start}`);
+  //     }
+  
+  //     if (afterEnd.length === 0) {
+  //       console.log(`[Bookend] No post-end state found for serial ${serialInt} after ${effectiveEnd}`);
+  //     }
+  
+  //     const combined = [
+  //       ...beforeStart,
+  //       ...inRange,
+  //       ...afterEnd
+  //     ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  
+  //     result[serialInt] = combined;
+  //   }
+  
+  //   return result;
+  // }
+
+  async function getBookendedGlobalRange(db, serials, start, end) {
     const now = new Date();
     const effectiveEnd = new Date(end) > now ? now.toISOString() : end;
   
-    console.log(`[Bookend] Called with serials: ${JSON.stringify(serials)}, start: ${start}, end: ${end}`);
-  
-    if (end !== effectiveEnd) {
-      console.log(`[Bookend] End date was in the future. Clamped to now: ${effectiveEnd}`);
-    }
-  
-    const result = {};
+    let minPreStart = null;
+    let maxPostEnd = null;
   
     for (const serial of serials) {
       const serialInt = parseInt(serial);
-      console.log(`[Bookend] Processing serial: ${serialInt}`);
   
-      const [beforeStart, inRange, afterEnd] = await Promise.all([
+      const [beforeStart, afterEnd] = await Promise.all([
         db.collection("state")
-          .find({
-            "machine.serial": serialInt,
-            timestamp: { $lt: start }
-          })
+          .find({ "machine.serial": serialInt, timestamp: { $lt: start } })
           .sort({ timestamp: -1 })
           .limit(1)
-          .toArray()
-          .then(res => { console.log(`[Bookend] beforeStart for serial ${serialInt}:`, res); return res; }),
+          .toArray(),
   
         db.collection("state")
-          .find({
-            "machine.serial": serialInt,
-            timestamp: { $gte: start, $lte: effectiveEnd }
-          })
-          .sort({ timestamp: 1 })
-          .toArray()
-          .then(res => { console.log(`[Bookend] inRange for serial ${serialInt}: count = ${res.length}`); return res; }),
-  
-        db.collection("state")
-          .find({
-            "machine.serial": serialInt,
-            timestamp: { $gt: effectiveEnd }
-          })
+          .find({ "machine.serial": serialInt, timestamp: { $gt: effectiveEnd } })
           .sort({ timestamp: 1 })
           .limit(1)
           .toArray()
-          .then(res => { console.log(`[Bookend] afterEnd for serial ${serialInt}:`, res); return res; })
       ]);
   
-      if (beforeStart.length === 0) {
-        console.log(`[Bookend] No pre-start state found for serial ${serialInt} before ${start}`);
+      if (beforeStart.length) {
+        const ts = beforeStart[0].timestamp;
+        if (!minPreStart || new Date(ts) < new Date(minPreStart)) {
+          minPreStart = ts;
+        }
       }
   
-      if (afterEnd.length === 0) {
-        console.log(`[Bookend] No post-end state found for serial ${serialInt} after ${effectiveEnd}`);
+      if (afterEnd.length) {
+        const ts = afterEnd[0].timestamp;
+        if (!maxPostEnd || new Date(ts) > new Date(maxPostEnd)) {
+          maxPostEnd = ts;
+        }
       }
-  
-      const combined = [
-        ...beforeStart,
-        ...inRange,
-        ...afterEnd
-      ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-  
-      console.log(`[Bookend] Combined states for serial ${serialInt}: count = ${combined.length}`);
-  
-      result[serialInt] = combined;
     }
   
-    console.log(`[Bookend] Final result:`, Object.keys(result).map(k => ({ serial: k, count: result[k].length })));
+    const adjustedStart = minPreStart ? minPreStart : start;
+    const adjustedEnd = maxPostEnd ? maxPostEnd : effectiveEnd;
   
-    return result;
+    return { adjustedStart, adjustedEnd };
   }
+  
   
   
   module.exports = {
     buildSoftrolCycleSummary,
-    getBookendedStates
+    getBookendedGlobalRange
   };
   

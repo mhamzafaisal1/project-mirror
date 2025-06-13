@@ -65,7 +65,7 @@ module.exports = function (server) {
     calculateMisfeeds,
   } = require("../../utils/analytics");
 
-  const { getBookendedStates } = require("../../utils/miscFunctions");
+  const { getBookendedGlobalRange } = require("../../utils/miscFunctions");
 
   // router.get("/machine-dashboard", async (req, res) => {
   //   try {
@@ -182,88 +182,349 @@ module.exports = function (server) {
   //     res.status(500).json({ error: "Failed to fetch dashboard data" });
   //   }
   // });
+// LAST WORKING ROUTE WITHOUT BOOKENDING
+  // router.get("/machine-dashboard", async (req, res) => {
+  //   try {
+  //     const { start, end, serial } = parseAndValidateQueryParams(req);
+  //     const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
 
-  router.get("/machine-dashboard", async (req, res) => {
-    try {
-      const { start, end, serial } = parseAndValidateQueryParams(req);
-      const targetSerials = serial ? [serial] : [];
-      const bookendedStates = await getBookendedStates(
-        db,
-        targetSerials,
-        start,
-        end
-      );
+  //     const targetSerials = serial ? [serial] : [];
 
-      const groupedData = await fetchGroupedAnalyticsData(
-        db,
-        start,
-        end,
-        "machine",
-        { targetSerials, preloadedStates: bookendedStates }
-      );
+  //     const groupedData = await fetchGroupedAnalyticsData(
+  //       db,
+  //       paddedStart,
+  //       paddedEnd,
+  //       "machine",
+  //       { targetSerials }
+  //     );
 
-      const results = await Promise.all(
-        Object.entries(groupedData).map(async ([serial, group]) => {
-          const machineSerial = parseInt(serial);
-          const { states, counts } = group;
+  //     const results = await Promise.all(
+  //       Object.entries(groupedData).map(async ([serial, group]) => {
+  //         const machineSerial = parseInt(serial);
+  //         const { states, counts } = group;
 
-          if (!states.length && !counts.valid.length) return null;
+  //         if (!states.length && !counts.valid.length) return null;
 
-          const latest = states[states.length - 1] || {};
-          const statusCode = latest.status?.code || 0;
-          const statusName = latest.status?.name || "Unknown";
-          const machineName = latest.machine?.name || "Unknown";
+  //         const latest = states[states.length - 1] || {};
+  //         const statusCode = latest.status?.code || 0;
+  //         const statusName = latest.status?.name || "Unknown";
+  //         const machineName = latest.machine?.name || "Unknown";
 
-          const [
-            performance,
-            itemSummary,
-            itemHourlyStack,
-            faultData,
-            operatorEfficiency,
-          ] = await Promise.all([
-            buildMachinePerformance(
-              states,
-              counts.valid,
-              counts.misfeed,
-              start,
-              end
-            ),
-            buildMachineItemSummary(states, counts.valid, start, end),
-            buildItemHourlyStack(counts.valid, start, end),
-            buildFaultData(states, start, end),
-            buildOperatorEfficiency(
-              states,
-              counts.valid,
-              start,
-              end,
-              machineSerial
-            ),
-          ]);
+  //         const [
+  //           performance,
+  //           itemSummary,
+  //           itemHourlyStack,
+  //           faultData,
+  //           operatorEfficiency,
+  //         ] = await Promise.all([
+  //           buildMachinePerformance(
+  //             states,
+  //             counts.valid,
+  //             counts.misfeed,
+  //             start,
+  //             end
+  //           ),
+  //           buildMachineItemSummary(states, counts.valid, start, end),
+  //           buildItemHourlyStack(counts.valid, start, end),
+  //           buildFaultData(states, start, end),
+  //           buildOperatorEfficiency(
+  //             states,
+  //             counts.valid,
+  //             start,
+  //             end,
+  //             machineSerial
+  //           ),
+  //         ]);
 
-          return {
-            machine: {
-              serial: machineSerial,
-              name: machineName,
-            },
-            currentStatus: {
-              code: statusCode,
-              name: statusName,
-            },
-            performance,
-            itemSummary,
-            itemHourlyStack,
-            faultData,
-            operatorEfficiency,
-          };
-        })
-      );
+  //         return {
+  //           machine: {
+  //             serial: machineSerial,
+  //             name: machineName,
+  //           },
+  //           currentStatus: {
+  //             code: statusCode,
+  //             name: statusName,
+  //           },
+  //           performance,
+  //           itemSummary,
+  //           itemHourlyStack,
+  //           faultData,
+  //           operatorEfficiency,
+  //         };
+  //       })
+  //     );
 
-      res.json(results.filter(Boolean));
-    } catch (err) {
-      logger.error("Error in /machine-dashboard route:", err);
-      res.status(500).json({ error: "Failed to fetch dashboard data" });
-    }
-  });
+  //     res.json(results.filter(Boolean));
+  //   } catch (err) {
+  //     logger.error("Error in /machine-dashboard route:", err);
+  //     res.status(500).json({ error: "Failed to fetch dashboard data" });
+  //   }
+  // });
+
+  // Version 1 of bookended states
+  // router.get("/machine-dashboard", async (req, res) => {
+  //   try {
+  //     // Step 1: Parse and validate query parameters
+  //     const { start, end, serial } = parseAndValidateQueryParams(req);
+  //     const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+
+  //     // Step 2: Get active machine serials in range using aggregation
+  //     const activeSerialDocs = await db.collection("state").aggregate([
+  //       { $match: { timestamp: { $gte: paddedStart, $lte: paddedEnd } } },
+  //       { $group: { _id: "$machine.serial" } },
+  //       { $project: { serial: "$_id", _id: 0 } }
+  //     ]).toArray();
+
+  //     const targetSerials = serial ? [parseInt(serial)] : activeSerialDocs.map(doc => doc.serial);
+
+  //     // Step 3-5: Process each machine to get bookended states and sessions
+  //     const results = await Promise.all(targetSerials.map(async (machineSerial) => {
+  //       // Get all states for this machine in range
+  //       const inRangeStates = await db.collection("state")
+  //         .find({ 
+  //           "machine.serial": machineSerial,
+  //           timestamp: { $gte: paddedStart, $lte: paddedEnd }
+  //         })
+  //         .sort({ timestamp: 1 })
+  //         .toArray();
+
+  //       if (!inRangeStates.length) return null;
+
+  //       // Get bookend states
+  //       const [beforeStart] = await db.collection("state")
+  //         .find({ 
+  //           "machine.serial": machineSerial,
+  //           timestamp: { $lt: paddedStart }
+  //         })
+  //         .sort({ timestamp: -1 })
+  //         .limit(1)
+  //         .toArray();
+
+  //       const [afterEnd] = await db.collection("state")
+  //         .find({ 
+  //           "machine.serial": machineSerial,
+  //           timestamp: { $gt: paddedEnd }
+  //         })
+  //         .sort({ timestamp: 1 })
+  //         .limit(1)
+  //         .toArray();
+
+  //       // Create complete timeline with bookends
+  //       const completeStates = [
+  //         ...(beforeStart ? [beforeStart] : []),
+  //         ...inRangeStates,
+  //         ...(afterEnd ? [afterEnd] : [])
+  //       ];
+
+  //       // Step 6: Pair session start/end states
+  //       const sessions = [];
+  //       let currentSession = null;
+
+  //       for (const state of completeStates) {
+  //         if (state.status?.code === 1) { // Running state
+  //           if (!currentSession) {
+  //             currentSession = {
+  //               start: state,
+  //               counts: []
+  //             };
+  //           }
+  //         } else if (currentSession) { // Non-running state ends session
+  //           currentSession.end = state;
+  //           sessions.push(currentSession);
+  //           currentSession = null;
+  //         }
+  //       }
+
+  //       // Handle case where machine is still running at end
+  //       if (currentSession) {
+  //         currentSession.end = afterEnd || completeStates[completeStates.length - 1];
+  //         sessions.push(currentSession);
+  //       }
+
+  //       // Step 7: Get counts for each session
+  //       for (const session of sessions) {
+  //         const sessionCounts = await db.collection("count")
+  //           .find({
+  //             "machine.serial": machineSerial,
+  //             timestamp: {
+  //               $gte: session.start.timestamp,
+  //               $lte: session.end.timestamp
+  //             }
+  //           })
+  //           .sort({ timestamp: 1 })
+  //           .toArray();
+
+  //         session.counts = sessionCounts;
+  //       }
+
+  //       // Build performance metrics using the session data
+  //       const latest = completeStates[completeStates.length - 1] || {};
+  //       const statusCode = latest.status?.code || 0;
+  //       const statusName = latest.status?.name || "Unknown";
+  //       const machineName = latest.machine?.name || "Unknown";
+
+  //       // Extract all valid counts from sessions
+  //       const allValidCounts = sessions.flatMap(s => 
+  //         s.counts.filter(c => !c.misfeed && c.operator?.id !== -1)
+  //       );
+  //       const allMisfeedCounts = sessions.flatMap(s => 
+  //         s.counts.filter(c => c.misfeed)
+  //       );
+
+  //       const [
+  //         performance,
+  //         itemSummary,
+  //         itemHourlyStack,
+  //         faultData,
+  //         operatorEfficiency,
+  //       ] = await Promise.all([
+  //         buildMachinePerformance(completeStates, allValidCounts, allMisfeedCounts, start, end),
+  //         buildMachineItemSummary(completeStates, allValidCounts, start, end),
+  //         buildItemHourlyStack(allValidCounts, start, end),
+  //         buildFaultData(completeStates, start, end),
+  //         buildOperatorEfficiency(completeStates, allValidCounts, start, end, machineSerial),
+  //       ]);
+
+  //       return {
+  //         machine: { serial: machineSerial, name: machineName },
+  //         currentStatus: { code: statusCode, name: statusName },
+  //         performance,
+  //         itemSummary,
+  //         itemHourlyStack,
+  //         faultData,
+  //         operatorEfficiency,
+  //         sessions: sessions.map(s => ({
+  //           start: s.start.timestamp,
+  //           end: s.end.timestamp,
+  //           counts: s.counts.length
+  //         }))
+  //       };
+  //     }));
+
+  //     res.json(results.filter(Boolean));
+  //   } catch (err) {
+  //     logger.error("Error in /machine-dashboard route:", err);
+  //     res.status(500).json({ error: "Failed to fetch dashboard data" });
+  //   }
+  // });
+
+  // Version 2 of bookended states modularized
+  const { buildMachineSessionAnalytics } = require('../../utils/machineSessionAnalytics');
+
+router.get("/machine-dashboard", async (req, res) => {
+  try {
+    const { start, end, serial } = parseAndValidateQueryParams(req);
+    const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+
+    const activeSerialDocs = await db.collection("state").aggregate([
+      { $match: { timestamp: { $gte: paddedStart, $lte: paddedEnd } } },
+      { $group: { _id: "$machine.serial" } },
+      { $project: { serial: "$_id", _id: 0 } }
+    ]).toArray();
+
+    const targetSerials = serial ? [parseInt(serial)] : activeSerialDocs.map(doc => doc.serial);
+
+    const results = await Promise.all(
+      targetSerials.map(s => buildMachineSessionAnalytics(db, s, paddedStart, paddedEnd))
+    );
+
+    res.json(results.filter(Boolean));
+  } catch (err) {
+    logger.error("Error in /machine-dashboard route:", err);
+    res.status(500).json({ error: "Failed to fetch dashboard data" });
+  }
+});
+
+  
+
+
+  // router.get("/machine-dashboard", async (req, res) => {
+  //   try {
+  //     const { start, end, serial } = parseAndValidateQueryParams(req);
+  //     // const targetSerials = serial ? [serial] : [];
+  //     const targetSerials = serial
+  //       ? [serial]
+  //       : await db.collection("state").distinct("machine.serial");
+
+  //     const { adjustedStart, adjustedEnd } = await getBookendedGlobalRange(
+  //       db,
+  //       targetSerials,
+  //       start,
+  //       end
+  //     );
+
+  //     console.log(`[Bookend] Adjusted start: ${adjustedStart}, adjusted end: ${adjustedEnd}`);
+  //     // Now pass these to everything:
+  //     const groupedData = await fetchGroupedAnalyticsData(
+  //       db,
+  //       adjustedStart,
+  //       adjustedEnd,
+  //       "machine",
+  //       { targetSerials }
+  //     );
+
+  //     const results = await Promise.all(
+  //       Object.entries(groupedData).map(async ([serial, group]) => {
+  //         const machineSerial = parseInt(serial);
+  //         const { states, counts } = group;
+
+  //         if (!states.length && !counts.valid.length) return null;
+
+  //         const latest = states[states.length - 1] || {};
+  //         const statusCode = latest.status?.code || 0;
+  //         const statusName = latest.status?.name || "Unknown";
+  //         const machineName = latest.machine?.name || "Unknown";
+
+  //         const [
+  //           performance,
+  //           itemSummary,
+  //           itemHourlyStack,
+  //           faultData,
+  //           operatorEfficiency,
+  //         ] = await Promise.all([
+  //           buildMachinePerformance(
+  //             states,
+  //             counts.valid,
+  //             counts.misfeed,
+  //             start,
+  //             end
+  //           ),
+  //           buildMachineItemSummary(states, counts.valid, start, end),
+  //           buildItemHourlyStack(counts.valid, start, end),
+  //           buildFaultData(states, start, end),
+  //           buildOperatorEfficiency(
+  //             states,
+  //             counts.valid,
+  //             start,
+  //             end,
+  //             machineSerial
+  //           ),
+  //         ]);
+
+  //         return {
+  //           machine: {
+  //             serial: machineSerial,
+  //             name: machineName,
+  //           },
+  //           currentStatus: {
+  //             code: statusCode,
+  //             name: statusName,
+  //           },
+  //           performance,
+  //           itemSummary,
+  //           itemHourlyStack,
+  //           faultData,
+  //           operatorEfficiency,
+  //         };
+  //       })
+  //     );
+
+  //     res.json(results.filter(Boolean));
+  //   } catch (err) {
+  //     logger.error("Error in /machine-dashboard route:", err);
+  //     res.status(500).json({ error: "Failed to fetch dashboard data" });
+  //   }
+  // });
 
   router.get("/daily-dashboard/machine-status", async (req, res) => {
     try {
