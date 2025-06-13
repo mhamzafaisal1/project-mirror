@@ -106,10 +106,17 @@ Data Format:
 "timers": {
 	"run": 63,											Integer run time all day in seconds
 	"down": 17,											Integer down time all day in seconds
+	"total": 80											Integer total time all day in seconds
+},
+"programNumber": 2,										Integer program number
+"item": {
+	"id": 1,											Integer item id
+	"name": "Incontinent Pad"							String item name
 },
 "totals": {
 	"input": 2493,										Integer total items input all day
 	"out": 2384,										Integer total items output all day (input - misfeed)
+	"thru": 95.63										Float (rounded to 2 decimal places) throughput percentage
 	"faults": 15,										Integer total fault count all day
 	"jams": 9											Integer total jam count all day
 },

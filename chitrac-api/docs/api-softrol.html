@@ -613,10 +613,17 @@ Visual Studio-like style based on original C# coloring by Jason Diamond <jason@d
 <pre><code data-line="104" class="code-line" dir="auto">"timers": {
 	"run": 63,											Integer run time all day in seconds
 	"down": 17,											Integer down time all day in seconds
+	"total": 80											Integer total time all day in seconds
+},
+"programNumber": 2,										Integer program number
+"item": {
+	"id": 1,											Integer item id
+	"name": "Incontinent Pad"							String item name
 },
 "totals": {
 	"input": 2493,										Integer total items input all day
 	"out": 2384,										Integer total items output all day (input - misfeed)
+	"thru": 95.63										Float (rounded to 2 decimal places) throughput percentage
 	"faults": 15,										Integer total fault count all day
 	"jams": 9											Integer total jam count all day
 },
@@ -624,40 +631,40 @@ Visual Studio-like style based on original C# coloring by Jason Diamond <jason@d
 "oee": 68.47,											Float (rounded to 2 decimal places) Overall Equipment Efficiency percentage of the machine all day
 "operatorEfficiency": 78.61								Float (rounded to 2 decimal places) averaged operator efficiecy across all operators on this machine all day
 </code></pre>
-<h2 data-line="120" class="code-line" dir="auto" id="history-routes" tabindex="-1">History Routes</h2>
-<h3 data-line="122" class="code-line" dir="auto" id="apihistorymachinefaultsstartisotimestampendisotimestampserialinteger" tabindex="-1">/api/history/machine/faults?start=ISOtimestamp&amp;end=ISOtimestamp&amp;serial=integer</h3>
-<table data-line="124" class="code-line" dir="auto">
-<thead data-line="124" class="code-line" dir="auto">
-<tr data-line="124" class="code-line" dir="auto">
+<h2 data-line="127" class="code-line" dir="auto" id="history-routes" tabindex="-1">History Routes</h2>
+<h3 data-line="129" class="code-line" dir="auto" id="apihistorymachinefaultsstartisotimestampendisotimestampserialinteger" tabindex="-1">/api/history/machine/faults?start=ISOtimestamp&amp;end=ISOtimestamp&amp;serial=integer</h3>
+<table data-line="131" class="code-line" dir="auto">
+<thead data-line="131" class="code-line" dir="auto">
+<tr data-line="131" class="code-line" dir="auto">
 <th></th>
 <th>Input Parameters</th>
 <th></th>
 </tr>
 </thead>
-<tbody data-line="126" class="code-line" dir="auto">
-<tr data-line="126" class="code-line" dir="auto">
+<tbody data-line="133" class="code-line" dir="auto">
+<tr data-line="133" class="code-line" dir="auto">
 <td>Label</td>
 <td>Definition</td>
 <td>Required</td>
 </tr>
-<tr data-line="127" class="code-line" dir="auto">
+<tr data-line="134" class="code-line" dir="auto">
 <td>start</td>
 <td>Start timestamp of the query window</td>
 <td>Yes</td>
 </tr>
-<tr data-line="128" class="code-line" dir="auto">
+<tr data-line="135" class="code-line" dir="auto">
 <td>end</td>
 <td>End timestamp of the query window</td>
 <td>Yes</td>
 </tr>
-<tr data-line="129" class="code-line" dir="auto">
+<tr data-line="136" class="code-line" dir="auto">
 <td>serial</td>
 <td>serialNumber of machine we want Level Two data for</td>
 <td>yes</td>
 </tr>
 </tbody>
 </table>
-<pre><code data-line="131" class="code-line" dir="auto">{
+<pre><code data-line="138" class="code-line" dir="auto">{
     "faultCycles": [													Array of objects describing each fault session which occurred during the query timeframe
         {
             "faultType": "Feeder Right Inlet Jam",						String name of the fault
@@ -703,10 +710,10 @@ Visual Studio-like style based on original C# coloring by Jason Diamond <jason@d
     ]
 }
 </code></pre>
-<h2 data-line="179" class="code-line" dir="auto" id="config-routes" tabindex="-1">Config Routes</h2>
-<h3 data-line="181" class="code-line" dir="auto" id="apimachinesconfig" tabindex="-1">/api/machines/config/</h3>
-<p data-line="183" class="code-line" dir="auto">This route provides configuration definition for all CD machines in the system, as stored in the database</p>
-<pre><code data-line="185" class="code-line" dir="auto">[
+<h2 data-line="186" class="code-line" dir="auto" id="config-routes" tabindex="-1">Config Routes</h2>
+<h3 data-line="188" class="code-line" dir="auto" id="apimachinesconfig" tabindex="-1">/api/machines/config/</h3>
+<p data-line="190" class="code-line" dir="auto">This route provides configuration definition for all CD machines in the system, as stored in the database</p>
+<pre><code data-line="192" class="code-line" dir="auto">[
   {
     "_id": "67081ac3b9110cfaf740493a",					String internal uid for each machine, can be omitted
     "serial": 67808,									Integer serial number unique to each machine
@@ -718,9 +725,9 @@ Visual Studio-like style based on original C# coloring by Jason Diamond <jason@d
   { ... }
 ]
 </code></pre>
-<h3 data-line="199" class="code-line" dir="auto" id="apioperatorconfig" tabindex="-1">/api/operator/config/</h3>
-<p data-line="201" class="code-line" dir="auto">This route provides configuration definition for all operators in the system, as stored in the database</p>
-<pre><code data-line="203" class="code-line" dir="auto">[
+<h3 data-line="206" class="code-line" dir="auto" id="apioperatorconfig" tabindex="-1">/api/operator/config/</h3>
+<p data-line="208" class="code-line" dir="auto">This route provides configuration definition for all operators in the system, as stored in the database</p>
+<pre><code data-line="210" class="code-line" dir="auto">[
   {
     "_id": "67d45a607e769f0a526732aa",					String internal uid for each operator, can be omitted
     "code": 135790,										Integer unique id code for each operator
@@ -729,9 +736,9 @@ Visual Studio-like style based on original C# coloring by Jason Diamond <jason@d
   }
 ]
 </code></pre>
-<h3 data-line="214" class="code-line" dir="auto" id="apiitemsconfig" tabindex="-1">/api/items/config/</h3>
-<p data-line="216" class="code-line" dir="auto">This route provides configuration definition for all items in the system, as stored in the database</p>
-<pre><code data-line="218" class="code-line" dir="auto">[
+<h3 data-line="221" class="code-line" dir="auto" id="apiitemsconfig" tabindex="-1">/api/items/config/</h3>
+<p data-line="223" class="code-line" dir="auto">This route provides configuration definition for all items in the system, as stored in the database</p>
+<pre><code data-line="225" class="code-line" dir="auto">[
   {
     "_id": "67041dd6165122adbb4e1ff6",					String internal uid for each item, can be omitted
     "number": 1,										Integer unique id number for each item

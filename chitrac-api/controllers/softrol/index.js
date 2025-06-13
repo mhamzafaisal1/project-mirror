@@ -328,10 +328,17 @@ function constructor(server) {
       timers: {
         run: 63,
         down: 17,
+        total: 80
+      },
+      programNumber: 2,
+      item: {
+        id: 1,
+        name: "Incontinent Pad"
       },
       totals: {
         input: 2493,
         out: 2384,
+        thru: 95.63,
         faults: 15,
         jams: 9,
       },
