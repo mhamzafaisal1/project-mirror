@@ -173,5 +173,136 @@ async function buildMachineSessionAnalytics(db, machineSerial, paddedStart, padd
   };
 }
 
+// Version 2 of bookended states modularized; using sessions and counts and firing them in parallel using Promise.all (Very slow response time)
+// async function buildMachineSessionAnalytics(db, machineSerial, paddedStart, paddedEnd) {
+//   // Step 1: Prepare state queries
+//   const inRangeStatesQ = db.collection("state")
+//     .find({ 
+//       "machine.serial": machineSerial, 
+//       timestamp: { $gte: paddedStart, $lte: paddedEnd } 
+//     })
+//     .sort({ timestamp: 1 });
+
+//   const beforeStartQ = db.collection("state")
+//     .find({ 
+//       "machine.serial": machineSerial, 
+//       timestamp: { $lt: paddedStart } 
+//     })
+//     .sort({ timestamp: -1 })
+//     .limit(1);
+
+//   const afterEndQ = db.collection("state")
+//     .find({ 
+//       "machine.serial": machineSerial, 
+//       timestamp: { $gt: paddedEnd } 
+//     })
+//     .sort({ timestamp: 1 })
+//     .limit(1);
+
+//   // Step 2: Fetch all states in parallel
+//   const [inRangeStates, [beforeStart], [afterEnd]] = await Promise.all([
+//     inRangeStatesQ.toArray(),
+//     beforeStartQ.toArray(),
+//     afterEndQ.toArray()
+//   ]);
+
+//   const completeStates = [
+//     ...(beforeStart ? [beforeStart] : []),
+//     ...inRangeStates,
+//     ...(afterEnd ? [afterEnd] : [])
+//   ];
+
+//   if (!completeStates.length) return null;
+
+//   // Step 3: Extract sessions
+//   const sessions = [];
+//   let currentSession = null;
+
+//   for (const state of completeStates) {
+//     if (state.status?.code === 1) {
+//       if (!currentSession) {
+//         currentSession = { start: state, counts: [] };
+//       }
+//     } else if (currentSession) {
+//       currentSession.end = state;
+//       sessions.push(currentSession);
+//       currentSession = null;
+//     }
+//   }
+
+//   if (currentSession) {
+//     currentSession.end = afterEnd || completeStates.at(-1);
+//     sessions.push(currentSession);
+//   }
+
+//   // Step 4: Query each session's counts in parallel
+//   const countQueries = sessions.map(session =>
+//     db.collection("count")
+//       .find({
+//         "machine.serial": machineSerial,
+//         timestamp: {
+//           $gte: session.start.timestamp,
+//           $lte: session.end.timestamp
+//         }
+//       })
+//       .sort({ timestamp: 1 })
+//       .toArray()
+//   );
+
+//   const allSessionCounts = await Promise.all(countQueries);
+
+//   // Step 5: Assign counts to each session
+//   sessions.forEach((session, index) => {
+//     session.counts = allSessionCounts[index];
+//   });
+
+//   // Step 6: Flatten valid and misfeed counts
+//   const allValidCounts = sessions.flatMap(s => 
+//     s.counts.filter(c => !c.misfeed && c.operator?.id !== -1)
+//   );
+//   const allMisfeedCounts = sessions.flatMap(s => 
+//     s.counts.filter(c => c.misfeed)
+//   );
+
+//   const latest = completeStates.at(-1);
+
+//   // Step 7: Build analytics in parallel
+//   const [
+//     performance,
+//     itemSummary,
+//     itemHourlyStack,
+//     faultData,
+//     operatorEfficiency
+//   ] = await Promise.all([
+//     buildMachinePerformance(completeStates, allValidCounts, allMisfeedCounts, paddedStart, paddedEnd),
+//     buildMachineItemSummary(completeStates, allValidCounts, paddedStart, paddedEnd),
+//     buildItemHourlyStack(allValidCounts, paddedStart, paddedEnd),
+//     buildFaultData(completeStates, paddedStart, paddedEnd),
+//     buildOperatorEfficiency(completeStates, allValidCounts, paddedStart, paddedEnd, machineSerial)
+//   ]);
+
+//   return {
+//     machine: {
+//       serial: machineSerial,
+//       name: latest.machine?.name || "Unknown"
+//     },
+//     currentStatus: {
+//       code: latest.status?.code || 0,
+//       name: latest.status?.name || "Unknown"
+//     },
+//     performance,
+//     itemSummary,
+//     itemHourlyStack,
+//     faultData,
+//     operatorEfficiency,
+//     sessions: sessions.map(s => ({
+//       start: s.start.timestamp,
+//       end: s.end.timestamp,
+//       counts: s.counts.length
+//     }))
+//   };
+// }
+
 module.exports = { buildMachineSessionAnalytics };
+
   

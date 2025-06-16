@@ -66,6 +66,8 @@ module.exports = function (server) {
   } = require("../../utils/analytics");
 
   const { getBookendedGlobalRange } = require("../../utils/miscFunctions");
+  const {getBookendedStatesAndTimeRange} = require("../../utils/bookendingBuilder")
+  const { buildMachineSessionAnalytics } = require('../../utils/machineSessionAnalytics');
 
   // router.get("/machine-dashboard", async (req, res) => {
   //   try {
@@ -409,31 +411,112 @@ module.exports = function (server) {
   // });
 
   // Version 2 of bookended states modularized
-  const { buildMachineSessionAnalytics } = require('../../utils/machineSessionAnalytics');
 
-router.get("/machine-dashboard", async (req, res) => {
-  try {
-    const { start, end, serial } = parseAndValidateQueryParams(req);
-    const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
 
-    const activeSerialDocs = await db.collection("state").aggregate([
-      { $match: { timestamp: { $gte: paddedStart, $lte: paddedEnd } } },
-      { $group: { _id: "$machine.serial" } },
-      { $project: { serial: "$_id", _id: 0 } }
-    ]).toArray();
+// router.get("/machine-dashboard", async (req, res) => {
+//   try {
+//     const { start, end, serial } = parseAndValidateQueryParams(req);
+//     const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
 
-    const targetSerials = serial ? [parseInt(serial)] : activeSerialDocs.map(doc => doc.serial);
+//     const activeSerialDocs = await db.collection("state").aggregate([
+//       { $match: { timestamp: { $gte: paddedStart, $lte: paddedEnd } } },
+//       { $group: { _id: "$machine.serial" } },
+//       { $project: { serial: "$_id", _id: 0 } }
+//     ]).toArray();
 
-    const results = await Promise.all(
-      targetSerials.map(s => buildMachineSessionAnalytics(db, s, paddedStart, paddedEnd))
-    );
+//     const targetSerials = serial ? [parseInt(serial)] : activeSerialDocs.map(doc => doc.serial);
 
-    res.json(results.filter(Boolean));
-  } catch (err) {
-    logger.error("Error in /machine-dashboard route:", err);
-    res.status(500).json({ error: "Failed to fetch dashboard data" });
-  }
-});
+//     const results = await Promise.all(
+//       targetSerials.map(s => buildMachineSessionAnalytics(db, s, paddedStart, paddedEnd))
+//     );
+
+//     res.json(results.filter(Boolean));
+//   } catch (err) {
+//     logger.error("Error in /machine-dashboard route:", err);
+//     res.status(500).json({ error: "Failed to fetch dashboard data" });
+//   }
+// });
+
+//Universal implementation of bookending 
+
+  router.get("/machine-dashboard", async (req, res) => {
+    try {
+      const { start, end, serial } = parseAndValidateQueryParams(req);
+  
+
+      const targetSerials = serial ? [serial] : [];
+
+      const groupedData = await fetchGroupedAnalyticsData(
+        db,
+        start,
+        end,
+        "machine",
+        { targetSerials }
+      );
+
+      const results = await Promise.all(
+        Object.entries(groupedData).map(async ([serial, group]) => {
+          const machineSerial = parseInt(serial);
+          const { states: rawStates, counts } = group;
+      
+          if (!rawStates.length && !counts.valid.length) return null;
+      
+          // Apply bookending for this serial
+          const bookended = await getBookendedStatesAndTimeRange(
+            db,
+            machineSerial,
+            start,
+            end
+          );
+      
+          if (!bookended) return null;
+      
+          const { states, sessionStart, sessionEnd } = bookended;
+      
+          const latest = states.at(-1) || {};
+          const statusCode = latest.status?.code || 0;
+          const statusName = latest.status?.name || "Unknown";
+          const machineName = latest.machine?.name || "Unknown";
+      
+          const [
+            performance,
+            itemSummary,
+            itemHourlyStack,
+            faultData,
+            operatorEfficiency,
+          ] = await Promise.all([
+            buildMachinePerformance(states, counts.valid, counts.misfeed, sessionStart, sessionEnd),
+            buildMachineItemSummary(states, counts.valid, sessionStart, sessionEnd),
+            buildItemHourlyStack(counts.valid, sessionStart, sessionEnd),
+            buildFaultData(states, sessionStart, sessionEnd),
+            buildOperatorEfficiency(states, counts.valid, sessionStart, sessionEnd, machineSerial),
+          ]);
+      
+          return {
+            machine: {
+              serial: machineSerial,
+              name: machineName,
+            },
+            currentStatus: {
+              code: statusCode,
+              name: statusName,
+            },
+            performance,
+            itemSummary,
+            itemHourlyStack,
+            faultData,
+            operatorEfficiency,
+          };
+        })
+      );
+      
+      res.json(results.filter(Boolean));
+    } catch (err) {
+      logger.error("Error in /machine-dashboard route:", err);
+      res.status(500).json({ error: "Failed to fetch dashboard data" });
+    }
+  });
+
 
   
 
