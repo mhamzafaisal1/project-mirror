@@ -190,8 +190,6 @@ async function getBookendedStatesAndTimeRange(db, serial, start, end) {
   };
 }
 
-module.exports = { getBookendedStatesAndTimeRange };
-
 
 // async function getBookendedOperatorStatesAndTimeRange(db, operatorId, start, end) {
 //     const states = await db.collection('state')

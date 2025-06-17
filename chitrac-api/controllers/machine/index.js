@@ -37,14 +37,40 @@ function constructor(server) {
 		}
 	}
 
+	async function createMachine(req, res, next) {
+		try {
+			const machine = req.body;
+			// Validate required fields
+			if (!machine.name || !machine.number) {
+				return res.status(400).json({ error: 'Name and number are required fields' });
+			}
+			let results = await configService.upsertConfiguration(collection, machine, true, 'serial');
+
+			res.status(201).json(results);
+		} catch (error) {
+			next(error);
+		}
+	}
+
 	async function upsertMachine(req, res, next) {
 		try {
 			const id = req.params.id;
 			let updates = req.body;
 			if (updates._id) {
 				delete updates._id;
-			};
-			let results = await configService.upsertConfiguration(collection, id, updates, true);
+			}
+			// Validate required fields
+			if (!updates.name || !updates.number) {
+				return res.status(400).json({ error: 'Name and number are required fields' });
+			}
+			let results = await configService.upsertConfiguration(
+				collection,
+				id ? { _id: id, ...updates } : updates,
+				true,
+				'serial' // <-- key change here
+			  );
+			  
+
 			res.json(results);
 		} catch (error) {
 			next(error);
@@ -54,7 +80,7 @@ function constructor(server) {
 	async function deleteMachine(req, res, next) {
 		try {
 			const id = req.params.id;
-			let results = configService.deleteConfiguration(collection, id);
+			let results = await configService.deleteConfiguration(collection, id);
 			res.json(results);
 		} catch (error) {
 			next(error);
@@ -65,6 +91,9 @@ function constructor(server) {
 	/** GET routes */
 	router.get('/machines/config/xml', getMachineXML);
 	router.get('/machines/config', getMachine);
+
+	/** POST routes */
+	router.post('/machines/config', createMachine);
 
 	/** PUT routes */
 	router.put('/machines/config/:id', upsertMachine);

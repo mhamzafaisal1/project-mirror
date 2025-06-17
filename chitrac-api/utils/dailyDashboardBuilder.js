@@ -23,6 +23,9 @@ const {
     processCountStatistics
   } = require('./count');
 
+  const { getBookendedStatesAndTimeRange } = require('./bookendingBuilder'); 
+
+
 async function buildMachineOEE(db, start, end) {
   try {
     const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
