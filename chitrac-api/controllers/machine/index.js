@@ -41,7 +41,7 @@ function constructor(server) {
 		try {
 			const machine = req.body;
 			// Validate required fields
-			if (!machine.name || !machine.number) {
+			if (!machine.name || !machine.serial) {
 				return res.status(400).json({ error: 'Name and number are required fields' });
 			}
 			let results = await configService.upsertConfiguration(collection, machine, true, 'serial');
@@ -60,7 +60,7 @@ function constructor(server) {
 				delete updates._id;
 			}
 			// Validate required fields
-			if (!updates.name || !updates.number) {
+			if (!updates.name || !updates.serial) {
 				return res.status(400).json({ error: 'Name and number are required fields' });
 			}
 			let results = await configService.upsertConfiguration(

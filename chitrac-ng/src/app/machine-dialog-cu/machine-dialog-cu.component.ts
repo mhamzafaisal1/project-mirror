@@ -61,20 +61,23 @@ export class MachineDialogCuComponent implements OnInit {
     this.machineName = this.machine.name + '';
 
     this.machineFormGroup = new FormGroup({
-      number: new FormControl(this.machine.number, [Validators.required, Validators.min(1)]),
-      name: new FormControl(this.machine.name, [Validators.required, Validators.minLength(4)]),
+      serial: new FormControl(this.machine.serial, [Validators.required, Validators.min(1)]),
+      name: new FormControl(this.machine.name, [Validators.required, Validators.minLength(2)]),
+      ipAddress: new FormControl(this.machine.ipAddress), 
+      lanes: new FormControl(this.machine.lanes, [Validators.required, Validators.min(1)]),
       active: new FormControl(this.machine.active, [Validators.required])
     });
-
-    if (this.error) this.machineFormGroup.markAsDirty();
-
+    
     this.machineFormGroup.valueChanges
       .pipe(debounceTime(100), distinctUntilChanged())
       .subscribe(res => {
-        this.machine.number = res.number;
+        this.machine.serial = res.serial;
         this.machine.name = res.name;
+        this.machine.ipAddress = res.ipAddress;
+        this.machine.lanes = res.lanes;
         this.machine.active = res.active;
       });
+    
 
     this.dialogRef.backdropClick().subscribe(() => {
       if (!this.machineFormGroup.pristine) {

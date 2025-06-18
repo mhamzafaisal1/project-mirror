@@ -46,10 +46,13 @@ export class MachineGridComponent implements OnInit, OnDestroy {
   error: string | null = null;
 
   emptyMachine: MachineConfig = new MachineConfig().deserialize({
-    number: null,
+    serial: null,
     name: null,
-    active: true
+    active: true,
+    ipAddress: '',
+    lanes: 1
   });
+  
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;

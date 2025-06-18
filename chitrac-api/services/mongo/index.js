@@ -38,34 +38,6 @@ async function getConfiguration(collection, query, projection) {
 // 	}
 // }
 
-// async function upsertConfiguration(collection, updateObject, upsert, uniqueKey = 'code') {
-// 	try {
-// 	  let results, id;
-// 	  if (updateObject._id) {
-// 		id = new ObjectId(updateObject._id);
-// 		delete updateObject._id;
-// 	  }
-  
-// 	  if (id) {
-// 		results = await collection.updateOne({ '_id': id }, { '$set': updateObject });
-// 	  } else {
-// 		const uniqueValue = updateObject[uniqueKey];
-// 		const existing = await collection.find({ [uniqueKey]: uniqueValue }).toArray();
-// 		if (existing.length) {
-// 		  throw { message: `${uniqueKey} Already exists` };
-// 		} else {
-// 		  results = await collection.insertOne(updateObject);
-// 		}
-// 	  }
-  
-// 	  return results;
-// 	} catch (error) {
-// 	  error.message = JSON.stringify(error);
-// 	  error.status = 409;
-// 	  throw error;
-// 	}
-//   }
-
 async function upsertConfiguration(collection, updateObject, upsert, uniqueKey = 'code') {
 	try {
 	  let results, id;
@@ -80,7 +52,7 @@ async function upsertConfiguration(collection, updateObject, upsert, uniqueKey =
 		const uniqueValue = updateObject[uniqueKey];
 		const existing = await collection.find({ [uniqueKey]: uniqueValue }).toArray();
 		if (existing.length) {
-		  throw { message: `${uniqueKey} already exists` };
+		  throw { message: `${uniqueKey} Already exists` };
 		} else {
 		  results = await collection.insertOne(updateObject);
 		}
@@ -88,12 +60,13 @@ async function upsertConfiguration(collection, updateObject, upsert, uniqueKey =
   
 	  return results;
 	} catch (error) {
-	  error.message = JSON.stringify(error.message || error);
+	  error.message = JSON.stringify(error);
 	  error.status = 409;
 	  throw error;
 	}
   }
-  
+
+
   
 
 async function deleteConfiguration(collection, id) {
