@@ -6,12 +6,30 @@
     <mat-form-field>
       <mat-label>Number</mat-label>
       <input matInput type="number" formControlName="number" />
+      <mat-error *ngIf="itemFormGroup.get('number')?.hasError('required')">
+        Number is required
+      </mat-error>
+      <mat-error *ngIf="itemFormGroup.get('number')?.hasError('min')">
+        Number must be at least 1
+      </mat-error>
     </mat-form-field>
     <br />
     <mat-form-field>
       <mat-label>Name</mat-label>
       <input matInput formControlName="name" />
+      <mat-error *ngIf="itemFormGroup.get('name')?.hasError('required')">
+        Name is required
+      </mat-error>
+      <mat-error *ngIf="itemFormGroup.get('name')?.hasError('minlength')">
+        Name must be at least 4 characters
+      </mat-error>
     </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Weight (optional)</mat-label>
+      <input matInput type="number" formControlName="weight" />
+    </mat-form-field>
+    
     <br />
     <mat-slide-toggle labelPosition="before" formControlName="active">Active</mat-slide-toggle>
   </mat-dialog-content>
@@ -20,5 +38,12 @@
     <button mat-button [mat-dialog-close]="item" [disabled]="!itemFormGroup.valid">Ok</button>
   </mat-dialog-actions>
   <br />
-  <div *ngIf="error" style="text-align: center; width: 100%">Item already exists</div>
+  <div *ngIf="error" style="text-align: center; width: 100%; color: red;">
+    <div *ngIf="error.message">{{error.message}}</div>
+    <div *ngIf="error.details && error.details.length > 0">
+      <div *ngFor="let detail of error.details" style="font-size: 0.9em; margin: 2px 0;">
+        {{detail.instancePath}} {{detail.message}}
+      </div>
+    </div>
+  </div>
 </form>

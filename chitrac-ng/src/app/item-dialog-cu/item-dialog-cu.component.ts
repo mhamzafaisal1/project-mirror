@@ -60,7 +60,8 @@ export class ItemDialogCuComponent implements OnInit {
     this.itemFormGroup = new FormGroup({
       number: new FormControl(this.item.number, [Validators.required, Validators.min(1)]),
       name: new FormControl(this.item.name, [Validators.required, Validators.minLength(4)]),
-      active: new FormControl(this.item.active, [Validators.required])
+      active: new FormControl(this.item.active, [Validators.required]),
+      weight: new FormControl(this.item.weight)  // optional
     });
 
     if (this.error) this.itemFormGroup.markAsDirty();
@@ -72,6 +73,7 @@ export class ItemDialogCuComponent implements OnInit {
       this.item.number = res.number;
       this.item.name = res.name;
       this.item.active = res.active;
+      this.item.weight = res.weight;
     });
     this.dialogRef.backdropClick().subscribe(result => {
       if (!this.itemFormGroup.pristine) {

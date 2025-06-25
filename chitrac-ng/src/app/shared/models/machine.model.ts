@@ -8,6 +8,13 @@ export class MachineConfig implements Deserializable {
   public ipAddress: string;
   public lanes: number;
 
+  public stations: number[]; // ✅ Required
+  public groups?: {           // ✅ Optional
+    name: string;
+    costCenter?: string;
+    departmentId?: string;
+  }[];
+
   deserialize(input: any) {
     Object.assign(this, input);
     return this;

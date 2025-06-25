@@ -35,6 +35,33 @@
     <mat-slide-toggle formControlName="active" labelPosition="before">
       Active
     </mat-slide-toggle>
+
+    <mat-form-field>
+      <mat-label>Stations (comma-separated)</mat-label>
+      <input matInput [value]="machine.stations?.join(',')" (input)="onStationsChange($event)" required>
+    </mat-form-field>
+    
+    <div formArrayName="groups">
+      <div *ngFor="let group of groups.controls; let i = index" [formGroupName]="i">
+        <mat-form-field>
+          <mat-label>Group Name</mat-label>
+          <input matInput formControlName="name" required>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Cost Center</mat-label>
+          <input matInput formControlName="costCenter">
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Department ID</mat-label>
+          <input matInput formControlName="departmentId">
+        </mat-form-field>
+        <button mat-button color="warn" (click)="removeGroup(i)">Remove Group</button>
+        <mat-divider></mat-divider>
+      </div>
+    </div>
+    
+    <button mat-button color="accent" (click)="addGroup()">Add Group</button>
+    
     
   </mat-dialog-content>
 

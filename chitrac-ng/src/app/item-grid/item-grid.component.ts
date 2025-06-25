@@ -15,7 +15,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 
 /*** rxjs Imports */
 import { Subscription, timer } from 'rxjs';
-import { switchMap, retry, share } from 'rxjs/operators';
+import { switchMap, retry, share, catchError } from 'rxjs/operators';
 
 /*** Model Imports */
 import { ItemConfig } from '../shared/models/item.model';
@@ -51,6 +51,7 @@ export class ItemGridComponent implements OnInit, OnDestroy {
 
   sub: Subscription;
   items: ItemConfig[];
+  error: string | null = null;
   emptyItem: ItemConfig = new ItemConfig().deserialize({ number: null, name: null, active: true });
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -61,20 +62,38 @@ export class ItemGridComponent implements OnInit, OnDestroy {
   readonly dialog = inject(MatDialog);
 
   private getItemsSubFunction = (res: ItemConfig[]) => {
+    this.error = null;
     this.items = res;
     this.dataSource = new MatTableDataSource(res);
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
   };
 
+  private handleError = (error: any): ItemConfig[] => {
+    console.error('Error fetching items:', error);
+    this.error = 'Failed to load items. Please try again.';
+    return [];
+  };
+
   private getItems = timer(1, 30 * 1000).pipe(
-    switchMap(() => this.configurationService.getItemConfigs()),
+    switchMap(() => this.configurationService.getItemConfigs().pipe(
+      catchError(this.handleError)
+    )),
     retry({ delay: 5000 }),
     share()
   );
 
   ngOnInit() {
-    this.sub = this.getItems.subscribe(this.getItemsSubFunction);
+    this.sub = this.getItems.subscribe({
+      next: (res: ItemConfig | ItemConfig[]) => {
+        const items = Array.isArray(res) ? res : [res];
+        this.getItemsSubFunction(items);
+      },
+      error: (err) => {
+        console.error('Error in subscription:', err);
+        this.error = 'Failed to load items. Please try again.';
+      }
+    });
   }
 
   handlePageEvent(e: PageEvent) {
@@ -107,11 +126,32 @@ export class ItemGridComponent implements OnInit, OnDestroy {
         next: (res) => {
           console.log('Success:', res);
           this.sub.unsubscribe();
-          this.sub = this.getItems.subscribe(this.getItemsSubFunction);
+          this.sub = this.getItems.subscribe({
+            next: (res: ItemConfig | ItemConfig[]) => {
+              const items = Array.isArray(res) ? res : [res];
+              this.getItemsSubFunction(items);
+            },
+            error: (err) => {
+              console.error('Error in subscription:', err);
+              this.error = 'Failed to load items. Please try again.';
+            }
+          });
           this.selectionModel.clear();
         },
         error: (err) => {
-          dialogItem.error = err;
+          console.error('Operation failed:', err);
+          // Handle backend validation errors
+          if (err.error && err.error.details) {
+            dialogItem.error = {
+              message: 'Validation failed',
+              details: err.error.details
+            };
+          } else {
+            dialogItem.error = {
+              message: err.message || 'Operation failed',
+              details: []
+            };
+          }
           dialogRef = this.dialog.open(ItemDialogCuComponent, {
             data: dialogItem,
             disableClose: true,
@@ -124,9 +164,25 @@ export class ItemGridComponent implements OnInit, OnDestroy {
 
   deleteItem(item: ItemConfig): void {
     if (item) {
-      this.configurationService.deleteItemConfig(item._id).subscribe(res => {
-        this.sub.unsubscribe();
-        this.sub = this.getItems.subscribe(this.getItemsSubFunction);
+      this.configurationService.deleteItemConfig(item._id).subscribe({
+        next: (res) => {
+          console.log('Delete successful:', res);
+          this.sub.unsubscribe();
+          this.sub = this.getItems.subscribe({
+            next: (res: ItemConfig | ItemConfig[]) => {
+              const items = Array.isArray(res) ? res : [res];
+              this.getItemsSubFunction(items);
+            },
+            error: (err) => {
+              console.error('Error in subscription:', err);
+              this.error = 'Failed to load items. Please try again.';
+            }
+          });
+        },
+        error: (err) => {
+          console.error('Delete failed:', err);
+          this.error = 'Failed to delete item. Please try again.';
+        }
       });
     }
   }

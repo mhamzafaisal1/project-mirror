@@ -16,6 +16,7 @@ function constructor(server) {
 	const logger = server.logger;
 	const xmlParser = server.xmlParser;
 	const configService = require('../../services/mongo/');
+	const itemValidator = require('../../middleware/itemValidator')(server);
 
 	/*** Service consumption functions */
 	async function getItemXML(req, res, next) {
@@ -53,35 +54,69 @@ function constructor(server) {
 	// }
 	async function upsertItem(req, res, next) {
 		try {
-		  const id = req.params.id;
-		  const updates = req.body;
-	  
-		  if (updates._id) delete updates._id;
-	  
-		  if (!updates.name || !updates.number) {
-			return res.status(400).json({ error: 'Name and number are required' });
-		  }
-	  
-		  const result = await configService.upsertConfiguration(
-			collection,
-			id ? { _id: id, ...updates } : updates,
-			true,
-			'number'  // ← tell it to use 'number' instead of 'code'
-		  );
-	  
-		  res.json(result);
+			const id = req.params.id;
+			const updates = { ...req.body }; // clone for safety
+
+			logger.debug('[upsertItem] Processing item update:', {
+				id: id,
+				body: updates,
+				timestamp: new Date().toISOString()
+			});
+	
+			if (updates._id) delete updates._id;
+	
+			// Ensure weight is explicitly null if not provided (so it passes schema)
+			if (updates.weight === undefined) updates.weight = null;
+	
+			const result = await configService.upsertConfiguration(
+				collection,
+				id ? { _id: id, ...updates } : updates,
+				true,
+				'number'
+			);
+
+			logger.info('[upsertItem] Item updated successfully:', {
+				id: id,
+				number: updates.number,
+				name: updates.name,
+				timestamp: new Date().toISOString()
+			});
+	
+			res.json(result);
 		} catch (error) {
-		  next(error);
+			logger.error('[upsertItem] Error:', {
+				error: error.message,
+				stack: error.stack,
+				timestamp: new Date().toISOString()
+			});
+			next(error);
 		}
-	  }
-	  
+	}
+	
 
 	async function deleteItem(req, res, next) {
 		try {
 			const id = req.params.id;
+			
+			logger.debug('[deleteItem] Processing item delete:', {
+				id: id,
+				timestamp: new Date().toISOString()
+			});
+
 			let results = configService.deleteConfiguration(collection, id);
+			
+			logger.info('[deleteItem] Item deleted successfully:', {
+				id: id,
+				timestamp: new Date().toISOString()
+			});
+
 			res.json(results);
 		} catch (error) {
+			logger.error('[deleteItem] Error:', {
+				error: error.message,
+				stack: error.stack,
+				timestamp: new Date().toISOString()
+			});
 			next(error);
 		}
 	}
@@ -96,8 +131,8 @@ function constructor(server) {
 	/** PUT routes */
 	// router.put('/items/config/:id', upsertItem);
 	// router.put('/item/config/:id', upsertItem);
-	router.post('/item/config', upsertItem);
-	router.put('/item/config/:id', upsertItem);
+	router.post('/item/config', itemValidator, upsertItem);
+	router.put('/item/config/:id', itemValidator, upsertItem);
 
 
 
