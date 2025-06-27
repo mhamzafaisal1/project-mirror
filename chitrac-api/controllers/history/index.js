@@ -54,15 +54,26 @@ function constructor(server) {
         return res.json({ faultCycles: [], faultSummaries: [] });
       }
 
-      // Extract fault cycles
+      // Extract fault cycles using the padded time range to get complete cycles
       const { faultCycles, faultSummaries } = extractFaultCycles(
         states,
-        start,
-        end
+        paddedStart,
+        paddedEnd
       );
 
+      // Filter fault cycles to only include those that overlap with the original query range
+      const filteredFaultCycles = faultCycles.filter(cycle => {
+        const cycleStart = new Date(cycle.start);
+        const cycleEnd = new Date(cycle.end);
+        const queryStart = new Date(start);
+        const queryEnd = new Date(end);
+        
+        // Include cycles that overlap with the query range
+        return cycleStart < queryEnd && cycleEnd > queryStart;
+      });
+
       res.json({
-        faultCycles,
+        faultCycles: filteredFaultCycles,
         faultSummaries,
       });
     } catch (err) {
