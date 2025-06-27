@@ -29,10 +29,17 @@ function constructor(server) {
   router.get("/machine/faults", async (req, res) => {
     try {
       const { start, end, serial } = parseAndValidateQueryParams(req);
-      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+      let { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
 
       if (!serial) {
         return res.status(400).json({ error: "Machine serial is required" });
+      }
+
+      // Prevent future timestamps by clamping to current time
+      const now = new Date();
+      if (paddedEnd > now) {
+        logger.warn(`Query end time ${paddedEnd} is in the future, clamping to current time`);
+        paddedEnd = now;
       }
 
       // Fetch states for the specified machine
@@ -44,7 +51,7 @@ function constructor(server) {
       );
 
       if (!states.length) {
-        return res.json({ faultCycles: [], faultSummary: [] });
+        return res.json({ faultCycles: [], faultSummaries: [] });
       }
 
       // Extract fault cycles

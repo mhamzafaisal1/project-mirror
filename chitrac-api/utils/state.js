@@ -108,7 +108,7 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
       if (!mode || mode === 'fault') {
         if (code > 1 && !currentFaultStart) {
           currentFaultStart = timestamp;
-        } else if (code <= 1 && currentFaultStart) {
+        } else if (code === 1 && currentFaultStart) {
           if (currentFaultStart >= startTime && timestamp <= endTime) {
             cycles.fault.push({
               start: currentFaultStart,
@@ -118,6 +118,7 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
           }
           currentFaultStart = null;
         }
+        // Note: We ignore Timeout (code 0) and other non-running states as they don't end fault cycles
       }
     }
   
@@ -564,9 +565,12 @@ function extractFaultCycles(states, queryStart, queryEnd) {
           states: [state],
         };
       } else {
+        // Update fault type to the latest fault if it changed
+        currentCycle.faultType = faultName;
+        currentCycle.faultCode = code;
         currentCycle.states.push(state);
       }
-    } else if (code <= 1 && currentCycle) {
+    } else if (code === 1 && currentCycle) {
       currentCycle.end = timestamp;
       currentCycle.duration = timestamp - currentCycle.start;
 
@@ -582,6 +586,7 @@ function extractFaultCycles(states, queryStart, queryEnd) {
 
       currentCycle = null;
     }
+    // Note: We ignore Timeout (code 0) and other non-running states as they don't end fault cycles
   }
 
   // If still faulting at end of range
