@@ -538,6 +538,90 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
  * @param {string|Date} queryEnd - The original end timestamp.
  * @returns {Object} { faultCycles: Array, faultSummaries: Map }
  */
+
+// function extractFaultCycles(states, queryStart, queryEnd) {
+//   const faultCycles = [];
+//   const faultSummaryMap = new Map();
+
+//   const startTime = new Date(queryStart);
+//   const endTime = new Date(queryEnd);
+
+//   let currentCycle = null;
+
+//   const sortedStates = states
+//     .filter(s => s.status?.code !== undefined && s.timestamp)
+//     .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+//   for (const state of sortedStates) {
+//     const code = state.status.code;
+//     const faultName = state.status.name || 'Unknown';
+//     const timestamp = new Date(state.timestamp);
+
+//     if (code !== 1) {
+//       if (!currentCycle) {
+//         currentCycle = {
+//           faultType: faultName,
+//           faultCode: code,
+//           start: timestamp,
+//           states: [state],
+//         };
+//       } else {
+//         currentCycle.states.push(state);
+//       }
+//     }
+    
+//     else if (code === 1 && currentCycle) {
+//       currentCycle.end = timestamp;
+//       currentCycle.duration = timestamp - currentCycle.start;
+
+//       if (currentCycle.start >= startTime && currentCycle.end <= endTime) {
+//         faultCycles.push(currentCycle);
+
+//         // Update summary
+//         const summary = faultSummaryMap.get(currentCycle.faultType) || { totalDuration: 0, count: 0, faultCode: currentCycle.faultCode }; //RTI II: ADDED faultCode 06/10/25 for usability purposes for others
+//         summary.totalDuration += currentCycle.duration;
+//         summary.count += 1;
+//         faultSummaryMap.set(currentCycle.faultType, summary);
+//       }
+
+//       currentCycle = null;
+//     }
+//     // Note: We ignore Timeout (code 0) and other non-running states as they don't end fault cycles
+//   }
+
+//   // If still faulting at end of range
+//   if (currentCycle && currentCycle.start >= startTime) {
+//     currentCycle.end = endTime;
+//     currentCycle.duration = endTime - currentCycle.start;
+//     faultCycles.push(currentCycle);
+
+//     const summary = faultSummaryMap.get(currentCycle.faultType) || { totalDuration: 0, count: 0, faultCode: currentCycle.faultCode }; //RTI II: ADDED faultCode 06/10/25 for usability purposes for others
+//     summary.totalDuration += currentCycle.duration;
+//     summary.count += 1;
+//     faultSummaryMap.set(currentCycle.faultType, summary);
+//   }
+
+//   const faultSummaries = Array.from(faultSummaryMap.entries()).map(([faultType, { totalDuration, count, faultCode }]) => ({
+//     faultType,
+//     faultCode,
+//     totalDuration,
+//     count,
+//   }));
+
+//   return { faultCycles, faultSummaries };
+// }
+
+
+/**
+ * Extracts fault cycles from machine states.
+ * Groups contiguous non-running states into a single fault cycle.
+ * The faultType and faultCode for the cycle are taken from the first non-running state.
+ *
+ * @param {Array} states - Array of state documents from the DB.
+ * @param {string|Date} queryStart - The original start timestamp.
+ * @param {string|Date} queryEnd - The original end timestamp.
+ * @returns {Object} { faultCycles: Array, faultSummaries: Map }
+ */
 function extractFaultCycles(states, queryStart, queryEnd) {
   const faultCycles = [];
   const faultSummaryMap = new Map();
@@ -556,46 +640,53 @@ function extractFaultCycles(states, queryStart, queryEnd) {
     const faultName = state.status.name || 'Unknown';
     const timestamp = new Date(state.timestamp);
 
-    if (code > 1) {
+    // A fault cycle begins when the machine is not running (code !== 1 and code !== 0)
+    if (code !== 1 && code !== 0) {
       if (!currentCycle) {
+        // This is the start of a new fault cycle
         currentCycle = {
-          faultType: faultName,
-          faultCode: code, //RTI II: ADDED 06/10/25 to make the code associated with the string type for the cycle easily accessible
+          faultType: faultName, // Take faultType from the first non-running state
+          faultCode: code,      // Take faultCode from the first non-running state
           start: timestamp,
           states: [state],
         };
       } else {
-        // Update fault type to the latest fault if it changed
-        currentCycle.faultType = faultName;
-        currentCycle.faultCode = code;
+        // Machine is still in a non-running state, continue the current cycle
         currentCycle.states.push(state);
       }
-    } else if (code === 1 && currentCycle) {
+    }
+    // A fault cycle ends when the machine returns to Running (code === 1) or Timeout (code === 0)
+    else if ((code === 1 || code === 0) && currentCycle) {
       currentCycle.end = timestamp;
       currentCycle.duration = timestamp - currentCycle.start;
 
-      if (currentCycle.start >= startTime && currentCycle.end <= endTime) {
-        faultCycles.push(currentCycle);
+      // Only add to faultCycles and update summary if the cycle overlaps with the query range
+      // The filtering for overlap with the original query range will be handled outside this function
+      // as per the provided API route logic, but we can ensure internal consistency here
+      faultCycles.push(currentCycle);
 
-        // Update summary
-        const summary = faultSummaryMap.get(currentCycle.faultType) || { totalDuration: 0, count: 0, faultCode: currentCycle.faultCode }; //RTI II: ADDED faultCode 06/10/25 for usability purposes for others
-        summary.totalDuration += currentCycle.duration;
-        summary.count += 1;
-        faultSummaryMap.set(currentCycle.faultType, summary);
-      }
+      // Update summary
+      const summary = faultSummaryMap.get(currentCycle.faultType) || { totalDuration: 0, count: 0, faultCode: currentCycle.faultCode };
+      summary.totalDuration += currentCycle.duration;
+      summary.count += 1;
+      faultSummaryMap.set(currentCycle.faultType, summary);
 
+      // Reset currentCycle for the next fault
       currentCycle = null;
     }
-    // Note: We ignore Timeout (code 0) and other non-running states as they don't end fault cycles
+    // If code is 1 or 0 and there's no currentCycle, it means the machine was already running or in timeout.
+    // We simply ignore these states for starting a new fault cycle.
   }
 
-  // If still faulting at end of range
-  if (currentCycle && currentCycle.start >= startTime) {
+  // Handle a fault cycle that is ongoing at the end of the query range
+  if (currentCycle) {
+    // The cycle ends at the queryEnd timestamp
     currentCycle.end = endTime;
     currentCycle.duration = endTime - currentCycle.start;
     faultCycles.push(currentCycle);
 
-    const summary = faultSummaryMap.get(currentCycle.faultType) || { totalDuration: 0, count: 0, faultCode: currentCycle.faultCode }; //RTI II: ADDED faultCode 06/10/25 for usability purposes for others
+    // Update summary for the unfinished cycle
+    const summary = faultSummaryMap.get(currentCycle.faultType) || { totalDuration: 0, count: 0, faultCode: currentCycle.faultCode };
     summary.totalDuration += currentCycle.duration;
     summary.count += 1;
     faultSummaryMap.set(currentCycle.faultType, summary);
@@ -610,6 +701,8 @@ function extractFaultCycles(states, queryStart, queryEnd) {
 
   return { faultCycles, faultSummaries };
 }
+
+
 
 
 /**
