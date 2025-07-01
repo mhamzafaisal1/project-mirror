@@ -1,42 +1,63 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, ViewChild, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnInit,
+  OnChanges,
+  OnDestroy,
+  ViewChild,
+  AfterViewInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { MatSort, MatSortModule, Sort } from '@angular/material/sort';
+import { MatSort, MatSortModule } from '@angular/material/sort';
 
 @Component({
-    selector: 'base-table',
-    imports: [
-        CommonModule,
-        MatTableModule,
-        MatSortModule
-    ],
-    templateUrl: './base-table.component.html',
-    styleUrls: ['./base-table.component.scss']
+  selector: 'base-table',
+  standalone: true,
+  imports: [CommonModule, MatTableModule, MatSortModule],
+  templateUrl: './base-table.component.html',
+  styleUrls: ['./base-table.component.scss'],
 })
-export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit {
+export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {
   @Input() columns: string[] = [];
   @Input() rows: any[] = [];
   @Input() selectedRow: any | null = null;
   @Input() disableSorting: boolean = false;
   @Input() getCellClass: ((value: any, column: string) => string) | null = null;
+  @Input() responsiveHiddenColumns: { [breakpoint: number]: string[] } = {};
 
   @Output() rowClicked = new EventEmitter<any>();
 
   @ViewChild(MatSort) sort!: MatSort;
   dataSource = new MatTableDataSource<any>();
+  visibleColumns: string[] = [];
+
+  private readonly handleResize = this.updateVisibleColumns.bind(this);
 
   ngOnInit() {
     this.updateData();
+    this.updateVisibleColumns();
+    window.addEventListener('resize', this.handleResize);
   }
 
   ngAfterViewInit() {
     this.setupSorting();
   }
-  
 
   ngOnChanges() {
     this.updateData();
+    this.updateVisibleColumns();
     this.setupSorting();
+  }
+
+  ngOnDestroy() {
+    window.removeEventListener('resize', this.handleResize);
+  }
+
+  private updateData() {
+    this.dataSource.data = this.rows;
   }
 
   private setupSorting() {
@@ -50,17 +71,26 @@ export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit {
           const [hours, minutes] = data[sortHeaderId].split(' ');
           const h = parseInt(hours);
           const m = parseInt(minutes);
-          return (h * 60) + m;
+          return h * 60 + m;
         }
         return data[sortHeaderId];
       };
     }
   }
 
-  private updateData() {
-    this.dataSource.data = this.rows;
+  private updateVisibleColumns(): void {
+    const screenWidth = window.innerWidth;
+    const hidden = new Set<string>();
+
+    Object.entries(this.responsiveHiddenColumns || {}).forEach(([breakpointStr, cols]) => {
+      const breakpoint = parseInt(breakpointStr, 10);
+      if (screenWidth < breakpoint) {
+        cols.forEach(col => hidden.add(col));
+      }
+    });
+
+    this.visibleColumns = this.columns.filter(col => !hidden.has(col));
   }
-  
 
   onRowClick(row: any) {
     if (this.selectedRow !== row) {
@@ -76,10 +106,8 @@ export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit {
 
   getEfficiencyClass(value: any): string {
     if (typeof value !== 'string' || !value.includes('%')) return '';
-
     const num = parseInt(value.replace('%', ''));
     if (isNaN(num)) return '';
-
     if (num >= 90) return 'green';
     if (num >= 70) return 'yellow';
     return 'red';
@@ -88,6 +116,4 @@ export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit {
   getCellClassForColumn(value: any, column: string): string {
     return this.getCellClass ? this.getCellClass(value, column) : '';
   }
-  
-  
 }

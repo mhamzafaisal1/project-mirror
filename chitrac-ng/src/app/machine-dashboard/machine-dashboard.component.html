@@ -9,12 +9,15 @@
 
   <div class="table-container" [class.loading]="isLoading">
     <base-table
-      *ngIf="rows.length"
-      [columns]="columns"
-      [rows]="rows"
-      [selectedRow]="selectedRow"
-      (rowClicked)="onRowClick($event)"
-      [getCellClass]="getEfficiencyClass">
-    </base-table>
+    *ngIf="rows.length"
+    [columns]="columns"
+    [rows]="rows"
+    [selectedRow]="selectedRow"
+    (rowClicked)="onRowClick($event)"
+    [getCellClass]="getEfficiencyClass"
+    [responsiveHiddenColumns]="responsiveHiddenColumns">
+  </base-table>
+  
+
   </div>
 </div>

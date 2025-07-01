@@ -54,6 +54,13 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
   isDarkTheme: boolean = false;
   isLoading: boolean = false;
   liveMode: boolean = false;
+  responsiveHiddenColumns: { [key: number]: string[] } = {
+    1210: ['Misfeed Count', 'Serial Number'],
+    1024: ['Misfeed Count'],
+    768: ['Misfeed Count', 'Serial Number', 'Downtime', 'Availability', 'Throughput', 'Efficiency'],
+    480: ['Misfeed Count', 'Serial Number', 'Downtime', 'Throughput', 'Efficiency'],
+  };
+  
 
   private observer!: MutationObserver;
   private pollingSubscription: any;
@@ -61,6 +68,17 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
 
   chartWidth: number = 1000;
   chartHeight: number = 700;
+  
+  responsiveChartSizes: { [breakpoint: number]: { width: number; height: number } } = {
+    1600: { width: 1000, height: 700 },
+    1210: { width: 850, height: 700 },
+    1024: { width: 750, height: 600 },
+    900: { width: 650, height: 600 },
+    768: { width: 500, height: 500 },
+    480: { width: 350, height: 400 },
+    0: { width: 300, height: 350 }, // fallback for very small screens
+  };
+  
   isModal: boolean = true;
 
   private readonly POLLING_INTERVAL = 6000; // 6 seconds
@@ -78,6 +96,10 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
 
     const isLive = this.dateTimeService.getLiveMode();
     const wasConfirmed = this.dateTimeService.getConfirmed();
+
+    this.updateChartDimensions();
+window.addEventListener('resize', this.updateChartDimensions.bind(this));
+
   
     if (!isLive && wasConfirmed) {
       this.startTime = this.dateTimeService.getStartTime();
@@ -136,6 +158,8 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
     this.stopPolling();
     this.destroy$.next();
     this.destroy$.complete();
+    window.removeEventListener('resize', this.updateChartDimensions.bind(this));
+
   }
 
   detectTheme(): void {
@@ -167,7 +191,20 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
             Efficiency: `${response.performance.performance.efficiency.percentage}%`,
             OEE: `${response.performance.performance.oee.percentage}%`,
           }));
-          this.columns = Object.keys(formattedData[0]);
+          this.columns = [
+            "Status",
+            "Machine Name",
+            "Serial Number",
+            "Runtime",
+            "Downtime",
+            "Total Count",
+            "Misfeed Count",
+            "Availability",
+            "Throughput",
+            "Efficiency",
+            "OEE"
+          ];
+          
           this.rows = formattedData;
         });
 
@@ -209,6 +246,23 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
       this.pollingSubscription = null;
     }
   }
+
+  private updateChartDimensions(): void {
+    const width = window.innerWidth;
+  
+    const breakpoints = Object.keys(this.responsiveChartSizes)
+      .map(Number)
+      .sort((a, b) => b - a); // sort descending
+  
+    for (const bp of breakpoints) {
+      if (width >= bp) {
+        this.chartWidth = this.responsiveChartSizes[bp].width;
+        this.chartHeight = this.responsiveChartSizes[bp].height;
+        return;
+      }
+    }
+  }
+  
 
   fetchAnalyticsData(): void {
     if (!this.startTime || !this.endTime) return;
