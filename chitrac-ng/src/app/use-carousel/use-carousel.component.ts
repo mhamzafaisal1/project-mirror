@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,6 +23,8 @@ export class UseCarouselComponent implements OnChanges {
   @Input() startTime: string = '';
   @Input() endTime: string = '';
   @ViewChild(CarouselComponent) carousel!: CarouselComponent;
+  @Output() indexChanged = new EventEmitter<number>();
+
 
   enhancedTabData: any[] = [];
 
@@ -50,4 +52,13 @@ export class UseCarouselComponent implements OnChanges {
   goToNext(): void {
     this.carousel?.goToNext();
   }
+
+  getCurrentTabIndex(): number {
+    return this.carousel?.getCurrentTabIndex?.() ?? 0;
+  }
+  
+  getTabCount(): number {
+    return this.carousel?.getTabCount?.() ?? 0;
+  }
+  
 }

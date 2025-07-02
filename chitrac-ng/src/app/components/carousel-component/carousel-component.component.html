@@ -1,10 +1,11 @@
 <div class="carousel-wrapper">
   <div class="tabs-container">
-    <mat-tab-group [(selectedIndex)]="selectedIndex">
+    <mat-tab-group [(selectedIndex)]="selectedIndex" (selectedIndexChange)="onTabChange($event)">
       <mat-tab *ngFor="let label of tabLabels; let i = index">
         <ng-template mat-tab-label>{{ label }}</ng-template>
         <ng-container *ngComponentOutlet="tabComponents[i]; inputs: tabInputs[i]"></ng-container>
       </mat-tab>
     </mat-tab-group>
+    
   </div>
 </div>

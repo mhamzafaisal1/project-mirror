@@ -126,7 +126,7 @@ export class MultipleLineChartComponent implements AfterViewInit {
       .attr("transform", "rotate(-90)")
       .attr("x", this.margin.left - 30)
       .attr("y", 0)
-      .attr("x", -(this.chartHeight / 2))
+      .attr("x", -(this.chartHeight / 2) - 20)
       .attr("dy", "1em")
       .style("text-anchor", "middle")
       .style("fill", textColor)

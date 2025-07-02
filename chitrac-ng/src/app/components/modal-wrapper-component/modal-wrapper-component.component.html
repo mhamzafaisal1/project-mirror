@@ -5,10 +5,12 @@
 
   <!-- Carousel navigation overlay -->
   <div class="carousel-nav-overlay" *ngIf="hasCarousel">
-    <button class="carousel-nav left" mat-icon-button (click)="goToPreviousTab()">
+    <button class="carousel-nav left" mat-icon-button (click)="goToPreviousTab()" [disabled]="currentTabIndex === 0">
+
       <mat-icon>chevron_left</mat-icon>
     </button>
-    <button class="carousel-nav right" mat-icon-button (click)="goToNextTab()">
+    <button class="carousel-nav right" mat-icon-button (click)="goToNextTab()" [disabled]="currentTabIndex === tabCount - 1">
+
       <mat-icon>chevron_right</mat-icon>
     </button>
   </div>

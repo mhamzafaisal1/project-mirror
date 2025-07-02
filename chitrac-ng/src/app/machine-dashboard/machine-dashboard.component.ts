@@ -70,12 +70,12 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
   chartHeight: number = 700;
   
   responsiveChartSizes: { [breakpoint: number]: { width: number; height: number } } = {
-    1600: { width: 1000, height: 700 },
-    1210: { width: 850, height: 700 },
-    1024: { width: 750, height: 600 },
-    900: { width: 650, height: 600 },
-    768: { width: 500, height: 500 },
-    480: { width: 350, height: 400 },
+    1600: { width: 800, height: 700 },
+    1210: { width: 700, height: 700 },
+    1024: { width: 600, height: 600 },
+    900: { width: 500, height: 500 },
+    768: { width: 400, height: 400 },
+    480: { width: 300, height: 300 },
     0: { width: 300, height: 350 }, // fallback for very small screens
   };
   
@@ -186,10 +186,11 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
             Downtime: `${response.performance.downtime.formatted.hours}h ${response.performance.downtime.formatted.minutes}m`,
             "Total Count": response.performance.output.totalCount,
             "Misfeed Count": response.performance.output.misfeedCount,
-            Availability: `${response.performance.performance.availability.percentage}%`,
-            Throughput: `${response.performance.performance.throughput.percentage}%`,
-            Efficiency: `${response.performance.performance.efficiency.percentage}%`,
-            OEE: `${response.performance.performance.oee.percentage}%`,
+            Availability: response.performance.performance.availability.percentage,
+            Throughput: response.performance.performance.throughput.percentage,
+            Efficiency: response.performance.performance.efficiency.percentage,
+            OEE: response.performance.performance.oee.percentage,
+            
           }));
           this.columns = [
             "Status",
@@ -224,10 +225,10 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
                 Downtime: `${response.performance.downtime.formatted.hours}h ${response.performance.downtime.formatted.minutes}m`,
                 "Total Count": response.performance.output.totalCount,
                 "Misfeed Count": response.performance.output.misfeedCount,
-                Availability: `${response.performance.performance.availability.percentage}%`,
-                Throughput: `${response.performance.performance.throughput.percentage}%`,
-                Efficiency: `${response.performance.performance.efficiency.percentage}%`,
-                OEE: `${response.performance.performance.oee.percentage}%`,
+                Availability: `${response.performance.performance.availability.percentage}`,
+                Throughput: `${response.performance.performance.throughput.percentage}`,
+                Efficiency: `${response.performance.performance.efficiency.percentage}`,
+                OEE: `${response.performance.performance.oee.percentage}`,
               }));
               this.columns = Object.keys(formattedData[0]);
               this.rows = formattedData;
@@ -281,10 +282,11 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
           Downtime: `${response.performance.downtime.formatted.hours}h ${response.performance.downtime.formatted.minutes}m`,
           "Total Count": response.performance.output.totalCount,
           "Misfeed Count": response.performance.output.misfeedCount,
-          Availability: `${response.performance.performance.availability.percentage}%`,
-          Throughput: `${response.performance.performance.throughput.percentage}%`,
-          Efficiency: `${response.performance.performance.efficiency.percentage}%`,
-          OEE: `${response.performance.performance.oee.percentage}%`,
+          Availability: response.performance.performance.availability.percentage,
+          Throughput: response.performance.performance.throughput.percentage,
+          Efficiency: response.performance.performance.efficiency.percentage,
+          OEE: response.performance.performance.oee.percentage,
+          
         }));
 
         const allColumns = Object.keys(formattedData[0]);
@@ -401,7 +403,8 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
       height: "90vh",
       maxHeight: "90vh",
       maxWidth: "95vw",
-      panelClass: "performance-chart-dialog",
+      panelClass: "custom-modal-panel", 
+      backdropClass: "custom-modal-backdrop", 
       data: {
         component: UseCarouselComponent,
         componentInputs: {
@@ -412,6 +415,8 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
         endTime: this.endTime,
       },
     });
+    
+    
 
     dialogRef.afterClosed().subscribe(() => {
       if (this.selectedRow === row) this.selectedRow = null;
