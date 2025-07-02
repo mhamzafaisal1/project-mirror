@@ -41,22 +41,22 @@ interface DataPoint {
 }
 
 @Component({
-    selector: "app-multiple-line-chart",
-    imports: [],
-    templateUrl: "./multiple-line-chart.component.html",
-    styleUrl: "./multiple-line-chart.component.scss"
+  selector: "app-multiple-line-chart",
+  standalone: true,
+  templateUrl: "./multiple-line-chart.component.html",
+  styleUrl: "./multiple-line-chart.component.scss"
 })
 export class MultipleLineChartComponent implements AfterViewInit {
   @ViewChild("chartContainer") private chartContainer!: ElementRef;
   @Input() data!: ChartData;
   @Input() isDarkTheme: boolean = false;
-  @Input() chartWidth!: number;
-  @Input() chartHeight!: number;
 
-  private margin = { top: 40, right: 150, bottom: 60, left: 50 };
+  private chartWidth = 800;
+  private chartHeight = 500;
+  private margin = { top: 40, right: 150, bottom: 60, left: 60 };
 
   ngAfterViewInit() {
-    if (this.data && this.chartWidth && this.chartHeight) {
+    if (this.data) {
       this.createChart();
     }
   }
@@ -85,18 +85,16 @@ export class MultipleLineChartComponent implements AfterViewInit {
     const svg = d3.select(this.chartContainer.nativeElement)
       .append("svg")
       .attr("viewBox", `0 0 ${this.chartWidth} ${this.chartHeight}`)
-      .attr("width", this.chartWidth)
-      .attr("height", this.chartHeight)
+      .style("width", "100%")
+      .style("height", "auto")
       .style("display", "block")
-      .style("margin", "0 auto")
       .style("font-family", "'Inter', sans-serif")
       .style("font-size", "0.875rem");
 
-    // Dynamic Y max with buffer
     const rawMax = d3.max(transformedData, d =>
       Math.max(d.oee, ...d.operators.map(op => op.efficiency))
     ) ?? 100;
-    const yMax = Math.ceil(rawMax * 1.05); // 5% buffer
+    const yMax = Math.ceil(rawMax * 1.05);
 
     const x = d3.scaleTime()
       .domain(d3.extent(transformedData, d => d.date) as [Date, Date])
@@ -121,21 +119,20 @@ export class MultipleLineChartComponent implements AfterViewInit {
       .selectAll("text")
       .style("fill", textColor);
 
-    // Add y-axis label
+    svg.selectAll(".tick line")
+      .style("stroke", textColor)
+      .style("stroke-opacity", 0.2);
+
+    // Y-axis label
     svg.append("text")
       .attr("transform", "rotate(-90)")
-      .attr("x", this.margin.left - 30)
-      .attr("y", 0)
-      .attr("x", -(this.chartHeight / 2) - 20)
-      .attr("dy", "1em")
+      .attr("y", 15)
+      .attr("x", -(this.chartHeight / 2))
+      .attr("dy", "-2.5em")
       .style("text-anchor", "middle")
       .style("fill", textColor)
       .style("font-size", "12px")
       .text("Efficiency (%)");
-
-    svg.selectAll(".tick line")
-      .style("stroke", textColor)
-      .style("stroke-opacity", 0.2);
 
     const line = d3.line<DataPoint>()
       .x(d => x(d.date))
@@ -158,10 +155,8 @@ export class MultipleLineChartComponent implements AfterViewInit {
         .attr("fill", color(label));
     };
 
-    // Draw OEE line
     drawLineWithPeak("OEE", transformedData.map(d => ({ date: d.date, value: d.oee })));
 
-    // Draw each operator's line
     const operatorNames = new Set(transformedData.flatMap(d => d.operators.map(op => op.name)));
     operatorNames.forEach(name => {
       const points = transformedData.map(d => ({
@@ -171,7 +166,7 @@ export class MultipleLineChartComponent implements AfterViewInit {
       drawLineWithPeak(name, points);
     });
 
-    // Title
+    // Chart title
     svg.append("text")
       .attr("x", this.chartWidth / 2)
       .attr("y", this.margin.top / 2)
@@ -180,7 +175,7 @@ export class MultipleLineChartComponent implements AfterViewInit {
       .style("fill", textColor)
       .text(`Efficiency Over Time: ${this.data.machine.name}`);
 
-    // Legend (on right side, vertically stacked)
+    // Legend
     const legend = svg.append("g")
       .attr("font-size", 10)
       .attr("text-anchor", "start")

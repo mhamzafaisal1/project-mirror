@@ -25,12 +25,10 @@
     </div>
 
     <div *ngIf="!loading && !error && chartData" class="data-display">
-      <app-multiple-line-chart 
-        [data]="chartData"
-        [isDarkTheme]="isDarkTheme"
-        [chartWidth]="chartWidth"
-        [chartHeight]="chartHeight">
-      </app-multiple-line-chart>
+      <app-multiple-line-chart
+      [data]="chartData"
+      [isDarkTheme]="isDarkTheme">
+    </app-multiple-line-chart>
     </div>
   </div>
 </div>

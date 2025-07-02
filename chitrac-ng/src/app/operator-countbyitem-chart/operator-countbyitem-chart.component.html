@@ -26,9 +26,7 @@
 
     <div *ngIf="!loading && !error && chartData" class="data-display">
       <app-stacked-bar-chart 
-        [data]="chartData"
-        [chartHeight]="chartHeight"
-        [chartWidth]="chartWidth">
+        [data]="chartData">
       </app-stacked-bar-chart>
     </div>
   </div>
