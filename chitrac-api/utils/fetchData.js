@@ -126,16 +126,6 @@
 async function fetchGroupedAnalyticsData(db, start, end, groupBy = 'machine', options = {}) {
     const { targetSerials = [], operatorId = null } = options;
     
-    // Construct state query
-    const stateQuery = {
-        timestamp: { $gte: start, $lte: end },
-        "machine.serial": { $type: "int" }
-    };
-    
-    if (groupBy === 'machine' && targetSerials.length > 0) {
-        stateQuery["machine.serial"] = { $in: targetSerials };
-    }
-    
     // Construct count query
     const countQuery = {
         timestamp: { $gte: start, $lte: end },
@@ -149,9 +139,34 @@ async function fetchGroupedAnalyticsData(db, start, end, groupBy = 'machine', op
     if (groupBy === 'operator' && operatorId !== null) {
         countQuery["operator.id"] = operatorId;
     }
-    
-    const [states, counts] = await Promise.all([
-        db.collection("state")
+
+    // Fetch counts first if grouping by operator, then fetch only relevant states
+    let states = [];
+    let counts = await db.collection("count")
+        .find(countQuery)
+        .project({
+            timestamp: 1,
+            "machine.serial": 1,
+            "operator.id": 1,
+            "operator.name": 1,
+            "item.id": 1,
+            "item.name": 1,
+            "item.standard": 1,
+            misfeed: 1
+        })
+        .sort({ timestamp: 1 })
+        .toArray();
+
+    if (groupBy === 'operator') {
+        // 🔥 Get machine.serials used in count records
+        const machineSerialsUsed = Array.from(
+            new Set(counts.map(c => c.machine?.serial).filter(Boolean))
+        );
+        const stateQuery = {
+            timestamp: { $gte: start, $lte: end },
+            "machine.serial": { $in: machineSerialsUsed }
+        };
+        states = await db.collection("state")
             .find(stateQuery)
             .project({
                 timestamp: 1,
@@ -162,24 +177,30 @@ async function fetchGroupedAnalyticsData(db, start, end, groupBy = 'machine', op
                 "status.name": 1
             })
             .sort({ timestamp: 1 })
-            .toArray(),
-        
-        db.collection("count")
-            .find(countQuery)
+            .toArray();
+    } else {
+        // Construct state query
+        const stateQuery = {
+            timestamp: { $gte: start, $lte: end },
+            "machine.serial": { $type: "int" }
+        };
+        if (groupBy === 'machine' && targetSerials.length > 0) {
+            stateQuery["machine.serial"] = { $in: targetSerials };
+        }
+        states = await db.collection("state")
+            .find(stateQuery)
             .project({
                 timestamp: 1,
                 "machine.serial": 1,
-                "operator.id": 1,
-                "operator.name": 1,
-                "item.id": 1,
-                "item.name": 1,
-                "item.standard": 1,
-                misfeed: 1
+                "machine.name": 1,
+                "program.mode": 1,
+                "status.code": 1,
+                "status.name": 1
             })
             .sort({ timestamp: 1 })
-            .toArray()
-    ]);
-    
+            .toArray();
+    }
+
     const grouped = {};
     
     // Create machine name map
