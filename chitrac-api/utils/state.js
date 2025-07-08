@@ -780,14 +780,26 @@ function extractFaultCycles(states, queryStart, queryEnd) {
     faultSummaryMap.set(currentCycle.faultType, summary);
   }
 
-  const faultSummaries = Array.from(faultSummaryMap.entries()).map(([faultType, { totalDuration, count, faultCode }]) => ({
+  // Filter out timeout records (code 0) from the final results
+  const filteredFaultCycles = faultCycles.filter(cycle => cycle.faultCode !== 0);
+  
+  // Recalculate fault summaries excluding timeouts
+  const filteredFaultSummaryMap = new Map();
+  for (const cycle of filteredFaultCycles) {
+    const summary = filteredFaultSummaryMap.get(cycle.faultType) || { totalDuration: 0, count: 0, faultCode: cycle.faultCode };
+    summary.totalDuration += cycle.duration;
+    summary.count += 1;
+    filteredFaultSummaryMap.set(cycle.faultType, summary);
+  }
+
+  const faultSummaries = Array.from(filteredFaultSummaryMap.entries()).map(([faultType, { totalDuration, count, faultCode }]) => ({
     faultType,
     faultCode,
     totalDuration,
     count,
   }));
 
-  return { faultCycles, faultSummaries };
+  return { faultCycles: filteredFaultCycles, faultSummaries };
 }
 
 

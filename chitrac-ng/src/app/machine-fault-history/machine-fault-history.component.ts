@@ -188,7 +188,11 @@ export class MachineFaultHistoryComponent implements OnInit, OnChanges, OnDestro
         };
       });
     } else {
-      this.rows = (this.lastFetchedData.faultCycles || []).map(cycle => ({
+      // Sort fault cycles by start time (latest first) for default sorting
+      const sortedFaultCycles = (this.lastFetchedData.faultCycles || [])
+        .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
+      
+      this.rows = sortedFaultCycles.map(cycle => ({
         'Fault Type': cycle.faultType,
         'Start Time': new Date(cycle.start).toLocaleString(),
         'Duration': `${Math.floor(cycle.duration / 3600000)}h ${Math.floor((cycle.duration % 3600000) / 60000)}m`

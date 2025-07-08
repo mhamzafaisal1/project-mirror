@@ -32,7 +32,7 @@
 
 mat-table {
   width: 100%;
-  background: inherit;
+  background: transparent;
   box-shadow: none;
   font-size: 0.875rem;
   border-collapse: separate;
@@ -43,10 +43,11 @@ mat-header-cell,
 mat-cell {
   padding: 0.75rem 1rem;
   word-break: break-word;
+  background: transparent;
 }
 
 mat-header-row {
-  background: linear-gradient(to right, #3949ab, #1e88e5); // a smooth blue gradient
+  background: transparent;
   font-weight: 700;
   font-size: 1rem;
   letter-spacing: 1px;
@@ -95,7 +96,7 @@ mat-row {
   cursor: pointer;
   transition: all 0.3s ease;
   border-left: 4px solid transparent;
-  background: inherit;
+  background: transparent;
 
   &:hover {
     background-color: var(--hover-bg);
@@ -130,4 +131,14 @@ mat-row {
 .red {
   color: var(--efficiency-red);
   font-weight: 600;
+}
+
+
+::ng-deep table.mat-table {
+  background-color: transparent !important;
+}
+
+::ng-deep .mat-header-cell,
+::ng-deep .mat-cell {
+  background-color: transparent !important;
 }
