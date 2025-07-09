@@ -455,6 +455,50 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     return Object.fromEntries(grouped);
   }
 
+  function groupStatesByMachineAndStation(states) {
+    const grouped = new Map();
+  
+    for (const state of states) {
+      const operators = state.operators;
+      const machineSerial = state.machine?.serial;
+  
+      if (!Array.isArray(operators) || !machineSerial) continue;
+  
+      // Extract essential state data
+      const essentialState = {
+        timestamp: state.timestamp,
+        status: state.status,
+        machine: state.machine,
+        program: state.program,
+        operators: state.operators
+      };
+  
+      for (const operator of operators) {
+        if (!operator) continue;
+  
+        const station = typeof operator.station === 'number' ? operator.station : 1;
+        const key = `${machineSerial}-${station}`;
+  
+        let group = grouped.get(key);
+  
+        if (!group) {
+          group = {
+            machineSerial,
+            station,
+            states: []
+          };
+          grouped.set(key, group);
+        }
+  
+        group.states.push(essentialState);
+      }
+    }
+  
+    return Object.fromEntries(grouped);
+  }
+  
+  
+
   const getCompletedCyclesForOperator = (states) => {
     if (!Array.isArray(states) || states.length === 0) {
         return [];
@@ -526,7 +570,107 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
 
     return completedCycles;
 };
-  
+
+function getCompletedCyclesWithOperatorSplit(states) {
+  if (!Array.isArray(states) || states.length === 0) return [];
+
+  const completedCycles = [];
+  const MAX_CYCLE_DURATION = 24 * 60 * 60 * 1000;
+
+  let currentCycle = null;
+  let lastRunOperatorId = null;
+
+  const sortedStates = states
+    .filter(s => s.status && typeof s.status.code === 'number')
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  for (let i = 0; i < sortedStates.length; i++) {
+    const state = sortedStates[i];
+    const statusCode = state.status.code;
+    const timestamp = new Date(state.timestamp);
+
+    const operator = Array.isArray(state.operators) ? state.operators[0] : null;
+    const operatorId = operator?.id ?? null;
+
+    if (statusCode === 1) {
+      const isOperatorSwitch = currentCycle && lastRunOperatorId !== null && operatorId !== null && operatorId !== lastRunOperatorId;
+
+      if (isOperatorSwitch) {
+        // Close old cycle
+        currentCycle.end = timestamp;
+        currentCycle.endState = state;
+        currentCycle.duration = currentCycle.end - currentCycle.start;
+        currentCycle.finalStatus = statusCode;
+
+        if (
+          currentCycle.duration > 0 &&
+          currentCycle.duration <= MAX_CYCLE_DURATION
+        ) {
+          completedCycles.push(currentCycle);
+        }
+
+        // Start new cycle
+        currentCycle = {
+          start: timestamp,
+          startState: state,
+          states: [state]
+        };
+        lastRunOperatorId = operatorId;
+        continue;
+      }
+
+      // First Run or continuation
+      if (!currentCycle) {
+        currentCycle = {
+          start: timestamp,
+          startState: state,
+          states: [state]
+        };
+        lastRunOperatorId = operatorId;
+      } else {
+        currentCycle.states.push(state);
+        lastRunOperatorId = operatorId; // ✅ update on every Run continuation
+      }
+    }
+
+    else if (statusCode === 0 || statusCode > 1) {
+      if (currentCycle) {
+        currentCycle.end = timestamp;
+        currentCycle.endState = state;
+        currentCycle.duration = currentCycle.end - currentCycle.start;
+        currentCycle.finalStatus = statusCode;
+
+        if (
+          currentCycle.duration > 0 &&
+          currentCycle.duration <= MAX_CYCLE_DURATION
+        ) {
+          completedCycles.push(currentCycle);
+        }
+
+        currentCycle = null;
+        lastRunOperatorId = null; // ✅ reset on timeout/fault
+      }
+    }
+  }
+
+  // Final catch
+  if (currentCycle) {
+    const lastState = sortedStates.at(-1);
+    currentCycle.end = new Date(lastState.timestamp);
+    currentCycle.endState = lastState;
+    currentCycle.duration = currentCycle.end - currentCycle.start;
+
+    if (
+      currentCycle.duration > 0 &&
+      currentCycle.duration <= MAX_CYCLE_DURATION
+    ) {
+      completedCycles.push(currentCycle);
+    }
+  }
+
+  return completedCycles;
+}
+
 
 // Fault history start
 /**
@@ -886,6 +1030,8 @@ async function fetchAllStates(db, start, end) {
     extractFaultCycles,
     getAllMachineSerials,
     getAllMachineSerialsAndNames,
-    fetchAllStates
+    fetchAllStates,
+    groupStatesByMachineAndStation,
+    getCompletedCyclesWithOperatorSplit
   };
   

@@ -179,6 +179,24 @@ async function getCountRecords(db, serial, start, end) {
       .sort({ timestamp: 1 })
       .toArray();
   }
+  async function getCountsForMachineStationPairs(db, pairs, start, end) {
+    if (!pairs.length) return [];
+  
+    const query = {
+      $or: pairs.map(pair => ({
+        'machine.serial': pair.machineSerial,
+        'station': pair.station // ✅ fixed path
+      })),
+      timestamp: { $gte: new Date(start), $lte: new Date(end) }
+    };
+  
+    return db.collection('count')
+      .find(query)
+      .sort({ timestamp: 1 })
+      .toArray();
+  }
+  
+  
 
   /**
    * Gets counts for a specific machine with optional operator filter
@@ -290,6 +308,38 @@ async function getCountRecords(db, serial, start, end) {
     
     return grouped;
   }
+  function groupCountsByMachineAndStation(counts) {
+    const grouped = {};
+  
+    for (const count of counts) {
+      const machineSerial = count.machine?.serial;
+      const station = count.station; // ✅ FIXED
+  
+      if (!machineSerial || station === undefined || station === null) continue;
+  
+      const key = `${machineSerial}-${station}`;
+  
+      if (!grouped[key]) {
+        grouped[key] = {
+          operator: count.operator,
+          machine: count.machine,
+          counts: [],
+          validCounts: [],
+          misfeedCounts: [],
+        };
+      }
+  
+      grouped[key].counts.push(count);
+      if (count.misfeed) {
+        grouped[key].misfeedCounts.push(count);
+      } else {
+        grouped[key].validCounts.push(count);
+      }
+    }
+  
+    return grouped;
+  }
+  
 
   function groupCountsByItem(counts) {
     const grouped = {};
@@ -383,6 +433,8 @@ async function getCountRecords(db, serial, start, end) {
     groupCountsByItem,
     getCountsForMachine,
     groupCountsByOperatorAndMachine,
-    groupCountsByOperator
+    groupCountsByOperator,
+    getCountsForMachineStationPairs,
+    groupCountsByMachineAndStation
   };
   

@@ -15,11 +15,15 @@ const {
   fetchStatesForOperator,
   getCompletedCyclesForOperator,
   groupStatesByOperatorAndSerial,
+  groupStatesByMachineAndStation,
+  getCompletedCyclesWithOperatorSplit
 } = require("../../utils/state");
 
 const {
   groupCountsByOperatorAndMachine,
   getCountsForOperatorMachinePairs,
+  getCountsForMachineStationPairs,
+  groupCountsByMachineAndStation
 } = require("../../utils/count");
 
 const { buildSoftrolCycleSummary } = require("../../utils/miscFunctions");
@@ -349,7 +353,7 @@ function constructor(server) {
   });
 
   // Import misc-related routes (This is the softrol routes)
-  router.get("/historic-data", async (req, res) => {
+  router.get("/historic-data/old", async (req, res) => {
     try {
       // Default end time to now if not provided
       if (!req.query.end && !req.query.endTime) {
@@ -451,5 +455,106 @@ function constructor(server) {
   });
   // Softrol Route end
 
-  return router;
+
+
+  // Updated Softrol Route
+router.get("/historic-data", async (req, res) => {
+  try {
+    // Default end time to now if not provided
+    if (!req.query.end && !req.query.endTime) {
+      req.query.end = new Date().toISOString();
+    }
+
+    // Use centralized time parser
+    const { start, end } = parseAndValidateQueryParams(req);
+
+    // Get latest state timestamp if end date is in the future
+    const [latestState] = await db
+      .collection("state")
+      .find()
+      .sort({ timestamp: -1 })
+      .limit(1)
+      .toArray();
+
+    const effectiveEnd =
+      new Date(end) > new Date() ? latestState?.timestamp || new Date() : end;
+
+    const { paddedStart, paddedEnd } = createPaddedTimeRange(start, effectiveEnd);
+
+    // 1. Fetch and group states by machine and station
+    const allStates = await fetchStatesForOperator(
+      db,
+      null,
+      paddedStart,
+      paddedEnd
+    );
+
+    const groupedStates = groupStatesByMachineAndStation(allStates);
+
+    // 2. Process completed cycles for each group
+    const completedCyclesByGroup = {};
+    for (const [key, group] of Object.entries(groupedStates)) {
+      const completedCycles = getCompletedCyclesWithOperatorSplit(group.states);
+      if (completedCycles.length > 0) {
+        completedCyclesByGroup[key] = { ...group, completedCycles };
+      }
+    }
+
+    // 3. Get machine-station pairs for count lookup
+    const machineStationPairs = Object.keys(completedCyclesByGroup).map((key) => {
+      const [machineSerial, station] = key.split("-");
+      return {
+        machineSerial: parseInt(machineSerial),
+        station: parseInt(station),
+      };
+    });
+
+    // 4. Fetch and group counts
+    const allCounts = await getCountsForMachineStationPairs(
+      db,
+      machineStationPairs,
+      start,
+      end
+    );
+    const groupedCounts = groupCountsByMachineAndStation(allCounts);
+
+    // 5. Process each group's cycles and counts
+    const results = [];
+    for (const [key, group] of Object.entries(completedCyclesByGroup)) {
+      const [machineSerial, station] = key.split("-");
+      const countGroup = groupedCounts[`${machineSerial}-${station}`];
+      if (!countGroup) continue;
+
+      const sortedCounts = countGroup.counts.sort(
+        (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+      );
+
+      for (const cycle of group.completedCycles) {
+        const summary = buildSoftrolCycleSummary(
+          cycle,
+          sortedCounts,
+          countGroup
+        );
+
+        if (summary) {
+          const operatorId = cycle?.startState?.operators?.[0]?.id ?? null;
+
+          results.push({
+            operatorId,
+            machineSerial: parseInt(machineSerial),
+            station: parseInt(station),
+            ...summary,
+          });
+        }
+      }
+    }
+
+    res.json(results);
+  } catch (err) {
+    logger.error("Error in /historic-data:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+return router;
 }
