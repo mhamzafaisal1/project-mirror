@@ -60,6 +60,13 @@ module.exports = function (server) {
 
   const { getBookendedOperatorStatesAndTimeRange } = require('../../utils/bookendingBuilder');
 
+  // Helper to chunk an array into batches
+  function chunkArray(arr, size) {
+    return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
+      arr.slice(i * size, i * size + size)
+    );
+  }
+
   router.get("/daily-dashboard/operator-efficiency-top10", async (req, res) => {
     try {
       const { start, end } = parseAndValidateQueryParams(req);
@@ -310,12 +317,17 @@ module.exports = function (server) {
         "operator"
       );
   
-      const results = await Promise.all(
-        Object.entries(groupedData).map(async ([operatorId, group]) => {
-          const numericOperatorId = parseInt(operatorId);
-          const { states: rawStates, counts } = group;
+      const results = [];
+      const entries = Object.entries(groupedData);
+      const chunks = chunkArray(entries, 5); // 5 at a time
   
-          if (!rawStates.length && !counts.all.length) return null;
+      for (const chunk of chunks) {
+        const partial = await Promise.all(
+          chunk.map(async ([operatorId, group]) => {
+            const numericOperatorId = parseInt(operatorId);
+            const { states, counts } = group;
+  
+            if (!states.length && !counts.all.length) return null;
   
           const validCounts = counts.valid;
           const misfeedCounts = counts.misfeed;
