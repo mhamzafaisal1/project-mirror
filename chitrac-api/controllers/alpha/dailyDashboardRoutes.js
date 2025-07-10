@@ -99,7 +99,7 @@ module.exports = function (server) {
         dailyCounts
       });
     } catch (error) {
-      logger.error("Error in /daily-dashboard/full:", error);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res.status(500).json({ error: "Failed to fetch full daily dashboard data" });
     }
   });
@@ -114,7 +114,7 @@ module.exports = function (server) {
         dailyCounts
       });
     } catch (error) {
-      logger.error("Error in /daily-dashboard/daily-counts:", error);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res.status(500).json({ error: "Failed to fetch daily count totals" });
     }
   });
@@ -505,7 +505,7 @@ module.exports = function (server) {
         items
       });
     } catch (error) {
-      logger.error("Error in /analytics/daily-summary-dashboard:", error);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res.status(500).json({ error: "Failed to generate daily summary dashboard" });
     }
   });

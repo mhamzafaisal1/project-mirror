@@ -122,7 +122,7 @@ module.exports = function (server) {
 
       res.json(results);
     } catch (err) {
-      logger.error("Error in /softrol/get-softrol-data:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -192,7 +192,7 @@ module.exports = function (server) {
         updatedStates
       });
     } catch (err) {
-      logger.error("Error in /dryer/repopulate-states:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Internal server error" });
     }
   });

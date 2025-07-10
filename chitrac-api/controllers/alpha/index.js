@@ -935,7 +935,7 @@ function constructor(server) {
 
       res.json(runningCycles);
     } catch (error) {
-      logger.error("Error calculating session cycles with counts:", error);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res.status(500).json({ error: "Failed to fetch session cycles" });
     }
   });
@@ -1013,10 +1013,7 @@ function constructor(server) {
 
       res.json(allResults);
     } catch (error) {
-      logger.error(
-        "Error calculating operator cycles with item totals:",
-        error
-      );
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res
         .status(500)
         .json({ error: "Failed to fetch operator-based session cycles" });
@@ -1175,7 +1172,7 @@ function constructor(server) {
 
       res.json(results);
     } catch (error) {
-      logger.error("Error calculating machine performance metrics:", error);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res
         .status(500)
         .json({ error: "Failed to fetch machine performance metrics" });
@@ -1278,7 +1275,7 @@ function constructor(server) {
 
       res.json(results);
     } catch (error) {
-      logger.error("Error calculating machine state time totals:", error);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res
         .status(500)
         .json({ error: "Failed to fetch machine state time totals" });
@@ -1359,7 +1356,7 @@ function constructor(server) {
 
       res.json(results);
     } catch (error) {
-      logger.error("Error calculating machine state time totals:", error);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res
         .status(500)
         .json({ error: "Failed to fetch machine state time totals" });
@@ -1533,7 +1530,7 @@ function constructor(server) {
       // Filter out null results and send response
       res.json(operatorResults.filter((result) => result !== null));
     } catch (error) {
-      logger.error("Error calculating operator performance metrics:", error);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res
         .status(500)
         .json({ error: "Failed to fetch operator performance metrics" });
@@ -1866,7 +1863,7 @@ function constructor(server) {
 
       res.json(response);
     } catch (error) {
-      logger.error("Error calculating operator efficiency:", error);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res
         .status(500)
         .json({ error: "Failed to calculate operator efficiency" });
@@ -2087,7 +2084,7 @@ function constructor(server) {
 
       res.json(response);
     } catch (error) {
-      logger.error("Error in operator-countbyitem route:", error);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res.status(500).json({ error: "Failed to process data for operator" });
     }
   });
@@ -2127,7 +2124,7 @@ function constructor(server) {
         faultSummaries,
       });
     } catch (err) {
-      logger.error("Error in /analytics/fault-history:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Failed to fetch fault history" });
     }
   });
@@ -2248,7 +2245,7 @@ function constructor(server) {
         faultSummaries,
       });
     } catch (err) {
-      logger.error("Error in /analytics/operator-fault-history:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Failed to fetch operator fault history" });
     }
   });
@@ -2517,7 +2514,7 @@ function constructor(server) {
 
       res.json(results);
     } catch (error) {
-      logger.error("Error in /analytics/machine-item-summary:", error);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res
         .status(500)
         .json({ error: "Failed to generate machine item summary" });
@@ -2638,7 +2635,7 @@ function constructor(server) {
 
       res.json(Object.values(consolidated));
     } catch (err) {
-      logger.error("Error in /analytics/operator-item-summary:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res
         .status(500)
         .json({ error: "Failed to generate operator item summary report" });
@@ -2739,7 +2736,7 @@ function constructor(server) {
 
       res.json(results);
     } catch (err) {
-      logger.error("Error in /analytics/item-summary:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Failed to generate item summary report" });
     }
   });
@@ -2808,7 +2805,7 @@ function constructor(server) {
         },
       });
     } catch (err) {
-      logger.error("Error in /analytics/machine-item-hourly-item-stack:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Failed to build item/hour stacked data" });
     }
   });
@@ -2880,7 +2877,7 @@ function constructor(server) {
 
       res.json(response);
     } catch (error) {
-      logger.error("Error calculating operator cycle pie data:", error);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res
         .status(500)
         .json({ error: "Failed to fetch operator cycle pie data" });
@@ -3089,7 +3086,7 @@ function constructor(server) {
         data: results,
       });
     } catch (error) {
-      logger.error("Error in /analytics/operator/daily-efficiency:", error);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res.status(500).json({ error: "Failed to compute daily efficiency" });
     }
   });
@@ -3191,7 +3188,7 @@ function constructor(server) {
 
       res.json(results);
     } catch (err) {
-      logger.error("Error in /analytics/item-dashboard-summary:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res
         .status(500)
         .json({ error: "Failed to generate item dashboard summary" });
@@ -3281,7 +3278,7 @@ function constructor(server) {
   
       res.json(results);
     } catch (err) {
-      logger.error("Error in /softrol/historic-data-test:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Internal server error" });
     }
   });

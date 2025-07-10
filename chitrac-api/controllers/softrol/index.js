@@ -449,7 +449,7 @@ function constructor(server) {
 
       res.json(results);
     } catch (err) {
-      logger.error("Error in /historic-data:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -551,7 +551,7 @@ router.get("/historic-data", async (req, res) => {
 
     res.json(results);
   } catch (err) {
-    logger.error("Error in /historic-data:", err);
+    logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
     res.status(500).json({ error: "Internal server error" });
   }
 });

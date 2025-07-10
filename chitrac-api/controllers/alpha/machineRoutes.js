@@ -254,7 +254,7 @@ module.exports = function (server) {
 
       res.json(results.filter(Boolean));
     } catch (err) {
-      logger.error("Error in /machine-dashboard route:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Failed to fetch dashboard data" });
     }
   });
@@ -302,7 +302,7 @@ module.exports = function (server) {
 
       res.json(results);
     } catch (error) {
-      logger.error("Error calculating daily stacked bar data:", error);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
       res.status(500).json({ error: "Failed to fetch daily stacked bar data" });
     }
   });
@@ -313,7 +313,7 @@ module.exports = function (server) {
       const results = await buildMachineOEE(db, start, end);
       res.json(results);
     } catch (err) {
-      logger.error("OEE fetch error:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Failed to calculate machine OEE%" });
     }
   });
@@ -324,10 +324,7 @@ module.exports = function (server) {
       const result = await buildDailyItemHourlyStack(db, start, end);
       res.json(result);
     } catch (err) {
-      logger.error(
-        "Error in /analytics/daily-dashboard/item-hourly-stack:",
-        err
-      );
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Failed to build item/hour stacked data" });
     }
   });
@@ -371,7 +368,7 @@ module.exports = function (server) {
 
       res.json(response);
     } catch (err) {
-      logger.error("Error in /analytics/plantwide-metrics-by-hour:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res
         .status(500)
         .json({ error: "Failed to generate plantwide metrics by hour" });
@@ -416,7 +413,7 @@ module.exports = function (server) {
       );
       res.json(summary);
     } catch (err) {
-      logger.error("Error in /live-efficiency-summary route:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({
         error: "Failed to calculate live operator efficiency summary",
       });
@@ -465,7 +462,7 @@ module.exports = function (server) {
 
       res.json(result);
     } catch (err) {
-      logger.error("Error in /operator-efficiency-hourly:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -982,7 +979,7 @@ router.get("/flipper-live-summary", async (req, res) => {
 
     return res.json({ flipperData: finalFlipperData });
   } catch (err) {
-    logger.error("Error in /flipper-live-summary:", err);
+    logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -77,7 +77,7 @@ function constructor(server) {
         faultSummaries,
       });
     } catch (err) {
-      logger.error("Error in /history/machine/faults:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Failed to fetch fault history" });
     }
   });

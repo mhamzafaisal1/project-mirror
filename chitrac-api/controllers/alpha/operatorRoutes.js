@@ -72,7 +72,7 @@ module.exports = function (server) {
         operators,
       });
     } catch (err) {
-      logger.error("Error in /daily-dashboard/operator-efficiency-top10:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res
         .status(500)
         .json({ error: "Failed to fetch top operator efficiencies" });
@@ -288,7 +288,7 @@ module.exports = function (server) {
       res.json(results.filter(r => r !== null));
   
     } catch (err) {
-      logger.error("Error in /analytics/operator-dashboard route:", err);
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Failed to fetch operator dashboard data" });
     }
   });
