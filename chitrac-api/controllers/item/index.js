@@ -16,6 +16,7 @@ function constructor(server) {
 	const logger = server.logger;
 	const xmlParser = server.xmlParser;
 	const configService = require('../../services/mongo/');
+	const itemValidator = require('../../middleware/itemValidator')(server);
 
 	/*** Service consumption functions */
 	async function getItemXML(req, res, next) {
@@ -38,26 +39,84 @@ function constructor(server) {
 		}
 	}
 
+	// async function upsertItem(req, res, next) {
+	// 	try {
+	// 		const id = req.params.id;
+	// 		let updates = req.body;
+	// 		if (updates._id) {
+	// 			delete updates._id;
+	// 		};
+	// 		let results = await configService.upsertConfiguration(collection, id, updates, true);
+	// 		res.json(results);
+	// 	} catch (error) {
+	// 		next(error);
+	// 	}
+	// }
 	async function upsertItem(req, res, next) {
 		try {
 			const id = req.params.id;
-			let updates = req.body;
-			if (updates._id) {
-				delete updates._id;
-			};
-			let results = await configService.upsertConfiguration(collection, id, updates, true);
-			res.json(results);
+			const updates = { ...req.body }; // clone for safety
+
+			logger.debug('[upsertItem] Processing item update:', {
+				id: id,
+				body: updates,
+				timestamp: new Date().toISOString()
+			});
+	
+			if (updates._id) delete updates._id;
+	
+			// Ensure weight is explicitly null if not provided (so it passes schema)
+			if (updates.weight === undefined) updates.weight = null;
+	
+			const result = await configService.upsertConfiguration(
+				collection,
+				id ? { _id: id, ...updates } : updates,
+				true,
+				'number'
+			);
+
+			logger.info('[upsertItem] Item updated successfully:', {
+				id: id,
+				number: updates.number,
+				name: updates.name,
+				timestamp: new Date().toISOString()
+			});
+	
+			res.json(result);
 		} catch (error) {
+			logger.error('[upsertItem] Error:', {
+				error: error.message,
+				stack: error.stack,
+				timestamp: new Date().toISOString()
+			});
 			next(error);
 		}
 	}
+	
 
 	async function deleteItem(req, res, next) {
 		try {
 			const id = req.params.id;
+			
+			logger.debug('[deleteItem] Processing item delete:', {
+				id: id,
+				timestamp: new Date().toISOString()
+			});
+
 			let results = configService.deleteConfiguration(collection, id);
+			
+			logger.info('[deleteItem] Item deleted successfully:', {
+				id: id,
+				timestamp: new Date().toISOString()
+			});
+
 			res.json(results);
 		} catch (error) {
+			logger.error('[deleteItem] Error:', {
+				error: error.message,
+				stack: error.stack,
+				timestamp: new Date().toISOString()
+			});
 			next(error);
 		}
 	}
@@ -70,8 +129,12 @@ function constructor(server) {
 	router.get('/item/config', getItem);
 
 	/** PUT routes */
-	router.put('/items/config/:id', upsertItem);
-	router.put('/item/config/:id', upsertItem);
+	// router.put('/items/config/:id', upsertItem);
+	// router.put('/item/config/:id', upsertItem);
+	router.post('/item/config', itemValidator, upsertItem);
+	router.put('/item/config/:id', itemValidator, upsertItem);
+
+
 
 	/** DELETE routes */
 	router.delete('/items/config/:id', deleteItem);

@@ -30,11 +30,13 @@ import { ItemReportComponent } from './reports/item-report/item-report.component
 import { AC360SixLaneComponent } from './ac360-six-lane/ac360-six-lane.component';
 import { BlanketBlasterone } from './blanket-blasterone/blanket-blasterone';
 import { BlanketBlastertwo } from './blanket-blastertwo/blanket-blastertwo';
+import { MachineGridComponent } from './machine-grid/machine-grid.component';
 
 export const routes: Routes = [
 	{ path: 'ng/configGridTest', component: ConfigGridTestComponent },
-	{ path: 'ng/settings/operators', component: OperatorGridComponent, canActivate: [AuthGuard] },
-	{ path: 'ng/settings/items', component: ItemGridComponent, canActivate: [AuthGuard] },
+	{ path: 'ng/settings/operators', component: OperatorGridComponent, },
+	{ path: 'ng/settings/items', component: ItemGridComponent,},
+	{ path: 'ng/settings/machines', component: MachineGridComponent,  },
 	{ path: 'ng/settings/root/users/register', component: UserRegisterComponent, canActivate: [AuthGuard] },
 	{ path: 'ng/login', component: UserLoginComponent },
 	{ path: 'ng/home', component: LeveloneDashboardComponent },

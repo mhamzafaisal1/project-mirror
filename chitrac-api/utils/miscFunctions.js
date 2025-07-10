@@ -179,7 +179,116 @@ const {
     };
   }
   
+  // async function getBookendedStates(db, serials, start, end) {
+  //   const now = new Date();
+  //   const effectiveEnd = new Date(end) > now ? now.toISOString() : end;
+  
+  //   if (end !== effectiveEnd) {
+  //     console.log(`[Bookend] End date was in the future. Clamped to now: ${effectiveEnd}`);
+  //   }
+  
+  //   const result = {};
+  
+  //   for (const serial of serials) {
+  //     const serialInt = parseInt(serial);
+  
+  //     const [beforeStart, inRange, afterEnd] = await Promise.all([
+  //       db.collection("state")
+  //         .find({
+  //           "machine.serial": serialInt,
+  //           timestamp: { $lt: start }
+  //         })
+  //         .sort({ timestamp: -1 })
+  //         .limit(1)
+  //         .toArray(),
+  
+  //       db.collection("state")
+  //         .find({
+  //           "machine.serial": serialInt,
+  //           timestamp: { $gte: start, $lte: effectiveEnd }
+  //         })
+  //         .sort({ timestamp: 1 })
+  //         .toArray(),
+  
+  //       db.collection("state")
+  //         .find({
+  //           "machine.serial": serialInt,
+  //           timestamp: { $gt: effectiveEnd }
+  //         })
+  //         .sort({ timestamp: 1 })
+  //         .limit(1)
+  //         .toArray()
+  //     ]);
+  
+  //     if (beforeStart.length === 0) {
+  //       console.log(`[Bookend] No pre-start state found for serial ${serialInt} before ${start}`);
+  //     }
+  
+  //     if (afterEnd.length === 0) {
+  //       console.log(`[Bookend] No post-end state found for serial ${serialInt} after ${effectiveEnd}`);
+  //     }
+  
+  //     const combined = [
+  //       ...beforeStart,
+  //       ...inRange,
+  //       ...afterEnd
+  //     ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  
+  //     result[serialInt] = combined;
+  //   }
+  
+  //   return result;
+  // }
+
+  async function getBookendedGlobalRange(db, serials, start, end) {
+    const now = new Date();
+    const effectiveEnd = new Date(end) > now ? now.toISOString() : end;
+  
+    let minPreStart = null;
+    let maxPostEnd = null;
+  
+    for (const serial of serials) {
+      const serialInt = parseInt(serial);
+  
+      const [beforeStart, afterEnd] = await Promise.all([
+        db.collection("state")
+          .find({ "machine.serial": serialInt, timestamp: { $lt: start } })
+          .sort({ timestamp: -1 })
+          .limit(1)
+          .toArray(),
+  
+        db.collection("state")
+          .find({ "machine.serial": serialInt, timestamp: { $gt: effectiveEnd } })
+          .sort({ timestamp: 1 })
+          .limit(1)
+          .toArray()
+      ]);
+  
+      if (beforeStart.length) {
+        const ts = beforeStart[0].timestamp;
+        if (!minPreStart || new Date(ts) < new Date(minPreStart)) {
+          minPreStart = ts;
+        }
+      }
+  
+      if (afterEnd.length) {
+        const ts = afterEnd[0].timestamp;
+        if (!maxPostEnd || new Date(ts) > new Date(maxPostEnd)) {
+          maxPostEnd = ts;
+        }
+      }
+    }
+  
+    const adjustedStart = minPreStart ? minPreStart : start;
+    const adjustedEnd = maxPostEnd ? maxPostEnd : effectiveEnd;
+  
+    return { adjustedStart, adjustedEnd };
+  }
+  
+  
+  
   module.exports = {
-    buildSoftrolCycleSummary
+    buildSoftrolCycleSummary,
+    getBookendedGlobalRange
   };
   
