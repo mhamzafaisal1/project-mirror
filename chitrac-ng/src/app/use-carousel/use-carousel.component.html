@@ -1,3 +1,7 @@
 <div class="use-carousel" [ngClass]="{ 'dark': isDarkTheme, 'light': !isDarkTheme }">
-  <app-carousel [tabs]="enhancedTabData"></app-carousel>
+  <app-carousel
+  [tabs]="enhancedTabData"
+  (indexChanged)="indexChanged.emit($event)"
+></app-carousel>
+
 </div>

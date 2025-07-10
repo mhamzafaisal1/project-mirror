@@ -33,6 +33,15 @@ export class ModalWrapperComponent implements AfterViewInit, OnDestroy {
   hasCarousel: boolean = false;
   private useCarouselComponent?: UseCarouselComponent;
 
+  currentTabIndex: number = 0;
+tabCount: number = 0;
+
+private updateCarouselState(): void {
+  if (!this.useCarouselComponent) return;
+  this.currentTabIndex = this.useCarouselComponent.getCurrentTabIndex?.() ?? 0;
+  this.tabCount = this.useCarouselComponent.getTabCount?.() ?? 0;
+}
+
   ngAfterViewInit(): void {
     this.loadComponent();
     this.syncThemeWithBody();
@@ -62,28 +71,41 @@ export class ModalWrapperComponent implements AfterViewInit, OnDestroy {
       }
     }
 
+    const instance = componentRef.instance as any;
+    if ('indexChanged' in instance && instance.indexChanged?.subscribe) {
+      instance.indexChanged.subscribe(() => {
+        this.updateCarouselState(); // ✅ re-sync when user clicks a tab
+      });
+    }
+
     if (componentRef.instance instanceof CarouselComponent) {
       this.hasCarousel = true;
       this.useCarouselComponent = componentRef.instance as any;
+      this.updateCarouselState();
       this.cdr.detectChanges();
     } else if (componentRef.instance instanceof UseCarouselComponent) {
       this.hasCarousel = true;
       this.useCarouselComponent = componentRef.instance;
+      this.updateCarouselState(); 
       this.cdr.detectChanges();
     }
+    
   }
 
   goToPreviousTab(): void {
     if (this.useCarouselComponent) {
       this.useCarouselComponent.goToPrevious();
+      this.updateCarouselState();
     }
   }
-
+  
   goToNextTab(): void {
     if (this.useCarouselComponent) {
       this.useCarouselComponent.goToNext();
+      this.updateCarouselState(); 
     }
   }
+  
 
   syncThemeWithBody(): void {
     this.isDarkTheme = document.body.classList.contains('dark-theme');

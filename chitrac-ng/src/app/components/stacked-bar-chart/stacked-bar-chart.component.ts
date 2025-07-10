@@ -6,7 +6,6 @@ import {
   OnChanges,
   SimpleChanges,
   OnDestroy,
-  AfterViewInit,
   OnInit,
   Renderer2
 } from '@angular/core';
@@ -34,30 +33,30 @@ interface StackedBarPoint {
 }
 
 @Component({
-    selector: 'app-stacked-bar-chart',
-    imports: [CommonModule],
-    templateUrl: './stacked-bar-chart.component.html',
-    styleUrl: './stacked-bar-chart.component.scss'
+  selector: 'app-stacked-bar-chart',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './stacked-bar-chart.component.html',
+  styleUrl: './stacked-bar-chart.component.scss'
 })
-export class StackedBarChartComponent implements OnInit, OnDestroy {
+export class StackedBarChartComponent implements OnInit, OnDestroy, OnChanges {
   @Input() data: StackedBarChartData | null = null;
   @Input() mode: StackedBarChartMode = 'time';
-  @Input() chartWidth!: number;
-  @Input() chartHeight!: number;
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
   private observer!: MutationObserver;
-  private margin = { top: 40, right: 40, bottom: 100, left: 40 };
   private svg: any;
   private isDarkTheme = false;
+
+  private defaultWidth = 800;
+  private defaultHeight = 500;
+  private margin = { top: 40, right: 40, bottom: 100, left: 40 };
+
   private static colorMapping = new Map<string, string>();
   private static customPalette = ['#66bb6a', '#42a5f5', '#ffca28', '#ab47bc', '#ef5350', '#29b6f6', '#ffa726', '#7e57c2', '#26c6da', '#ec407a'];
   private static nextColorIndex = 0;
 
-  constructor(
-    private elRef: ElementRef,
-    private renderer: Renderer2
-  ) {}
+  constructor(private elRef: ElementRef, private renderer: Renderer2) {}
 
   ngOnInit() {
     this.detectTheme();
@@ -68,16 +67,14 @@ export class StackedBarChartComponent implements OnInit, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if ((changes['data'] || changes['chartWidth'] || changes['chartHeight']) && this.data) {
+    if (changes['data'] && this.data) {
       this.renderChart();
     }
   }
 
   ngOnDestroy(): void {
     if (this.observer) this.observer.disconnect();
-    if (this.svg) {
-      this.svg.remove();
-    }
+    if (this.svg) this.svg.remove();
   }
 
   private detectTheme() {
@@ -94,8 +91,22 @@ export class StackedBarChartComponent implements OnInit, OnDestroy {
     return days > 0 ? `Day ${days + 1}, ${remainingHours}:00` : `${remainingHours}:00`;
   }
 
+  private getColorScale(keys: string[]) {
+    keys.forEach(key => {
+      if (!StackedBarChartComponent.colorMapping.has(key)) {
+        const color = StackedBarChartComponent.customPalette[StackedBarChartComponent.nextColorIndex];
+        StackedBarChartComponent.colorMapping.set(key, color);
+        StackedBarChartComponent.nextColorIndex = (StackedBarChartComponent.nextColorIndex + 1) % StackedBarChartComponent.customPalette.length;
+      }
+    });
+
+    return d3.scaleOrdinal<string>()
+      .domain(keys)
+      .range(keys.map(k => StackedBarChartComponent.colorMapping.get(k)!));
+  }
+
   private renderLegend(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, keys: string[], textColor: string): number {
-    const maxPerRow = Math.max(1, Math.floor((this.chartWidth - this.margin.left - this.margin.right) / 120));
+    const maxPerRow = Math.max(1, Math.floor((this.defaultWidth - this.margin.left - this.margin.right) / 120));
     const rowHeight = 16;
     const rowCount = Math.ceil(keys.length / maxPerRow);
 
@@ -125,21 +136,6 @@ export class StackedBarChartComponent implements OnInit, OnDestroy {
     return rowCount * rowHeight;
   }
 
-  private getColorScale(keys: string[]) {
-    // Ensure all keys have a color assigned
-    keys.forEach(key => {
-      if (!StackedBarChartComponent.colorMapping.has(key)) {
-        const color = StackedBarChartComponent.customPalette[StackedBarChartComponent.nextColorIndex];
-        StackedBarChartComponent.colorMapping.set(key, color);
-        StackedBarChartComponent.nextColorIndex = (StackedBarChartComponent.nextColorIndex + 1) % StackedBarChartComponent.customPalette.length;
-      }
-    });
-
-    return d3.scaleOrdinal<string>()
-      .domain(keys)
-      .range(keys.map(key => StackedBarChartComponent.colorMapping.get(key)!));
-  }
-
   renderChart(): void {
     if (!this.data) return;
 
@@ -148,21 +144,44 @@ export class StackedBarChartComponent implements OnInit, OnDestroy {
 
     const svg = d3.select(element)
       .append('svg')
-      .attr('viewBox', `0 0 ${this.chartWidth} ${this.chartHeight}`)
-      .attr('width', this.chartWidth)
-      .attr('height', this.chartHeight)
+      .attr('viewBox', `0 0 ${this.defaultWidth} ${this.defaultHeight}`)
+      .style('width', '100%')
+      .style('height', 'auto')
+      .style('aspect-ratio', `${this.defaultWidth} / ${this.defaultHeight}`)
       .style('display', 'block')
       .style('margin', '0 auto')
       .style('font-family', "'Inter', sans-serif")
       .style('font-size', '0.875rem');
 
-    const isDarkTheme = document.body.classList.contains('dark-theme');
-    const textColor = isDarkTheme ? '#e0e0e0' : '#333';
-
+    const textColor = this.isDarkTheme ? '#e0e0e0' : '#333';
     const keys = Object.keys(this.data.data.operators);
     const colorScale = this.getColorScale(keys);
     const legendHeight = this.renderLegend(svg, keys, textColor);
     const chartTop = this.margin.top + legendHeight;
+
+    const chartBottom = this.defaultHeight - this.margin.bottom;
+    const chartRight = this.defaultWidth - this.margin.right;
+
+    const getBarPath = (xPos: number, yTop: number, barWidth: number, barHeight: number, isTop: boolean) => {
+      const radius = isTop ? 4 : 0;
+      if (isTop) {
+        return `
+          M${xPos},${yTop + radius}
+          a${radius},${radius} 0 0 1 ${radius},-${radius}
+          h${barWidth - 2 * radius}
+          a${radius},${radius} 0 0 1 ${radius},${radius}
+          v${barHeight - radius}
+          h${-barWidth}
+          Z`;
+      } else {
+        return `
+          M${xPos},${yTop}
+          h${barWidth}
+          v${barHeight}
+          h${-barWidth}
+          Z`;
+      }
+    };
 
     if (this.mode === 'machine') {
       const machineCount = this.data.data.operators[keys[0]].length;
@@ -171,95 +190,58 @@ export class StackedBarChartComponent implements OnInit, OnDestroy {
 
       const x = d3.scaleBand()
         .domain(machineNames)
-        .range([this.margin.left, this.chartWidth - this.margin.right])
+        .range([this.margin.left, chartRight])
         .padding(0.2);
 
       const stackedData = d3.stack()
         .keys(keys)
         (Array.from({ length: machineCount }, (_, i) => {
           const entry: any = {};
-          keys.forEach(k => { entry[k] = this.data!.data.operators[k][i]; });
+          keys.forEach(k => entry[k] = this.data!.data.operators[k][i]);
           return entry;
         }));
 
       const y = d3.scaleLinear()
         .domain([0, d3.max(stackedData[stackedData.length - 1], d => d[1]) || 0])
         .nice()
-        .range([this.chartHeight - this.margin.bottom, chartTop]);
+        .range([chartBottom, chartTop]);
 
       svg.append('g')
         .selectAll('g')
         .data(stackedData)
         .join('g')
         .attr('fill', d => colorScale(d.key))
-        .selectAll('rect')
+        .selectAll('path')
         .data((d, i) => d.map((point, j) => ({
           ...point,
           key: d.key,
           isTop: i === stackedData.length - 1,
-          machineName: this.mode === 'machine' ? machineNames[j] : undefined
+          machineName: machineNames[j]
         } as StackedBarPoint)))
         .join('path')
-        .attr('d', d => {
-          const xPos = x(this.mode === 'machine' ? d.machineName! : String(d.data['hour']))!;
-          const barWidth = x.bandwidth();
-          const yTop = y(d[1]);
-          const barHeight = y(d[0]) - y(d[1]);
-          const radius = d.isTop ? 4 : 0;
-      
-          if (d.isTop) {
-            return `
-              M${xPos},${yTop + radius}
-              a${radius},${radius} 0 0 1 ${radius},-${radius}
-              h${barWidth - 2 * radius}
-              a${radius},${radius} 0 0 1 ${radius},${radius}
-              v${barHeight - radius}
-              h${-barWidth}
-              Z
-            `;
-          } else {
-            return `
-              M${xPos},${yTop}
-              h${barWidth}
-              v${barHeight}
-              h${-barWidth}
-              Z
-            `;
-          }
-        })
-        .style('fill', d => colorScale(d.key))
-        .style('filter', d => d.isTop ? 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' : null);
-      
+        .attr('d', d => getBarPath(x(d.machineName!)!, y(d[1]), x.bandwidth(), y(d[0]) - y(d[1]), d.isTop))
+        .style('fill', d => colorScale(d.key));
 
       svg.append('g')
-        .attr('transform', `translate(0,${this.chartHeight - this.margin.bottom})`)
+        .attr('transform', `translate(0,${chartBottom})`)
         .call(d3.axisBottom(x))
         .selectAll('text')
         .attr('transform', 'rotate(-45)')
         .style('text-anchor', 'end')
         .style('fill', textColor);
 
-      svg.append('g')
-        .attr('transform', `translate(${this.margin.left},0)`)
-        .call(d3.axisLeft(y).ticks(10).tickFormat(d => `${d} hr`))
-        .selectAll('text')
-        .style('fill', textColor);
-
     } else {
-      const hourLabels = new Map(
-        this.data.data.hours.map(hour => [hour.toString(), this.formatHour(hour)])
-      );
-
+      const hourLabels = new Map(this.data.data.hours.map(hour => [hour.toString(), this.formatHour(hour)]));
       const x = d3.scaleBand()
         .domain(this.data.data.hours.map(String))
-        .range([this.margin.left, this.chartWidth - this.margin.right])
+        .range([this.margin.left, chartRight])
         .padding(0.2);
 
       const stackedData = d3.stack()
         .keys(keys)
         (this.data.data.hours.map((hour, i) => {
           const entry: any = {};
-          keys.forEach(k => { entry[k] = this.data!.data.operators[k][i] || 0; });
+          keys.forEach(k => entry[k] = this.data!.data.operators[k][i] || 0);
           entry.hour = hour;
           return entry;
         }));
@@ -267,53 +249,25 @@ export class StackedBarChartComponent implements OnInit, OnDestroy {
       const y = d3.scaleLinear()
         .domain([0, d3.max(stackedData[stackedData.length - 1], d => d[1]) || 0])
         .nice()
-        .range([this.chartHeight - this.margin.bottom, chartTop]);
+        .range([chartBottom, chartTop]);
 
       svg.append('g')
         .selectAll('g')
         .data(stackedData)
         .join('g')
         .attr('fill', d => colorScale(d.key))
-        .selectAll('rect')
+        .selectAll('path')
         .data((d, i) => d.map(point => ({
           ...point,
           key: d.key,
           isTop: i === stackedData.length - 1
         } as StackedBarPoint)))
         .join('path')
-        .attr('d', d => {
-          const xPos = x(this.mode === 'machine' ? d.machineName! : String(d.data['hour']))!;
-          const barWidth = x.bandwidth();
-          const yTop = y(d[1]);
-          const barHeight = y(d[0]) - y(d[1]);
-          const radius = d.isTop ? 4 : 0;
-      
-          if (d.isTop) {
-            return `
-              M${xPos},${yTop + radius}
-              a${radius},${radius} 0 0 1 ${radius},-${radius}
-              h${barWidth - 2 * radius}
-              a${radius},${radius} 0 0 1 ${radius},${radius}
-              v${barHeight - radius}
-              h${-barWidth}
-              Z
-            `;
-          } else {
-            return `
-              M${xPos},${yTop}
-              h${barWidth}
-              v${barHeight}
-              h${-barWidth}
-              Z
-            `;
-          }
-        })
-        .style('fill', d => colorScale(d.key))
-        .style('filter', d => d.isTop ? 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' : null);
-      
+        .attr('d', d => getBarPath(x(String(d.data['hour']))!, y(d[1]), x.bandwidth(), y(d[0]) - y(d[1]), d.isTop))
+        .style('fill', d => colorScale(d.key));
 
       svg.append('g')
-        .attr('transform', `translate(0,${this.chartHeight - this.margin.bottom})`)
+        .attr('transform', `translate(0,${chartBottom})`)
         .call(
           d3.axisBottom(x)
             .tickValues(x.domain().filter((_, i) => i % 4 === 0))
@@ -324,16 +278,21 @@ export class StackedBarChartComponent implements OnInit, OnDestroy {
         .attr('transform', 'rotate(-45)')
         .style('text-anchor', 'end')
         .style('fill', textColor);
-
-      svg.append('g')
-        .attr('transform', `translate(${this.margin.left},0)`)
-        .call(d3.axisLeft(y))
-        .selectAll('text')
-        .style('fill', textColor);
     }
 
+    svg.append('g')
+      .attr('transform', `translate(${this.margin.left},0)`)
+      .call(d3.axisLeft(
+        d3.scaleLinear()
+          .domain([0, d3.max(Object.values(this.data.data.operators).flat()) || 0])
+          .nice()
+          .range([chartBottom, chartTop])
+      ))
+      .selectAll('text')
+      .style('fill', textColor);
+
     svg.append('text')
-      .attr('x', this.chartWidth / 2)
+      .attr('x', this.defaultWidth / 2)
       .attr('y', this.margin.top / 2)
       .attr('text-anchor', 'middle')
       .style('font-size', '16px')
