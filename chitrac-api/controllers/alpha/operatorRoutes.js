@@ -385,8 +385,8 @@ module.exports = function (server) {
             faultHistory,
             dailyEfficiency,
           };
-        })
-      );
+        }));
+      }
   
       res.json(results.filter(Boolean));
     } catch (err) {
