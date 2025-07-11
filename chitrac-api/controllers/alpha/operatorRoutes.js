@@ -329,66 +329,70 @@ module.exports = function (server) {
   
             if (!states.length && !counts.all.length) return null;
   
-          const validCounts = counts.valid;
-          const misfeedCounts = counts.misfeed;
-          const allCounts = counts.all;
+            const validCounts = counts.valid;
+            const misfeedCounts = counts.misfeed;
+            const allCounts = counts.all;
   
-          // ✅ Use your proper utility for operator-level bookending
-          const bookended = await getBookendedOperatorStatesAndTimeRange(
-            db,
-            numericOperatorId,
-            start,
-            end
-          );
+            // ✅ Use your proper utility for operator-level bookending
+            const bookended = await getBookendedOperatorStatesAndTimeRange(
+              db,
+              numericOperatorId,
+              start,
+              end
+            );
   
-          if (!bookended) return null;
+            if (!bookended) return null;
   
-          const { states: bookendedStates, sessionStart, sessionEnd } = bookended;
+            const { states: bookendedStates, sessionStart, sessionEnd } = bookended;
   
-          const operatorName =
-            validCounts[0]?.operator?.name ||
-            allCounts[0]?.operator?.name ||
-            "Unknown";
+            const operatorName =
+              validCounts[0]?.operator?.name ||
+              allCounts[0]?.operator?.name ||
+              "Unknown";
   
-          const [
-            performance,
-            itemSummary,
-            countByItem,
-            cyclePie,
-            faultHistory,
-            dailyEfficiency
-          ] = await Promise.all([
-            buildOperatorPerformance(bookendedStates, validCounts, misfeedCounts, sessionStart, sessionEnd),
-            buildOptimizedOperatorItemSummary(bookendedStates, allCounts, sessionStart, sessionEnd, group.machineNames || {}),
-            buildOptimizedOperatorCountByItem(allCounts, sessionStart, sessionEnd),
-            buildOptimizedOperatorCyclePie(bookendedStates, sessionStart, sessionEnd),
-            buildOptimizedOperatorFaultHistory({ [operatorId]: { states: bookendedStates, counts } }, sessionStart, sessionEnd),
-            buildOperatorEfficiencyLine({
-              operator: { id: numericOperatorId, name: operatorName },
-              counts
-            }, sessionStart, sessionEnd, db)
-          ]);
+            const [
+              performance,
+              itemSummary,
+              countByItem,
+              cyclePie,
+              faultHistory,
+              dailyEfficiency
+            ] = await Promise.all([
+              buildOperatorPerformance(bookendedStates, validCounts, misfeedCounts, sessionStart, sessionEnd),
+              buildOptimizedOperatorItemSummary(bookendedStates, allCounts, sessionStart, sessionEnd, group.machineNames || {}),
+              buildOptimizedOperatorCountByItem(allCounts, sessionStart, sessionEnd),
+              buildOptimizedOperatorCyclePie(bookendedStates, sessionStart, sessionEnd),
+              buildOptimizedOperatorFaultHistory({ [operatorId]: { states: bookendedStates, counts } }, sessionStart, sessionEnd),
+              buildOperatorEfficiencyLine({
+                operator: { id: numericOperatorId, name: operatorName },
+                counts
+              }, sessionStart, sessionEnd, db)
+            ]);
   
-          return {
-            operator: {
-              id: numericOperatorId,
-              name: operatorName,
-            },
-            currentStatus: {
-              code: bookendedStates.at(-1)?.status?.code || 0,
-              name: bookendedStates.at(-1)?.status?.name || "Unknown",
-            },
-            performance,
-            itemSummary,
-            countByItem,
-            cyclePie,
-            faultHistory,
-            dailyEfficiency,
-          };
-        }));
+            return {
+              operator: {
+                id: numericOperatorId,
+                name: operatorName,
+              },
+              currentStatus: {
+                code: bookendedStates.at(-1)?.status?.code || 0,
+                name: bookendedStates.at(-1)?.status?.name || "Unknown",
+              },
+              performance,
+              itemSummary,
+              countByItem,
+              cyclePie,
+              faultHistory,
+              dailyEfficiency,
+            };
+          })
+        );
+        
+        // Add the partial results to the main results array
+        results.push(...partial.filter(Boolean));
       }
   
-      res.json(results.filter(Boolean));
+      res.json(results);
     } catch (err) {
       logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
       res.status(500).json({ error: "Failed to fetch operator dashboard data" });
