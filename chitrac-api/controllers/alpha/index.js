@@ -935,7 +935,7 @@ function constructor(server) {
 
       res.json(runningCycles);
     } catch (error) {
-      logger.error("Error calculating session cycles with counts:", error);
+      logger.error(`Error in ${req.method} ${req.url}:`, error);
       res.status(500).json({ error: "Failed to fetch session cycles" });
     }
   });
@@ -1013,10 +1013,7 @@ function constructor(server) {
 
       res.json(allResults);
     } catch (error) {
-      logger.error(
-        "Error calculating operator cycles with item totals:",
-        error
-      );
+      logger.error(`Error in ${req.method} ${req.url}:`, error);
       res
         .status(500)
         .json({ error: "Failed to fetch operator-based session cycles" });
@@ -1175,7 +1172,7 @@ function constructor(server) {
 
       res.json(results);
     } catch (error) {
-      logger.error("Error calculating machine performance metrics:", error);
+      logger.error(`Error in ${req.method} ${req.url}:`, error);
       res
         .status(500)
         .json({ error: "Failed to fetch machine performance metrics" });
@@ -1278,7 +1275,7 @@ function constructor(server) {
 
       res.json(results);
     } catch (error) {
-      logger.error("Error calculating machine state time totals:", error);
+      logger.error(`Error in ${req.method} ${req.url}:`, error);
       res
         .status(500)
         .json({ error: "Failed to fetch machine state time totals" });
@@ -1359,7 +1356,7 @@ function constructor(server) {
 
       res.json(results);
     } catch (error) {
-      logger.error("Error calculating machine state time totals:", error);
+      logger.error(`Error in ${req.method} ${req.url}:`, error);
       res
         .status(500)
         .json({ error: "Failed to fetch machine state time totals" });
@@ -1533,7 +1530,7 @@ function constructor(server) {
       // Filter out null results and send response
       res.json(operatorResults.filter((result) => result !== null));
     } catch (error) {
-      logger.error("Error calculating operator performance metrics:", error);
+      logger.error(`Error in ${req.method} ${req.url}:`, error);
       res
         .status(500)
         .json({ error: "Failed to fetch operator performance metrics" });
@@ -1866,7 +1863,7 @@ function constructor(server) {
 
       res.json(response);
     } catch (error) {
-      logger.error("Error calculating operator efficiency:", error);
+      logger.error(`Error in ${req.method} ${req.url}:`, error);
       res
         .status(500)
         .json({ error: "Failed to calculate operator efficiency" });
@@ -2087,7 +2084,7 @@ function constructor(server) {
 
       res.json(response);
     } catch (error) {
-      logger.error("Error in operator-countbyitem route:", error);
+      logger.error(`Error in ${req.method} ${req.url}:`, error);
       res.status(500).json({ error: "Failed to process data for operator" });
     }
   });
@@ -2127,7 +2124,7 @@ function constructor(server) {
         faultSummaries,
       });
     } catch (err) {
-      logger.error("Error in /analytics/fault-history:", err);
+      logger.error(`Error in ${req.method} ${req.url}:`, err);
       res.status(500).json({ error: "Failed to fetch fault history" });
     }
   });
@@ -2248,7 +2245,7 @@ function constructor(server) {
         faultSummaries,
       });
     } catch (err) {
-      logger.error("Error in /analytics/operator-fault-history:", err);
+      logger.error(`Error in ${req.method} ${req.url}:`, err);
       res.status(500).json({ error: "Failed to fetch operator fault history" });
     }
   });
@@ -2372,11 +2369,164 @@ function constructor(server) {
   //   }
   // });
 
+  // router.get("/analytics/machine-item-summary", async (req, res) => {
+  //   try {
+  //     const { start, end, serial } = parseAndValidateQueryParams(req);
+  //     const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+
+  //     const allStates = await fetchStatesForMachine(
+  //       db,
+  //       serial || null,
+  //       paddedStart,
+  //       paddedEnd
+  //     );
+  //     if (!allStates.length) return res.json([]);
+
+  //     const groupedStates = groupStatesByMachine(allStates);
+  //     const results = [];
+
+  //     for (const [machineSerial, group] of Object.entries(groupedStates)) {
+  //       const machineName = group.machine?.name || "Unknown";
+  //       const machineStates = group.states;
+  //       const cycles = extractAllCyclesFromStates(
+  //         machineStates,
+  //         start,
+  //         end
+  //       ).running;
+
+  //       const allCounts = await getValidCounts(
+  //         db,
+  //         parseInt(machineSerial),
+  //         start,
+  //         end
+  //       );
+
+  //       const machineSummary = {
+  //         totalCount: 0,
+  //         totalWorkedMs: 0,
+  //         itemSummaries: {},
+  //       };
+
+  //       const sessions = [];
+
+  //       for (const cycle of cycles) {
+  //         const cycleStart = new Date(cycle.start);
+  //         const cycleEnd = new Date(cycle.end);
+  //         const cycleMs = cycleEnd - cycleStart;
+
+  //         const cycleCounts = allCounts.filter((c) => {
+  //           const ts = new Date(c.timestamp);
+  //           return ts >= cycleStart && ts <= cycleEnd;
+  //         });
+
+  //         if (!cycleCounts.length) continue;
+
+  //         const operators = new Set(
+  //           cycleCounts.map((c) => c.operator?.id).filter(Boolean)
+  //         );
+  //         const workedTimeMs = cycleMs * Math.max(1, operators.size);
+
+  //         const grouped = groupCountsByItem(cycleCounts);
+
+  //         for (const [itemId, group] of Object.entries(grouped)) {
+  //           const countTotal = group.length;
+  //           const standard =
+  //             group[0].item?.standard > 0 ? group[0].item.standard : 666;
+  //           const name = group[0].item?.name || "Unknown";
+
+  //           if (!machineSummary.itemSummaries[itemId]) {
+  //             machineSummary.itemSummaries[itemId] = {
+  //               count: 0,
+  //               standard,
+  //               workedTimeMs: 0,
+  //               name,
+  //             };
+  //           }
+
+  //           machineSummary.itemSummaries[itemId].count += countTotal;
+  //           machineSummary.itemSummaries[itemId].workedTimeMs += workedTimeMs;
+  //           machineSummary.totalCount += countTotal;
+  //           machineSummary.totalWorkedMs += workedTimeMs;
+  //         }
+
+  //         sessions.push({
+  //           start: cycleStart.toISOString(),
+  //           end: cycleEnd.toISOString(),
+  //           workedTimeMs,
+  //           workedTimeFormatted: formatDuration(workedTimeMs),
+  //         });
+  //       }
+
+  //       // Add per-item formatted metrics
+  //       Object.entries(machineSummary.itemSummaries).forEach(
+  //         ([itemId, summary]) => {
+  //           const workedTimeFormatted = formatDuration(summary.workedTimeMs);
+  //           const totalHours = summary.workedTimeMs / 3600000;
+  //           const pph = totalHours > 0 ? summary.count / totalHours : 0;
+  //           const efficiency =
+  //             summary.standard > 0 ? pph / summary.standard : 0;
+
+  //           machineSummary.itemSummaries[itemId] = {
+  //             name: summary.name,
+  //             standard: summary.standard,
+  //             countTotal: summary.count,
+  //             workedTimeFormatted,
+  //             pph: Math.round(pph * 100) / 100,
+  //             efficiency: Math.round(efficiency * 10000) / 100,
+  //           };
+  //         }
+  //       );
+
+  //       const totalHours = machineSummary.totalWorkedMs / 3600000;
+  //       const machinePph =
+  //         totalHours > 0 ? machineSummary.totalCount / totalHours : 0;
+
+  //       const proratedStandard = Object.values(
+  //         machineSummary.itemSummaries
+  //       ).reduce((acc, item) => {
+  //         const weight =
+  //           machineSummary.totalCount > 0
+  //             ? item.countTotal / machineSummary.totalCount
+  //             : 0;
+  //         return acc + weight * item.standard;
+  //       }, 0);
+
+  //       const machineEff =
+  //         proratedStandard > 0 ? machinePph / proratedStandard : 0;
+
+  //       results.push({
+  //         machine: {
+  //           name: machineName,
+  //           serial: parseInt(machineSerial),
+  //         },
+  //         sessions,
+  //         machineSummary: {
+  //           totalCount: machineSummary.totalCount,
+  //           workedTimeMs: machineSummary.totalWorkedMs,
+  //           workedTimeFormatted: formatDuration(machineSummary.totalWorkedMs),
+  //           pph: Math.round(machinePph * 100) / 100,
+  //           proratedStandard: Math.round(proratedStandard * 100) / 100,
+  //           efficiency: Math.round(machineEff * 10000) / 100,
+  //           itemSummaries: machineSummary.itemSummaries,
+  //         },
+  //       });
+  //     }
+
+  //     res.json(results);
+  //   } catch (error) {
+  //     logger.error("Error in /analytics/machine-item-summary:", error);
+  //     res
+  //       .status(500)
+  //       .json({ error: "Failed to generate machine item summary" });
+  //   }
+  // });
+
+  //updated efficient route for machine item summary
   router.get("/analytics/machine-item-summary", async (req, res) => {
     try {
       const { start, end, serial } = parseAndValidateQueryParams(req);
       const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
-
+  
       const allStates = await fetchStatesForMachine(
         db,
         serial || null,
@@ -2384,145 +2534,152 @@ function constructor(server) {
         paddedEnd
       );
       if (!allStates.length) return res.json([]);
-
+  
       const groupedStates = groupStatesByMachine(allStates);
-      const results = [];
-
-      for (const [machineSerial, group] of Object.entries(groupedStates)) {
-        const machineName = group.machine?.name || "Unknown";
-        const machineStates = group.states;
-        const cycles = extractAllCyclesFromStates(
-          machineStates,
-          start,
-          end
-        ).running;
-
-        const allCounts = await getValidCounts(
-          db,
-          parseInt(machineSerial),
-          start,
-          end
-        );
-
-        const machineSummary = {
-          totalCount: 0,
-          totalWorkedMs: 0,
-          itemSummaries: {},
-        };
-
-        const sessions = [];
-
-        for (const cycle of cycles) {
-          const cycleStart = new Date(cycle.start);
-          const cycleEnd = new Date(cycle.end);
-          const cycleMs = cycleEnd - cycleStart;
-
-          const cycleCounts = allCounts.filter((c) => {
-            const ts = new Date(c.timestamp);
-            return ts >= cycleStart && ts <= cycleEnd;
-          });
-
-          if (!cycleCounts.length) continue;
-
-          const operators = new Set(
-            cycleCounts.map((c) => c.operator?.id).filter(Boolean)
-          );
-          const workedTimeMs = cycleMs * Math.max(1, operators.size);
-
-          const grouped = groupCountsByItem(cycleCounts);
-
-          for (const [itemId, group] of Object.entries(grouped)) {
-            const countTotal = group.length;
-            const standard =
-              group[0].item?.standard > 0 ? group[0].item.standard : 666;
-            const name = group[0].item?.name || "Unknown";
-
-            if (!machineSummary.itemSummaries[itemId]) {
-              machineSummary.itemSummaries[itemId] = {
-                count: 0,
-                standard,
+  
+      const results = await Promise.all(
+        Object.entries(groupedStates).map(async ([machineSerial, group]) => {
+          const machineName = group.machine?.name || "Unknown";
+          const machineStates = group.states;
+  
+          const cycles = extractAllCyclesFromStates(
+            machineStates,
+            start,
+            end
+          ).running;
+  
+          if (!cycles.length) {
+            return {
+              machine: {
+                name: machineName,
+                serial: parseInt(machineSerial),
+              },
+              sessions: [],
+              machineSummary: {
+                totalCount: 0,
                 workedTimeMs: 0,
-                name,
-              };
-            }
-
-            machineSummary.itemSummaries[itemId].count += countTotal;
-            machineSummary.itemSummaries[itemId].workedTimeMs += workedTimeMs;
-            machineSummary.totalCount += countTotal;
-            machineSummary.totalWorkedMs += workedTimeMs;
+                workedTimeFormatted: "0m",
+                pph: 0,
+                proratedStandard: 0,
+                efficiency: 0,
+                itemSummaries: {},
+              },
+            };
           }
-
-          sessions.push({
-            start: cycleStart.toISOString(),
-            end: cycleEnd.toISOString(),
-            workedTimeMs,
-            workedTimeFormatted: formatDuration(workedTimeMs),
-          });
-        }
-
-        // Add per-item formatted metrics
-        Object.entries(machineSummary.itemSummaries).forEach(
-          ([itemId, summary]) => {
-            const workedTimeFormatted = formatDuration(summary.workedTimeMs);
-            const totalHours = summary.workedTimeMs / 3600000;
-            const pph = totalHours > 0 ? summary.count / totalHours : 0;
+  
+          const allCounts = await getValidCounts(
+            db,
+            parseInt(machineSerial),
+            start,
+            end
+          );
+  
+          let totalCount = 0;
+          let totalWorkedMs = 0;
+          const itemSummaries = {};
+          const sessions = [];
+  
+          for (const cycle of cycles) {
+            const cycleStart = new Date(cycle.start);
+            const cycleEnd = new Date(cycle.end);
+            const cycleMs = cycleEnd - cycleStart;
+  
+            const cycleCounts = allCounts.filter((c) => {
+              const ts = new Date(c.timestamp);
+              return ts >= cycleStart && ts <= cycleEnd;
+            });
+  
+            if (!cycleCounts.length) continue;
+  
+            const uniqueOperatorIds = new Set(
+              cycleCounts.map((c) => c.operator?.id).filter(Boolean)
+            );
+            const workedTimeMs = cycleMs * Math.max(1, uniqueOperatorIds.size);
+  
+            const groupedCounts = groupCountsByItem(cycleCounts);
+  
+            for (const [itemId, records] of Object.entries(groupedCounts)) {
+              const count = records.length;
+              const standard = records[0].item?.standard || 666;
+              const name = records[0].item?.name || "Unknown";
+  
+              if (!itemSummaries[itemId]) {
+                itemSummaries[itemId] = {
+                  name,
+                  standard,
+                  count: 0,
+                  workedTimeMs: 0,
+                };
+              }
+  
+              itemSummaries[itemId].count += count;
+              itemSummaries[itemId].workedTimeMs += workedTimeMs;
+              totalCount += count;
+              totalWorkedMs += workedTimeMs;
+            }
+  
+            sessions.push({
+              start: cycleStart.toISOString(),
+              end: cycleEnd.toISOString(),
+              workedTimeMs,
+              workedTimeFormatted: formatDuration(workedTimeMs),
+            });
+          }
+  
+          // Final aggregation (1-pass)
+          let proratedStandard = 0;
+          const itemSummariesFormatted = {};
+  
+          for (const [itemId, summary] of Object.entries(itemSummaries)) {
+            const hours = summary.workedTimeMs / 3600000;
+            const pph = hours > 0 ? summary.count / hours : 0;
             const efficiency =
               summary.standard > 0 ? pph / summary.standard : 0;
-
-            machineSummary.itemSummaries[itemId] = {
+  
+            const weight = totalCount > 0 ? summary.count / totalCount : 0;
+            proratedStandard += weight * summary.standard;
+  
+            itemSummariesFormatted[itemId] = {
               name: summary.name,
               standard: summary.standard,
               countTotal: summary.count,
-              workedTimeFormatted,
+              workedTimeFormatted: formatDuration(summary.workedTimeMs),
               pph: Math.round(pph * 100) / 100,
               efficiency: Math.round(efficiency * 10000) / 100,
             };
           }
-        );
-
-        const totalHours = machineSummary.totalWorkedMs / 3600000;
-        const machinePph =
-          totalHours > 0 ? machineSummary.totalCount / totalHours : 0;
-
-        const proratedStandard = Object.values(
-          machineSummary.itemSummaries
-        ).reduce((acc, item) => {
-          const weight =
-            machineSummary.totalCount > 0
-              ? item.countTotal / machineSummary.totalCount
-              : 0;
-          return acc + weight * item.standard;
-        }, 0);
-
-        const machineEff =
-          proratedStandard > 0 ? machinePph / proratedStandard : 0;
-
-        results.push({
-          machine: {
-            name: machineName,
-            serial: parseInt(machineSerial),
-          },
-          sessions,
-          machineSummary: {
-            totalCount: machineSummary.totalCount,
-            workedTimeMs: machineSummary.totalWorkedMs,
-            workedTimeFormatted: formatDuration(machineSummary.totalWorkedMs),
-            pph: Math.round(machinePph * 100) / 100,
-            proratedStandard: Math.round(proratedStandard * 100) / 100,
-            efficiency: Math.round(machineEff * 10000) / 100,
-            itemSummaries: machineSummary.itemSummaries,
-          },
-        });
-      }
-
+  
+          const totalHours = totalWorkedMs / 3600000;
+          const machinePph = totalHours > 0 ? totalCount / totalHours : 0;
+          const machineEff =
+            proratedStandard > 0 ? machinePph / proratedStandard : 0;
+  
+          return {
+            machine: {
+              name: machineName,
+              serial: parseInt(machineSerial),
+            },
+            sessions,
+            machineSummary: {
+              totalCount,
+              workedTimeMs: totalWorkedMs,
+              workedTimeFormatted: formatDuration(totalWorkedMs),
+              pph: Math.round(machinePph * 100) / 100,
+              proratedStandard: Math.round(proratedStandard * 100) / 100,
+              efficiency: Math.round(machineEff * 10000) / 100,
+              itemSummaries: itemSummariesFormatted,
+            },
+          };
+        })
+      );
+  
       res.json(results);
     } catch (error) {
-      logger.error("Error in /analytics/machine-item-summary:", error);
-      res
-        .status(500)
-        .json({ error: "Failed to generate machine item summary" });
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, error);
+      res.status(500).json({ error: "Failed to generate machine item summary" });
     }
   });
+  
   //API route for machine item summary end
 
   //API route for operator item summary start
@@ -2542,6 +2699,9 @@ function constructor(server) {
         paddedStart,
         paddedEnd
       );
+      
+      if (!allStates.length) return res.json([]);
+      
       const groupedStates = groupStatesByOperatorAndSerial(allStates);
 
       // Filter operator-machine pairs by operatorId if present
@@ -2552,6 +2712,8 @@ function constructor(server) {
         })
         .filter((pair) => !operatorId || pair.operatorId === operatorId);
 
+      if (!allOperatorMachinePairs.length) return res.json([]);
+
       const allCounts = await getCountsForOperatorMachinePairs(
         db,
         allOperatorMachinePairs,
@@ -2560,52 +2722,74 @@ function constructor(server) {
       );
       const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
 
-      const results = [];
+      // Process each operator-machine pair in parallel
+      const results = await Promise.all(
+        Object.entries(groupedCounts).map(async ([key, countGroup]) => {
+          const { operator, machine, validCounts, misfeedCounts } = countGroup;
+          
+          // Skip if operatorId is provided and doesn't match
+          if (operatorId && operator?.id !== operatorId) return null;
 
-      for (const key in groupedCounts) {
-        const { operator, machine, counts, validCounts, misfeedCounts } =
-          groupedCounts[key];
-        // Skip if operatorId is provided and doesn't match
-        if (operatorId && operator?.id !== operatorId) continue;
+          const states = groupedStates[key]?.states || [];
+          if (!states.length) return null;
+          
+          const runCycles = getCompletedCyclesForOperator(states);
+          if (!runCycles.length) return null;
+          
+          const totalRunMs = runCycles.reduce(
+            (acc, cycle) => acc + (cycle.duration || 0),
+            0
+          );
 
-        const itemMap = groupCountsByItem(validCounts);
-        const states = groupedStates[key]?.states || [];
-        const runCycles = getCompletedCyclesForOperator(states);
-        const totalRunMs = runCycles.reduce(
-          (acc, cycle) => acc + (cycle.duration || 0),
-          0
-        );
+          const itemMap = groupCountsByItem(validCounts);
+          if (!Object.keys(itemMap).length) return null;
 
-        for (const itemId in itemMap) {
-          const group = itemMap[itemId];
-          const item = group[0]?.item || {};
-          const count = group.length;
-          const misfeeds = misfeedCounts.filter(
-            (m) => m.item?.id === parseInt(itemId)
-          ).length;
+          // Pre-calculate misfeed counts by item for efficiency
+          const misfeedByItem = {};
+          for (const misfeed of misfeedCounts) {
+            const itemId = misfeed.item?.id;
+            if (itemId) {
+              misfeedByItem[itemId] = (misfeedByItem[itemId] || 0) + 1;
+            }
+          }
+
           const hours = totalRunMs / 3600000;
-          const pph = hours > 0 ? count / hours : 0;
-          const standard = item.standard > 0 ? item.standard : 666;
-          const efficiency = standard > 0 ? pph / standard : 0;
+          const workedTimeFormatted = formatDuration(totalRunMs);
 
-          results.push({
-            operatorName: operator?.name || "Unknown",
-            machineName: machine?.name || "Unknown",
-            itemName: item?.name || "Unknown",
-            workedTimeFormatted: formatDuration(totalRunMs),
-            count,
-            misfeed: misfeeds,
-            pph: Math.round(pph * 100) / 100,
-            standard,
-            efficiency: Math.round(efficiency * 10000) / 100,
-          });
-        }
-      }
+          // Process all items for this operator-machine pair
+          const itemResults = [];
+          for (const [itemId, group] of Object.entries(itemMap)) {
+            const item = group[0]?.item || {};
+            const count = group.length;
+            const misfeeds = misfeedByItem[parseInt(itemId)] || 0;
+            const pph = hours > 0 ? count / hours : 0;
+            const standard = item.standard > 0 ? item.standard : 666;
+            const efficiency = standard > 0 ? pph / standard : 0;
 
-      // Consolidate duplicate rows
+            itemResults.push({
+              operatorName: operator?.name || "Unknown",
+              machineName: machine?.name || "Unknown",
+              itemName: item?.name || "Unknown",
+              workedTimeFormatted,
+              count,
+              misfeed: misfeeds,
+              pph: Math.round(pph * 100) / 100,
+              standard,
+              efficiency: Math.round(efficiency * 10000) / 100,
+            });
+          }
+
+          return itemResults;
+        })
+      );
+
+      // Flatten results and consolidate duplicates in a single pass
       const consolidated = {};
-      for (const row of results) {
+      const flatResults = results.filter(Boolean).flat();
+
+      for (const row of flatResults) {
         const key = `${row.operatorName}-${row.machineName}-${row.itemName}`;
+        
         if (!consolidated[key]) {
           consolidated[key] = { ...row };
         } else {
@@ -2613,32 +2797,25 @@ function constructor(server) {
           existing.count += row.count;
           existing.misfeed += row.misfeed;
 
-          const existingMs =
-            (existing.workedTimeFormatted.hours * 60 +
-              existing.workedTimeFormatted.minutes) *
-            60000;
-          const newMs =
-            (row.workedTimeFormatted.hours * 60 +
-              row.workedTimeFormatted.minutes) *
-            60000;
+          // Convert formatted time back to milliseconds for calculation
+          const existingMs = (existing.workedTimeFormatted.hours * 60 + existing.workedTimeFormatted.minutes) * 60000;
+          const newMs = (row.workedTimeFormatted.hours * 60 + row.workedTimeFormatted.minutes) * 60000;
           const totalMs = existingMs + newMs;
 
-          const totalMinutes = Math.floor(totalMs / 60000);
-          existing.workedTimeFormatted = {
-            hours: Math.floor(totalMinutes / 60),
-            minutes: totalMinutes % 60,
-          };
-
+          // Recalculate metrics
           const totalHours = totalMs / 3600000;
-          existing.pph = Math.round((existing.count / totalHours) * 100) / 100;
-          existing.efficiency =
-            Math.round((existing.pph / existing.standard) * 10000) / 100;
+          const totalPph = totalHours > 0 ? existing.count / totalHours : 0;
+          const totalEfficiency = existing.standard > 0 ? totalPph / existing.standard : 0;
+
+          existing.workedTimeFormatted = formatDuration(totalMs);
+          existing.pph = Math.round(totalPph * 100) / 100;
+          existing.efficiency = Math.round(totalEfficiency * 10000) / 100;
         }
       }
 
       res.json(Object.values(consolidated));
     } catch (err) {
-      logger.error("Error in /analytics/operator-item-summary:", err);
+      logger.error(`Error in ${req.method} ${req.url}:`, err);
       res
         .status(500)
         .json({ error: "Failed to generate operator item summary report" });
@@ -2739,7 +2916,7 @@ function constructor(server) {
 
       res.json(results);
     } catch (err) {
-      logger.error("Error in /analytics/item-summary:", err);
+      logger.error(`Error in ${req.method} ${req.url}:`, err);
       res.status(500).json({ error: "Failed to generate item summary report" });
     }
   });
@@ -2808,7 +2985,7 @@ function constructor(server) {
         },
       });
     } catch (err) {
-      logger.error("Error in /analytics/machine-item-hourly-item-stack:", err);
+      logger.error(`Error in ${req.method} ${req.url}:`, err);
       res.status(500).json({ error: "Failed to build item/hour stacked data" });
     }
   });
@@ -2880,7 +3057,7 @@ function constructor(server) {
 
       res.json(response);
     } catch (error) {
-      logger.error("Error calculating operator cycle pie data:", error);
+      logger.error(`Error in ${req.method} ${req.url}:`, error);
       res
         .status(500)
         .json({ error: "Failed to fetch operator cycle pie data" });
@@ -3089,7 +3266,7 @@ function constructor(server) {
         data: results,
       });
     } catch (error) {
-      logger.error("Error in /analytics/operator/daily-efficiency:", error);
+      logger.error(`Error in ${req.method} ${req.url}:`, error);
       res.status(500).json({ error: "Failed to compute daily efficiency" });
     }
   });
@@ -3191,7 +3368,7 @@ function constructor(server) {
 
       res.json(results);
     } catch (err) {
-      logger.error("Error in /analytics/item-dashboard-summary:", err);
+      logger.error(`Error in ${req.method} ${req.url}:`, err);
       res
         .status(500)
         .json({ error: "Failed to generate item dashboard summary" });
@@ -3281,7 +3458,7 @@ function constructor(server) {
   
       res.json(results);
     } catch (err) {
-      logger.error("Error in /softrol/historic-data-test:", err);
+      logger.error(`Error in ${req.method} ${req.url}:`, err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
