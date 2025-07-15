@@ -2527,6 +2527,7 @@ function constructor(server) {
       const { start, end, serial } = parseAndValidateQueryParams(req);
       const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
   
+      // 1. Fetch all states for the machine and time window
       const allStates = await fetchStatesForMachine(
         db,
         serial || null,
@@ -2537,11 +2538,16 @@ function constructor(server) {
   
       const groupedStates = groupStatesByMachine(allStates);
   
+      // Helper to format worked time
+      const formatWorkedTime = (ms) => formatDuration(ms);
+  
+      // For each machine
       const results = await Promise.all(
         Object.entries(groupedStates).map(async ([machineSerial, group]) => {
           const machineName = group.machine?.name || "Unknown";
           const machineStates = group.states;
   
+          // 2. Extract running cycles from state records
           const cycles = extractAllCyclesFromStates(
             machineStates,
             start,
@@ -2567,92 +2573,161 @@ function constructor(server) {
             };
           }
   
-          const allCounts = await getValidCounts(
-            db,
-            parseInt(machineSerial),
-            start,
-            end
+          // 3. For each cycle, aggregate item summaries in MongoDB
+          const perCycleItemSummaries = await Promise.all(
+            cycles.map(async (cycle) => {
+              const cycleStart = new Date(cycle.start);
+              const cycleEnd = new Date(cycle.end);
+              const cycleMs = cycleEnd - cycleStart;
+  
+              // Fetch all counts for this machine and cycle window
+              const counts = await db.collection("count").find({
+                "machine.serial": parseInt(machineSerial),
+                timestamp: { $gte: cycleStart, $lte: cycleEnd },
+              }).toArray();
+  
+              if (!counts.length) return null;
+  
+              // Compute unique operator IDs (with fallback for missing/zero)
+              const uniqueOperatorIds = new Set(
+                counts.map((c) => {
+                  if (!c.operator || !c.operator.id || c.operator.id === 0) {
+                    return parseInt(machineSerial) + 900000;
+                  }
+                  return c.operator.id;
+                })
+              );
+              const workedTimeMs = cycleMs * Math.max(1, uniqueOperatorIds.size);
+  
+              // Run aggregation in MongoDB for this cycle
+              const pipeline = [
+                {
+                  $match: {
+                    "machine.serial": parseInt(machineSerial),
+                    timestamp: { $gte: cycleStart, $lte: cycleEnd },
+                  },
+                },
+                {
+                  $addFields: {
+                    operatorId: {
+                      $cond: [
+                        { $or: [ { $eq: [ "$operator.id", null ] }, { $eq: [ "$operator.id", 0 ] } ] },
+                        { $add: [parseInt(machineSerial), 900000] },
+                        "$operator.id"
+                      ]
+                    }
+                  }
+                },
+                {
+                  $group: {
+                    _id: "$item._id",
+                    name: { $first: "$item.name" },
+                    standard: { $first: { $ifNull: ["$item.standard", 666] } },
+                    count: { $sum: 1 }
+                  }
+                },
+                {
+                  $addFields: {
+                    workedTimeMs: workedTimeMs
+                  }
+                },
+                {
+                  $project: {
+                    _id: 1,
+                    name: 1,
+                    standard: 1,
+                    count: 1,
+                    workedTimeMs: 1,
+                    pph: {
+                      $cond: [
+                        { $gt: [workedTimeMs, 0] },
+                        { $divide: ["$count", { $divide: [workedTimeMs, 3600000] }] },
+                        0
+                      ]
+                    },
+                    efficiency: {
+                      $cond: [
+                        { $gt: ["$standard", 0] },
+                        {
+                          $divide: [
+                            { $cond: [
+                              { $gt: [workedTimeMs, 0] },
+                              { $divide: ["$count", { $divide: [workedTimeMs, 3600000] }] },
+                              0
+                            ] },
+                            "$standard"
+                          ]
+                        },
+                        0
+                      ]
+                    }
+                  }
+                }
+              ];
+  
+              const itemSummaries = await db.collection("count").aggregate(pipeline).toArray();
+  
+              return {
+                start: cycleStart.toISOString(),
+                end: cycleEnd.toISOString(),
+                workedTimeMs,
+                workedTimeFormatted: formatWorkedTime(workedTimeMs),
+                itemSummaries,
+              };
+            })
           );
   
+          // 4. Merge per-cycle item summaries into per-machine summary
           let totalCount = 0;
           let totalWorkedMs = 0;
-          const itemSummaries = {};
+          const itemSummariesMerged = {};
           const sessions = [];
   
-          for (const cycle of cycles) {
-            const cycleStart = new Date(cycle.start);
-            const cycleEnd = new Date(cycle.end);
-            const cycleMs = cycleEnd - cycleStart;
-  
-            const cycleCounts = allCounts.filter((c) => {
-              const ts = new Date(c.timestamp);
-              return ts >= cycleStart && ts <= cycleEnd;
+          for (const cycleSummary of perCycleItemSummaries) {
+            if (!cycleSummary) continue;
+            sessions.push({
+              start: cycleSummary.start,
+              end: cycleSummary.end,
+              workedTimeMs: cycleSummary.workedTimeMs,
+              workedTimeFormatted: cycleSummary.workedTimeFormatted,
             });
-  
-            if (!cycleCounts.length) continue;
-  
-            const uniqueOperatorIds = new Set(
-              cycleCounts.map((c) => c.operator?.id).filter(Boolean)
-            );
-            const workedTimeMs = cycleMs * Math.max(1, uniqueOperatorIds.size);
-  
-            const groupedCounts = groupCountsByItem(cycleCounts);
-  
-            for (const [itemId, records] of Object.entries(groupedCounts)) {
-              const count = records.length;
-              const standard = records[0].item?.standard || 666;
-              const name = records[0].item?.name || "Unknown";
-  
-              if (!itemSummaries[itemId]) {
-                itemSummaries[itemId] = {
-                  name,
-                  standard,
-                  count: 0,
+            totalWorkedMs += cycleSummary.workedTimeMs;
+            for (const item of cycleSummary.itemSummaries) {
+              if (!itemSummariesMerged[item._id]) {
+                itemSummariesMerged[item._id] = {
+                  name: item.name,
+                  standard: item.standard,
+                  countTotal: 0,
                   workedTimeMs: 0,
                 };
               }
-  
-              itemSummaries[itemId].count += count;
-              itemSummaries[itemId].workedTimeMs += workedTimeMs;
-              totalCount += count;
-              totalWorkedMs += workedTimeMs;
+              itemSummariesMerged[item._id].countTotal += item.count;
+              itemSummariesMerged[item._id].workedTimeMs += item.workedTimeMs;
+              totalCount += item.count;
             }
-  
-            sessions.push({
-              start: cycleStart.toISOString(),
-              end: cycleEnd.toISOString(),
-              workedTimeMs,
-              workedTimeFormatted: formatDuration(workedTimeMs),
-            });
           }
   
-          // Final aggregation (1-pass)
+          // 5. Final aggregation and formatting
           let proratedStandard = 0;
           const itemSummariesFormatted = {};
-  
-          for (const [itemId, summary] of Object.entries(itemSummaries)) {
+          for (const [itemId, summary] of Object.entries(itemSummariesMerged)) {
             const hours = summary.workedTimeMs / 3600000;
-            const pph = hours > 0 ? summary.count / hours : 0;
-            const efficiency =
-              summary.standard > 0 ? pph / summary.standard : 0;
-  
-            const weight = totalCount > 0 ? summary.count / totalCount : 0;
+            const pph = hours > 0 ? summary.countTotal / hours : 0;
+            const efficiency = summary.standard > 0 ? pph / summary.standard : 0;
+            const weight = totalCount > 0 ? summary.countTotal / totalCount : 0;
             proratedStandard += weight * summary.standard;
-  
             itemSummariesFormatted[itemId] = {
               name: summary.name,
               standard: summary.standard,
-              countTotal: summary.count,
-              workedTimeFormatted: formatDuration(summary.workedTimeMs),
+              countTotal: summary.countTotal,
+              workedTimeFormatted: formatWorkedTime(summary.workedTimeMs),
               pph: Math.round(pph * 100) / 100,
               efficiency: Math.round(efficiency * 10000) / 100,
             };
           }
-  
           const totalHours = totalWorkedMs / 3600000;
           const machinePph = totalHours > 0 ? totalCount / totalHours : 0;
-          const machineEff =
-            proratedStandard > 0 ? machinePph / proratedStandard : 0;
+          const machineEff = proratedStandard > 0 ? machinePph / proratedStandard : 0;
   
           return {
             machine: {
@@ -2663,7 +2738,7 @@ function constructor(server) {
             machineSummary: {
               totalCount,
               workedTimeMs: totalWorkedMs,
-              workedTimeFormatted: formatDuration(totalWorkedMs),
+              workedTimeFormatted: formatWorkedTime(totalWorkedMs),
               pph: Math.round(machinePph * 100) / 100,
               proratedStandard: Math.round(proratedStandard * 100) / 100,
               efficiency: Math.round(machineEff * 10000) / 100,
@@ -2687,9 +2762,7 @@ function constructor(server) {
   router.get("/analytics/operator-item-summary", async (req, res) => {
     try {
       const { start, end } = parseAndValidateQueryParams(req);
-      const operatorId = req.query.operatorId
-        ? parseInt(req.query.operatorId)
-        : null;
+      const operatorId = req.query.operatorId ? parseInt(req.query.operatorId) : null;
       const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
 
       // Fetch states filtered by operatorId if present
@@ -2699,9 +2772,8 @@ function constructor(server) {
         paddedStart,
         paddedEnd
       );
-      
       if (!allStates.length) return res.json([]);
-      
+
       const groupedStates = groupStatesByOperatorAndSerial(allStates);
 
       // Filter operator-machine pairs by operatorId if present
@@ -2714,114 +2786,166 @@ function constructor(server) {
 
       if (!allOperatorMachinePairs.length) return res.json([]);
 
-      const allCounts = await getCountsForOperatorMachinePairs(
-        db,
-        allOperatorMachinePairs,
-        paddedStart,
-        paddedEnd
-      );
-      const groupedCounts = groupCountsByOperatorAndMachine(allCounts);
+      // Helper to format worked time
+      const formatWorkedTime = (ms) => formatDuration(ms);
 
-      // Process each operator-machine pair in parallel
-      const results = await Promise.all(
-        Object.entries(groupedCounts).map(async ([key, countGroup]) => {
-          const { operator, machine, validCounts, misfeedCounts } = countGroup;
-          
-          // Skip if operatorId is provided and doesn't match
-          if (operatorId && operator?.id !== operatorId) return null;
-
+      // For each operator-machine pair, process cycles and aggregate items
+      const allResults = await Promise.all(
+        allOperatorMachinePairs.map(async ({ operatorId: opId, machineSerial }) => {
+          // Get states for this operator-machine pair
+          const key = `${opId}-${machineSerial}`;
           const states = groupedStates[key]?.states || [];
           if (!states.length) return null;
-          
+
+          // Extract running cycles for this operator-machine pair
           const runCycles = getCompletedCyclesForOperator(states);
           if (!runCycles.length) return null;
-          
-          const totalRunMs = runCycles.reduce(
-            (acc, cycle) => acc + (cycle.duration || 0),
-            0
+
+          // Get operator/machine names from first state or fallback
+          const operatorName = states[0]?.operator?.name || `Operator ${opId}`;
+          const machineName = states[0]?.machine?.name || `Machine ${machineSerial}`;
+
+          // For each cycle, aggregate item summaries in MongoDB
+          const perCycleItemSummaries = await Promise.all(
+            runCycles.map(async (cycle) => {
+              const cycleStart = new Date(cycle.start);
+              const cycleEnd = new Date(cycle.end);
+              const cycleMs = cycleEnd - cycleStart;
+
+              // Operator fallback for counts
+              const fallbackOperatorId = machineSerial + 900000;
+              const operatorIdList = [opId, fallbackOperatorId];
+
+              // Mongo aggregation pipeline for this cycle
+              const pipeline = [
+                {
+                  $match: {
+                    "machine.serial": machineSerial,
+                    $or: [
+                      { "operator.id": opId },
+                      { "operator.id": fallbackOperatorId },
+                    ],
+                    timestamp: { $gte: cycleStart, $lte: cycleEnd },
+                  },
+                },
+                {
+                  $group: {
+                    _id: "$item._id",
+                    name: { $first: "$item.name" },
+                    standard: { $first: { $ifNull: ["$item.standard", 666] } },
+                    count: { $sum: 1 },
+                    misfeed: {
+                      $sum: {
+                        $cond: [
+                          { $eq: ["$misfeed", true] },
+                          1,
+                          0
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  $addFields: {
+                    workedTimeMs: cycleMs
+                  }
+                },
+                {
+                  $project: {
+                    _id: 1,
+                    name: 1,
+                    standard: 1,
+                    count: 1,
+                    misfeed: 1,
+                    workedTimeMs: 1,
+                    pph: {
+                      $cond: [
+                        { $gt: [cycleMs, 0] },
+                        { $divide: ["$count", { $divide: [cycleMs, 3600000] }] },
+                        0
+                      ]
+                    },
+                    efficiency: {
+                      $cond: [
+                        { $gt: ["$standard", 0] },
+                        {
+                          $divide: [
+                            { $cond: [
+                              { $gt: [cycleMs, 0] },
+                              { $divide: ["$count", { $divide: [cycleMs, 3600000] }] },
+                              0
+                            ] },
+                            "$standard"
+                          ]
+                        },
+                        0
+                      ]
+                    }
+                  }
+                }
+              ];
+
+              const itemSummaries = await db.collection("count").aggregate(pipeline).toArray();
+
+              return {
+                workedTimeMs: cycleMs,
+                workedTimeFormatted: formatWorkedTime(cycleMs),
+                itemSummaries,
+              };
+            })
           );
 
-          const itemMap = groupCountsByItem(validCounts);
-          if (!Object.keys(itemMap).length) return null;
-
-          // Pre-calculate misfeed counts by item for efficiency
-          const misfeedByItem = {};
-          for (const misfeed of misfeedCounts) {
-            const itemId = misfeed.item?.id;
-            if (itemId) {
-              misfeedByItem[itemId] = (misfeedByItem[itemId] || 0) + 1;
+          // Merge per-cycle item summaries into a flat array
+          const itemMap = {};
+          for (const cycleSummary of perCycleItemSummaries) {
+            if (!cycleSummary) continue;
+            for (const item of cycleSummary.itemSummaries) {
+              const key = `${opId}-${machineSerial}-${item._id}`;
+              if (!itemMap[key]) {
+                itemMap[key] = {
+                  operatorName,
+                  machineName,
+                  itemName: item.name,
+                  workedTimeMs: 0,
+                  count: 0,
+                  misfeed: 0,
+                  standard: item.standard,
+                };
+              }
+              itemMap[key].workedTimeMs += item.workedTimeMs;
+              itemMap[key].count += item.count;
+              itemMap[key].misfeed += item.misfeed;
             }
           }
 
-          const hours = totalRunMs / 3600000;
-          const workedTimeFormatted = formatDuration(totalRunMs);
-
-          // Process all items for this operator-machine pair
-          const itemResults = [];
-          for (const [itemId, group] of Object.entries(itemMap)) {
-            const item = group[0]?.item || {};
-            const count = group.length;
-            const misfeeds = misfeedByItem[parseInt(itemId)] || 0;
-            const pph = hours > 0 ? count / hours : 0;
-            const standard = item.standard > 0 ? item.standard : 666;
-            const efficiency = standard > 0 ? pph / standard : 0;
-
-            itemResults.push({
-              operatorName: operator?.name || "Unknown",
-              machineName: machine?.name || "Unknown",
-              itemName: item?.name || "Unknown",
-              workedTimeFormatted,
-              count,
-              misfeed: misfeeds,
+          // Format results as flat array
+          return Object.values(itemMap).map((row) => {
+            const hours = row.workedTimeMs / 3600000;
+            const pph = hours > 0 ? row.count / hours : 0;
+            const efficiency = row.standard > 0 ? pph / row.standard : 0;
+            return {
+              operatorName: row.operatorName,
+              machineName: row.machineName,
+              itemName: row.itemName,
+              workedTimeFormatted: formatWorkedTime(row.workedTimeMs),
+              count: row.count,
+              misfeed: row.misfeed,
               pph: Math.round(pph * 100) / 100,
-              standard,
+              standard: row.standard,
               efficiency: Math.round(efficiency * 10000) / 100,
-            });
-          }
-
-          return itemResults;
+            };
+          });
         })
       );
 
-      // Flatten results and consolidate duplicates in a single pass
-      const consolidated = {};
-      const flatResults = results.filter(Boolean).flat();
-
-      for (const row of flatResults) {
-        const key = `${row.operatorName}-${row.machineName}-${row.itemName}`;
-        
-        if (!consolidated[key]) {
-          consolidated[key] = { ...row };
-        } else {
-          const existing = consolidated[key];
-          existing.count += row.count;
-          existing.misfeed += row.misfeed;
-
-          // Convert formatted time back to milliseconds for calculation
-          const existingMs = (existing.workedTimeFormatted.hours * 60 + existing.workedTimeFormatted.minutes) * 60000;
-          const newMs = (row.workedTimeFormatted.hours * 60 + row.workedTimeFormatted.minutes) * 60000;
-          const totalMs = existingMs + newMs;
-
-          // Recalculate metrics
-          const totalHours = totalMs / 3600000;
-          const totalPph = totalHours > 0 ? existing.count / totalHours : 0;
-          const totalEfficiency = existing.standard > 0 ? totalPph / existing.standard : 0;
-
-          existing.workedTimeFormatted = formatDuration(totalMs);
-          existing.pph = Math.round(totalPph * 100) / 100;
-          existing.efficiency = Math.round(totalEfficiency * 10000) / 100;
-        }
-      }
-
-      res.json(Object.values(consolidated));
+      // Flatten and filter nulls
+      const flatResults = allResults.filter(Boolean).flat();
+      res.json(flatResults);
     } catch (err) {
       logger.error(`Error in ${req.method} ${req.url}:`, err);
-      res
-        .status(500)
-        .json({ error: "Failed to generate operator item summary report" });
+      res.status(500).json({ error: "Failed to generate operator item summary report" });
     }
   });
-
   //API route for operator item summary end
 
   //API route for item summary start
