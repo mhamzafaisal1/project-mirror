@@ -3463,6 +3463,113 @@ function constructor(server) {
     }
   });
   
+  //API route for item Dashboard start
+  router.get("/analytics/item-dashboard-summary-agg", async (req, res) => {
+    try {
+      const { start, end } = parseAndValidateQueryParams(req);
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+
+      // Aggregation pipeline
+      const pipeline = [
+        {
+          $match: {
+            timestamp: { $gte: startDate, $lte: endDate },
+            misfeed: { $ne: true }, // Only valid counts
+            "item.id": { $ne: null },
+          },
+        },
+        {
+          $group: {
+            _id: "$item.id",
+            itemName: { $first: "$item.name" },
+            standard: { $first: "$item.standard" },
+            count: { $sum: 1 },
+            minTimestamp: { $min: "$timestamp" },
+            maxTimestamp: { $max: "$timestamp" },
+            operatorIds: { $addToSet: "$operator.id" },
+          },
+        },
+        {
+          $addFields: {
+            workedTimeMs: {
+              $subtract: ["$maxTimestamp", "$minTimestamp"]
+            },
+            totalOperators: { $size: "$operatorIds" },
+          },
+        },
+        {
+          $addFields: {
+            // Approximate worked time by multiplying by number of unique operators (if >0)
+            workedTimeMs: {
+              $cond: [
+                { $gt: ["$totalOperators", 0] },
+                { $multiply: ["$workedTimeMs", "$totalOperators"] },
+                "$workedTimeMs"
+              ]
+            },
+            standard: { $ifNull: ["$standard", 666] },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            itemId: "$_id",
+            itemName: 1,
+            standard: 1,
+            count: 1,
+            workedTimeMs: 1,
+            pph: {
+              $cond: [
+                { $gt: ["$workedTimeMs", 0] },
+                { $divide: [
+                  "$count",
+                  { $divide: ["$workedTimeMs", 3600000] }
+                ] },
+                0
+              ]
+            },
+            efficiency: {
+              $cond: [
+                { $gt: ["$standard", 0] },
+                { $multiply: [
+                  { $divide: [
+                    { $cond: [
+                      { $gt: ["$workedTimeMs", 0] },
+                      { $divide: ["$count", { $divide: ["$workedTimeMs", 3600000] }] },
+                      0
+                    ] },
+                    "$standard"
+                  ] },
+                  100
+                ] },
+                0
+              ]
+            },
+          },
+        },
+        {
+          $sort: { itemName: 1 }
+        }
+      ];
+
+      const results = await db.collection("count").aggregate(pipeline).toArray();
+
+      // Format workedTimeMs to match the old API (use formatDuration)
+      const formattedResults = results.map(entry => ({
+        ...entry,
+        workedTimeFormatted: formatDuration(entry.workedTimeMs),
+        pph: Math.round(entry.pph * 100) / 100,
+        efficiency: Math.round(entry.efficiency * 100) / 100,
+      }));
+
+      res.json(formattedResults);
+    } catch (err) {
+      logger.error(`Error in ${req.method} ${req.url}:`, err);
+      res.status(500).json({ error: "Failed to generate item dashboard summary (agg)" });
+    }
+  });
+  // ... existing code ...
 
   return router;
 }
