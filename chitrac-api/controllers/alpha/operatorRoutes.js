@@ -65,6 +65,7 @@ module.exports = function (server) {
     calculateTotalCount,
     calculateOperatorTimes,
     calculateMisfeeds,
+    calculatePiecesPerHour,
   } = require("../../utils/analytics");
 
   const {
@@ -932,6 +933,312 @@ module.exports = function (server) {
     } catch (err) {
       logger.error("Error in /analytics/operator-dashboard-optimized route:", err);
       res.status(500).json({ error: "Failed to fetch operator dashboard data" });
+    }
+  });
+
+  // Helper: Build item summary from aggregation and run time
+  function buildAggregatedOperatorItemSummary(itemAgg, totalRunMs) {
+    // itemAgg: array of { operatorId, machineSerial, machineName, itemId, itemName, standard, count, misfeed }
+    const result = [];
+    for (const row of itemAgg) {
+      const hours = totalRunMs / 3600000;
+      const pph = hours > 0 ? row.count / hours : 0;
+      const efficiency = row.standard > 0 ? pph / row.standard : 0;
+      result.push({
+        operatorName: row.operatorName,
+        machineSerial: row.machineSerial,
+        machineName: row.machineName,
+        itemName: row.itemName,
+        count: row.count,
+        misfeed: row.misfeed,
+        rawRunMs: totalRunMs,
+        standard: row.standard,
+        workedTimeFormatted: formatDuration(totalRunMs),
+        pph: Math.round(pph * 100) / 100,
+        efficiency: Math.round(efficiency * 10000) / 100
+      });
+    }
+    return result;
+  }
+
+  // Helper: Build hourly count by item from aggregation
+  function buildAggregatedOperatorCountByItem(hourlyAgg) {
+    // hourlyAgg: array of { itemId, itemName, hourlyCounts: [{hour, count}], total }
+    const operators = {};
+    for (const row of hourlyAgg) {
+      const arr = Array(24).fill(0);
+      for (const hc of row.hourlyCounts) {
+        arr[hc.hour] = hc.count;
+      }
+      operators[row.itemName] = arr;
+    }
+    return {
+      title: 'Operator Counts by item',
+      data: {
+        hours: Array.from({ length: 24 }, (_, i) => i),
+        operators
+      }
+    };
+  }
+
+  // Aggregated operator performance route
+  router.get("/analytics/operator-performance-agg", async (req, res) => {
+    try {
+      // Step 1: Parse and validate query parameters
+      const { start, end, operatorId } = parseAndValidateQueryParams(req);
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+
+      let states;
+      let groupedStates;
+
+      if (operatorId) {
+        // If operatorId provided, get states for just that operator
+        states = await fetchStatesForOperator(
+          db,
+          operatorId,
+          paddedStart,
+          paddedEnd
+        );
+        // Create a single group for this operator
+        groupedStates = {
+          [operatorId]: {
+            operator: {
+              id: operatorId,
+              name: await getOperatorNameFromCount(db, operatorId),
+            },
+            states: states,
+          },
+        };
+      } else {
+        // If no operatorId, get all states and group them by operator
+        const allStates = await fetchStatesForOperator(
+          db,
+          null,
+          paddedStart,
+          paddedEnd
+        );
+        groupedStates = groupStatesByOperator(allStates);
+
+        // Update operator names for all groups
+        for (const [opId, group] of Object.entries(groupedStates)) {
+          group.operator.name = await getOperatorNameFromCount(db, opId);
+        }
+      }
+
+      // Step 3: Get all operator IDs for count query
+      const operatorIds = Object.keys(groupedStates).map((id) => parseInt(id));
+
+      // Use aggregation to get count stats per operator
+      const countAgg = await db.collection("count").aggregate([
+        {
+          $match: {
+            "operator.id": { $in: operatorIds },
+            timestamp: { $gte: new Date(start), $lte: new Date(end) }
+          }
+        },
+        {
+          $group: {
+            _id: "$operator.id",
+            operatorName: { $first: "$operator.name" },
+            totalCount: { $sum: 1 },
+            validCount: { $sum: { $cond: [ { $ne: ["$misfeed", true] }, 1, 0 ] } },
+            misfeedCount: { $sum: { $cond: [ { $eq: ["$misfeed", true] }, 1, 0 ] } },
+            allCounts: { $push: "$$ROOT" }
+          }
+        }
+      ]).toArray();
+      const operatorCounts = {};
+      for (const agg of countAgg) {
+        operatorCounts[agg._id] = {
+          counts: agg.allCounts,
+          validCounts: agg.allCounts.filter(c => !c.misfeed),
+          misfeedCounts: agg.allCounts.filter(c => c.misfeed),
+          totalCount: agg.totalCount,
+          validCount: agg.validCount,
+          misfeedCount: agg.misfeedCount,
+        };
+      }
+
+      // Aggregation for item summary (per operator, machine, item)
+      const itemAggRaw = await db.collection("count").aggregate([
+        {
+          $match: {
+            "operator.id": { $in: operatorIds },
+            timestamp: { $gte: new Date(start), $lte: new Date(end) },
+          }
+        },
+        {
+          $group: {
+            _id: {
+              operatorId: "$operator.id",
+              operatorName: "$operator.name",
+              machineSerial: "$machine.serial",
+              machineName: "$machine.name",
+              itemId: "$item.id",
+              itemName: "$item.name",
+              standard: "$item.standard"
+            },
+            count: { $sum: { $cond: [ { $ne: ["$misfeed", true] }, 1, 0 ] } },
+            misfeed: { $sum: { $cond: [ { $eq: ["$misfeed", true] }, 1, 0 ] } }
+          }
+        },
+        {
+          $project: {
+            operatorId: "$_id.operatorId",
+            operatorName: "$_id.operatorName",
+            machineSerial: "$_id.machineSerial",
+            machineName: "$_id.machineName",
+            itemId: "$_id.itemId",
+            itemName: "$_id.itemName",
+            standard: { $ifNull: ["$_id.standard", 666] },
+            count: 1,
+            misfeed: 1
+          }
+        }
+      ]).toArray();
+
+      // Aggregation for hourly count by item (per operator)
+      const hourlyAggRaw = await db.collection("count").aggregate([
+        {
+          $match: {
+            "operator.id": { $in: operatorIds },
+            timestamp: { $gte: new Date(start), $lte: new Date(end) },
+          }
+        },
+        {
+          $group: {
+            _id: {
+              operatorId: "$operator.id",
+              itemId: "$item.id",
+              itemName: "$item.name",
+              hour: { $hour: "$timestamp" }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        {
+          $group: {
+            _id: { operatorId: "$_id.operatorId", itemId: "$_id.itemId", itemName: "$_id.itemName" },
+            hourlyCounts: { $push: { hour: "$_id.hour", count: "$count" } },
+            total: { $sum: "$count" }
+          }
+        },
+        {
+          $project: {
+            operatorId: "$_id.operatorId",
+            itemId: "$_id.itemId",
+            itemName: "$_id.itemName",
+            hourlyCounts: 1,
+            total: 1
+          }
+        }
+      ]).toArray();
+
+      // Step 4: Process each operator's data in parallel
+      const operatorResults = await Promise.all(
+        Object.entries(groupedStates).map(async ([operatorId, group]) => {
+          const states = group.states;
+
+          // Skip if no states found for this operator
+          if (!states.length) return null;
+
+          // Get counts for this operator
+          const counts = operatorCounts[parseInt(operatorId)];
+          if (!counts) return null;
+
+          // Process count statistics using the new utility function
+          const stats = processCountStatistics(counts.counts);
+
+          // Calculate metrics for this operator
+          const totalQueryMs = new Date(end) - new Date(start);
+          const {
+            runtime: runtimeMs,
+            pausedTime: pausedTimeMs,
+            faultTime: faultTimeMs,
+          } = calculateOperatorTimes(states, start, end);
+
+          const piecesPerHour = calculatePiecesPerHour(stats.total, runtimeMs);
+          const efficiency = calculateEfficiency(
+            runtimeMs,
+            stats.total,
+            counts.validCounts
+          );
+
+          // Get current status for this operator
+          const currentState = states[states.length - 1] || {};
+
+          // Filter itemAgg and hourlyAgg for this operator
+          const itemAgg = itemAggRaw.filter(row => row.operatorId === parseInt(operatorId));
+          const hourlyAgg = hourlyAggRaw.filter(row => row.operatorId === parseInt(operatorId));
+          // Build summaries
+          const itemSummary = buildAggregatedOperatorItemSummary(itemAgg, runtimeMs);
+          const countByItem = buildAggregatedOperatorCountByItem(hourlyAgg);
+
+          // New: Add cyclePie, faultHistory, dailyEfficiency using state data
+          const cyclePie = buildOptimizedOperatorCyclePie(states, start, end);
+          const faultHistory = buildOptimizedOperatorFaultHistory({ [operatorId]: group }, start, end);
+          const dailyEfficiency = await buildOperatorEfficiencyLine(group, start, end, db);
+
+          // Format response for this operator
+          return {
+            operator: {
+              id: parseInt(operatorId),
+              name: group.operator.name || "Unknown",
+            },
+            currentStatus: {
+              code: currentState.status?.code || 0,
+              name: currentState.status?.name || "Unknown",
+            },
+            metrics: {
+              runtime: {
+                total: runtimeMs,
+                formatted: formatDuration(runtimeMs),
+              },
+              pausedTime: {
+                total: pausedTimeMs,
+                formatted: formatDuration(pausedTimeMs),
+              },
+              faultTime: {
+                total: faultTimeMs,
+                formatted: formatDuration(faultTimeMs),
+              },
+              output: {
+                totalCount: stats.total,
+                misfeedCount: stats.misfeeds,
+                validCount: stats.valid,
+              },
+              performance: {
+                piecesPerHour: {
+                  value: piecesPerHour,
+                  formatted: Math.round(piecesPerHour).toString(),
+                },
+                efficiency: {
+                  value: efficiency,
+                  percentage: (efficiency * 100).toFixed(2) + "%",
+                },
+              },
+            },
+            timeRange: {
+              start: start,
+              end: end,
+              total: formatDuration(totalQueryMs),
+            },
+            itemSummary,
+            countByItem,
+            cyclePie,
+            faultHistory,
+            dailyEfficiency,
+          };
+        })
+      );
+
+      // Filter out null results and send response
+      res.json(operatorResults.filter((result) => result !== null));
+    } catch (error) {
+      logger.error(`Error in ${req.method} ${req.url}:`, error);
+      res
+        .status(500)
+        .json({ error: "Failed to fetch operator performance metrics (agg)" });
     }
   });
 
