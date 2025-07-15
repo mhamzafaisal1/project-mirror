@@ -1123,6 +1123,257 @@ async function getAllOperatorIds(db) {
   }
   
   
+  /**
+ * Fetches dashboard-ready analytics for all operators with data in the given time window.
+ * For each operator, computes:
+ *   - Performance (total counts, misfeeds, runtime, PPH, efficiency)
+ *   - Item Summary (per-item counts, misfeeds, worked time, PPH, efficiency)
+ *   - TODO: Count By Item, Cycle Pie, Fault History, Daily Efficiency
+ *
+ * @param {Db} db - MongoDB database instance
+ * @param {string|Date} start - Start of time window (ISO string or Date)
+ * @param {string|Date} end - End of time window (ISO string or Date)
+ * @returns {Promise<Array>} Array of dashboard-ready objects per operator
+ */
+async function fetchOperatorDashboardData(db, start, end) {
+  // 1. Find all operator IDs with data in the window
+  const operatorIds = await db.collection("count").distinct("operator.id", {
+    timestamp: { $gte: new Date(start), $lte: new Date(end) },
+    "operator.id": { $ne: null }
+  });
+
+  // 2. For each operator, aggregate analytics
+  const results = await Promise.all(
+    operatorIds.map(async (operatorId) => {
+      // --- Performance Block ---
+      // Aggregate total counts, misfeeds, runtime, PPH, efficiency
+      const perfAgg = await db.collection("count").aggregate([
+        { $match: {
+            "operator.id": operatorId,
+            timestamp: { $gte: new Date(start), $lte: new Date(end) }
+        }},
+        { $group: {
+            _id: null,
+            totalCount: { $sum: 1 },
+            misfeedCount: { $sum: { $cond: [ { $eq: ["$misfeed", true] }, 1, 0 ] } },
+            validCount: { $sum: { $cond: [ { $ne: ["$misfeed", true] }, 1, 0 ] } },
+            firstOperator: { $first: "$operator" }
+        }}
+      ]).toArray();
+      const perf = perfAgg[0] || {};
+
+      // --- FIX: Fetch all states for the time window, not just those with operator.id === operatorId ---
+      // We'll filter/group in JS as in the old implementation
+      const allStates = await db.collection("state").find({
+        timestamp: { $gte: new Date(start), $lte: new Date(end) }
+      }).sort({ timestamp: 1 }).toArray();
+      // Filter states for this operator (as in old logic)
+      const states = allStates.filter(s => s.operator && s.operator.id === operatorId);
+      // Debug: log number of states and cycles
+      // console.log(`Operator ${operatorId}: states found = ${states.length}`);
+
+      // Calculate runtime, pausedTime, faultTime in JS (using your existing helpers)
+      const { runtime, pausedTime, faultTime } = calculateOperatorTimes(states, start, end);
+      const piecesPerHour = calculatePiecesPerHour(perf.totalCount || 0, runtime);
+      const efficiency = calculateEfficiency(runtime, perf.totalCount || 0, perf.validCount || 0);
+
+      // --- Item Summary Block ---
+      // For each run cycle, aggregate per-item stats in Mongo
+      const runCycles = getCompletedCyclesForOperator(states);
+      // Debug: log number of cycles
+      // console.log(`Operator ${operatorId}: cycles found = ${runCycles.length}`);
+      const itemSummariesMerged = {};
+      let totalWorkedMs = 0;
+      let totalCount = 0;
+      for (const cycle of runCycles) {
+        const cycleStart = new Date(cycle.start);
+        const cycleEnd = new Date(cycle.end);
+        const cycleMs = cycleEnd - cycleStart;
+        // Aggregate per-item for this cycle
+        const items = await db.collection("count").aggregate([
+          { $match: {
+              "operator.id": operatorId,
+              timestamp: { $gte: cycleStart, $lte: cycleEnd }
+          }},
+          { $group: {
+              _id: "$item._id",
+              name: { $first: "$item.name" },
+              standard: { $first: { $ifNull: ["$item.standard", 666] } },
+              count: { $sum: 1 },
+              misfeed: { $sum: { $cond: [ { $eq: ["$misfeed", true] }, 1, 0 ] } }
+          }},
+          { $addFields: { workedTimeMs: cycleMs } }
+        ]).toArray();
+        for (const item of items) {
+          if (!itemSummariesMerged[item._id]) {
+            itemSummariesMerged[item._id] = {
+              name: item.name,
+              standard: item.standard,
+              count: 0,
+              misfeed: 0,
+              workedTimeMs: 0
+            };
+          }
+          itemSummariesMerged[item._id].count += item.count;
+          itemSummariesMerged[item._id].misfeed += item.misfeed;
+          itemSummariesMerged[item._id].workedTimeMs += item.workedTimeMs;
+          totalCount += item.count;
+          totalWorkedMs += item.workedTimeMs;
+        }
+      }
+      // Format item summaries
+      const itemSummaries = Object.values(itemSummariesMerged).map(item => {
+        const hours = item.workedTimeMs / 3600000;
+        const pph = hours > 0 ? item.count / hours : 0;
+        const efficiency = item.standard > 0 ? pph / item.standard : 0;
+        return {
+          name: item.name,
+          standard: item.standard,
+          count: item.count,
+          misfeed: item.misfeed,
+          workedTimeFormatted: formatDuration(item.workedTimeMs),
+          pph: Math.round(pph * 100) / 100,
+          efficiency: Math.round(efficiency * 10000) / 100
+        };
+      });
+
+      // --- Count By Item Block ---
+      const countByItemAgg = await db.collection("count").aggregate([
+        { $match: {
+            "operator.id": operatorId,
+            timestamp: { $gte: new Date(start), $lte: new Date(end) }
+        }},
+        { $group: {
+            _id: "$item._id",
+            name: { $first: "$item.name" },
+            standard: { $first: { $ifNull: ["$item.standard", 666] } },
+            count: { $sum: 1 },
+            misfeed: { $sum: { $cond: [ { $eq: ["$misfeed", true] }, 1, 0 ] } }
+        }}
+      ]).toArray();
+      const countByItem = countByItemAgg.map(item => {
+        const hours = runtime / 3600000;
+        const pph = hours > 0 ? item.count / hours : 0;
+        const efficiency = item.standard > 0 ? pph / item.standard : 0;
+        return {
+          name: item.name,
+          standard: item.standard,
+          count: item.count,
+          misfeed: item.misfeed,
+          pph: Math.round(pph * 100) / 100,
+          efficiency: Math.round(efficiency * 10000) / 100
+        };
+      });
+
+      // --- Cycle Pie Block ---
+      const { running, paused, fault } = extractAllCyclesFromStates(states, start, end);
+      const totalCycleMs = [...running, ...paused, ...fault].reduce((sum, c) => sum + c.duration, 0) || 1;
+      const cyclePie = [
+        {
+          name: 'Running',
+          value: Math.round((running.reduce((a, b) => a + b.duration, 0) / totalCycleMs) * 100)
+        },
+        {
+          name: 'Paused',
+          value: Math.round((paused.reduce((a, b) => a + b.duration, 0) / totalCycleMs) * 100)
+        },
+        {
+          name: 'Faulted',
+          value: Math.round((fault.reduce((a, b) => a + b.duration, 0) / totalCycleMs) * 100)
+        }
+      ];
+
+      // --- Fault History Block ---
+      const { faultCycles, faultSummaries } = extractFaultCycles(states, start, end);
+      const formattedFaultSummaries = (faultSummaries || []).map(summary => {
+        const totalSeconds = Math.floor(summary.totalDuration / 1000);
+        return {
+          ...summary,
+          formatted: {
+            hours: Math.floor(totalSeconds / 3600),
+            minutes: Math.floor((totalSeconds % 3600) / 60),
+            seconds: totalSeconds % 60
+          }
+        };
+      });
+      const sortedFaultCycles = (faultCycles || []).slice().sort((a, b) => new Date(a.start) - new Date(b.start));
+
+      // --- Daily Efficiency Block ---
+      const dailyCountsAgg = await db.collection("count").aggregate([
+        { $match: {
+            "operator.id": operatorId,
+            timestamp: { $gte: new Date(start), $lte: new Date(end) },
+            misfeed: { $ne: true }
+        }},
+        { $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+            count: { $sum: 1 }
+        }},
+        { $sort: { _id: 1 } }
+      ]).toArray();
+      const dailyEfficiency = await Promise.all(dailyCountsAgg.map(async (day) => {
+        const dayStart = new Date(day._id + 'T00:00:00.000Z');
+        const dayEnd = new Date(day._id + 'T23:59:59.999Z');
+        const dayStates = states.filter(s => new Date(s.timestamp) >= dayStart && new Date(s.timestamp) <= dayEnd);
+        const { runtime } = calculateOperatorTimes(dayStates, dayStart, dayEnd);
+        const hours = runtime / 3600000;
+        const pph = hours > 0 ? day.count / hours : 0;
+        let avgStandard = 666;
+        if (day.count > 0) {
+          const dayCounts = await db.collection("count").find({
+            "operator.id": operatorId,
+            timestamp: { $gte: dayStart, $lte: dayEnd },
+            misfeed: { $ne: true }
+          }).toArray();
+          const standards = dayCounts.map(c => c.item?.standard).filter(s => typeof s === "number" && s > 0);
+          if (standards.length > 0) {
+            avgStandard = standards.reduce((sum, s) => sum + s, 0) / standards.length;
+          }
+        }
+        const efficiency = avgStandard > 0 ? (pph / avgStandard) * 100 : 0;
+        return {
+          date: day._id,
+          efficiency: Math.round(efficiency * 100) / 100
+        };
+      }));
+
+      return {
+        operator: {
+          id: operatorId,
+          name: perf.firstOperator?.name || "Unknown"
+        },
+        currentStatus: {
+          code: states[states.length - 1]?.status?.code || 0,
+          name: states[states.length - 1]?.status?.name || "Unknown"
+        },
+        performance: {
+          runtime: { total: runtime, formatted: formatDuration(runtime) },
+          pausedTime: { total: pausedTime, formatted: formatDuration(pausedTime) },
+          faultTime: { total: faultTime, formatted: formatDuration(faultTime) },
+          output: {
+            totalCount: perf.totalCount || 0,
+            misfeedCount: perf.misfeedCount || 0,
+            validCount: perf.validCount || 0
+          },
+          performance: {
+            piecesPerHour: { value: piecesPerHour, formatted: Math.round(piecesPerHour).toString() },
+            efficiency: { value: efficiency, percentage: (efficiency * 100).toFixed(2) + "%" }
+          }
+        },
+        itemSummary: itemSummaries,
+        countByItem,
+        cyclePie,
+        faultHistory: {
+          faultCycles: sortedFaultCycles,
+          faultSummaries: formattedFaultSummaries
+        },
+        dailyEfficiency
+      };
+    })
+  );
+  return results;
+}
+
   module.exports = {
     getAllOperatorIds,
     buildOperatorPerformance,
@@ -1134,6 +1385,7 @@ async function getAllOperatorIds(db) {
     buildOptimizedOperatorItemSummary,
     buildOptimizedOperatorCountByItem,
     buildOptimizedOperatorCyclePie,
-    buildOptimizedOperatorFaultHistory
+    buildOptimizedOperatorFaultHistory,
+    fetchOperatorDashboardData
   };
   
