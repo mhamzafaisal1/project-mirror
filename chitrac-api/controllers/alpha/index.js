@@ -100,6 +100,10 @@ function constructor(server) {
   const levelTwoDashboardRoutes = require("./level-twoRoutes")(server);
   router.use("/analytics", levelTwoDashboardRoutes);
 
+  //Import dashboard-related routes
+  const dashboardRoutes = require("./dashboardRoutes")(server);
+  router.use("/", dashboardRoutes);
+
 
   router.get("/timestamp", (req, res, next) => {
     res.json(startupDT);

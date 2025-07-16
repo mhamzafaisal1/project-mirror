@@ -105,6 +105,6 @@ export class MachineAnalyticsService {
       params = params.set('serial', serial.toString());
     }
 
-    return this.http.get(`${this.apiUrl}/analytics/machine-dashboard`, { params });
+    return this.http.get(`${this.apiUrl}/analytics/machine-dashboard-sessions`, { params });
   }
 }
