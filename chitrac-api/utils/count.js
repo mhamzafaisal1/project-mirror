@@ -429,7 +429,6 @@ async function getCountRecords(db, serial, start, end) {
     getCountsForOperatorMachinePairs,
     getCountsForMachine,
     processCountStatistics,
-    groupCountsByOperatorAndMachine,
     groupCountsByItem,
     getCountsForMachine,
     groupCountsByOperatorAndMachine,
