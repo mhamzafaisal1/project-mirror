@@ -1,7 +1,7 @@
 // polling.service.ts
 import { Injectable } from '@angular/core';
 import { Observable, timer, Subject, BehaviorSubject } from 'rxjs';
-import { switchMap, filter, takeUntil, tap } from 'rxjs/operators';
+import { switchMap, filter, takeUntil, tap, concatMap } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class PollingService {
@@ -24,7 +24,7 @@ export class PollingService {
       switchMap(() => 
         timer(0, intervalMs).pipe(
           takeUntil(stop$),
-          switchMap(() => pollFn())
+          concatMap(() => pollFn())
         )
       )
     );
