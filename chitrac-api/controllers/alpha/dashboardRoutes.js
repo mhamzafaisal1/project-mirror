@@ -6,7 +6,10 @@ module.exports = function (server) {
   const logger = server.logger;
 
   // Utility imports
-  const { parseAndValidateQueryParams, formatDuration } = require("../../utils/time");
+  const {
+    parseAndValidateQueryParams,
+    formatDuration,
+  } = require("../../utils/time");
 
   const {
     getBookendedStatesAndTimeRange,
@@ -33,10 +36,671 @@ module.exports = function (server) {
     calculateMisfeeds,
   } = require("../../utils/analytics");
 
-  const { getActiveMachineSerials, extractAllCyclesFromStatesForDashboard, formatItemSummaryFromAggregation, formatItemHourlyStackFromAggregation } = require("../../utils/machineFunctions");
+  const {
+    getActiveMachineSerials,
+    extractAllCyclesFromStatesForDashboard,
+    formatItemSummaryFromAggregation,
+    formatItemHourlyStackFromAggregation,
+  } = require("../../utils/machineFunctions");
 
+  //   router.get("/analytics/machine-dashboard-sessions", async (req, res) => {
+  //     try {
+  //       const { start, end } = parseAndValidateQueryParams(req);
+  //       const activeSerials = await getActiveMachineSerials(db, start, end);
 
-  
+  //       const results = await Promise.all(
+  //         activeSerials.map(async (serial) => {
+  //           const bookended = await getBookendedStatesAndTimeRange(
+  //             db,
+  //             serial,
+  //             start,
+  //             end
+  //           );
+  //           if (!bookended) return null;
+
+  //           const { states, sessionStart, sessionEnd } = bookended;
+  //           const runSessions = extractAllCyclesFromStatesForDashboard(
+  //             states,
+  //             sessionStart,
+  //             sessionEnd
+  //           ).running;
+
+  //           if (!runSessions.length) return null;
+
+  //           const machineName = states.at(-1)?.machine?.name || "Unknown";
+  //           const statusCode = states.at(-1)?.status?.code || 0;
+  //           const statusName = states.at(-1)?.status?.name || "Unknown";
+
+  //           const sessionResults = await Promise.all(
+  //             runSessions.map(async (session) => {
+  //               const counts = await db
+  //                 .collection("count")
+  //                 .find({
+  //                   "machine.serial": serial,
+  //                   timestamp: { $gte: session.start, $lte: session.end },
+  //                 })
+  //                 .project({
+  //                   timestamp: 1,
+  //                   "machine.serial": 1,
+  //                   "operator.id": 1,
+  //                   "operator.name": 1,
+  //                   "item.id": 1,
+  //                   "item.name": 1,
+  //                   "item.standard": 1,
+  //                   misfeed: 1,
+  //                 })
+  //                 .sort({ timestamp: 1 })
+  //                 .toArray();
+
+  //               const valid = counts.filter(
+  //                 (c) => !c.misfeed && c.operator?.id !== -1
+  //               );
+  //               const misfeed = counts.filter((c) => c.misfeed === true);
+
+  //               const [
+  //                 performance,
+  //                 itemSummary,
+  //                 itemHourlyStack,
+  //                 faultData,
+  //                 operatorEfficiency,
+  //               ] = await Promise.all([
+  //                 buildMachinePerformance(
+  //                   states,
+  //                   valid,
+  //                   misfeed,
+  //                   session.start,
+  //                   session.end
+  //                 ),
+  //                 buildMachineItemSummary(
+  //                   states,
+  //                   valid,
+  //                   session.start,
+  //                   session.end
+  //                 ),
+  //                 buildItemHourlyStack(valid, session.start, session.end),
+  //                 buildFaultData(states, session.start, session.end),
+  //                 buildOperatorEfficiency(
+  //                   states,
+  //                   valid,
+  //                   session.start,
+  //                   session.end,
+  //                   serial
+  //                 ),
+  //               ]);
+
+  //               return {
+  //                 sessionStart: session.start,
+  //                 sessionEnd: session.end,
+  //                 performance,
+  //                 itemSummary,
+  //                 itemHourlyStack,
+  //                 faultData,
+  //                 operatorEfficiency,
+  //               };
+  //             })
+  //           );
+
+  //           return {
+  //             machine: {
+  //               serial,
+  //               name: machineName,
+  //             },
+  //             currentStatus: {
+  //               code: statusCode,
+  //               name: statusName,
+  //             },
+  //             sessions: sessionResults.filter(Boolean),
+  //           };
+  //         })
+  //       );
+
+  //         res.json(results.filter(Boolean));
+  //     //   res.json(activeSerials);
+  //     } catch (err) {
+  //       logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
+  //       res
+  //         .status(500)
+  //         .json({
+  //           error: "Failed to fetch session-based machine dashboard data",
+  //         });
+  //     }
+  //   });
+
+  // Route for machine dashboard sessions for entire time range
+
+  // router.get("/analytics/machine-dashboard-sessions", async (req, res) => {
+  //     try {
+  //       const { start, end } = parseAndValidateQueryParams(req);
+  //       const activeSerials = await getActiveMachineSerials(db, start, end);
+  //       const results = await Promise.all(
+  //         activeSerials.map(async (serial) => {
+  //           const bookended = await getBookendedStatesAndTimeRange(
+  //             db,
+  //             serial,
+  //             start,
+  //             end
+  //           );
+  //           if (!bookended) return null;
+
+  //           const { states, sessionStart, sessionEnd } = bookended;
+  //           const machineName = states.at(-1)?.machine?.name || "Unknown";
+  //           const statusCode = states.at(-1)?.status?.code || 0;
+  //           const statusName = states.at(-1)?.status?.name || "Unknown";
+
+  //           // Aggregate analytics for the entire time range (not per session)
+  //           const [aggResult] = await db.collection("count").aggregate([
+  //             { $match: {
+  //                 "machine.serial": serial,
+  //                 timestamp: { $gte: sessionStart, $lte: sessionEnd }
+  //             }},
+  //             { $facet: {
+  //                 performance: [
+  //                   { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
+  //                   { $count: "totalCount" }
+  //                 ],
+  //                 misfeeds: [
+  //                   { $match: { misfeed: true } },
+  //                   { $count: "misfeedCount" }
+  //                 ],
+  //                 itemSummary: [
+  //                   { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
+  //                   { $group: {
+  //                       _id: "$item.id",
+  //                       name: { $first: "$item.name" },
+  //                       standard: { $first: "$item.standard" },
+  //                       count: { $sum: 1 }
+  //                   }}
+  //                 ],
+  //                 hourlyStack: [
+  //                   { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
+  //                   { $project: {
+  //                       hour: { $hour: "$timestamp" },
+  //                       itemId: "$item.id"
+  //                   }},
+  //                   { $group: {
+  //                       _id: { hour: "$hour", itemId: "$itemId" },
+  //                       count: { $sum: 1 }
+  //                   }},
+  //                   { $project: {
+  //                       hour: "$_id.hour",
+  //                       itemId: "$_id.itemId",
+  //                       count: 1,
+  //                       _id: 0
+  //                   }}
+  //                 ],
+  //                 timeCredit: [
+  //                   { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
+  //                   { $group: {
+  //                       _id: { id: "$item.id", name: "$item.name" },
+  //                       standard: { $first: "$item.standard" },
+  //                       count: { $sum: 1 }
+  //                   }},
+  //                   { $addFields: {
+  //                       standardPerHour: {
+  //                         $cond: [
+  //                           { $lt: ["$standard", 60] },
+  //                           { $multiply: ["$standard", 60] },
+  //                           "$standard"
+  //                         ]
+  //                       }
+  //                   }},
+  //                   { $addFields: {
+  //                       timeCredit: {
+  //                         $cond: [
+  //                           { $gt: ["$standardPerHour", 0] },
+  //                           { $divide: ["$count", { $divide: ["$standardPerHour", 3600] }] },
+  //                           0
+  //                         ]
+  //                       }
+  //                   }},
+  //                   { $group: {
+  //                       _id: null,
+  //                       totalTimeCredit: { $sum: "$timeCredit" }
+  //                   }}
+  //                 ]
+  //             }}
+  //           ]).toArray();
+
+  //           const totalCount = aggResult.performance?.[0]?.totalCount || 0;
+  //           const misfeedCount = aggResult.misfeeds?.[0]?.misfeedCount || 0;
+  //           const totalTimeCredit = aggResult.timeCredit?.[0]?.totalTimeCredit || 0;
+  //           const runtimeMs = extractAllCyclesFromStates(states, sessionStart, sessionEnd).running
+  //             .reduce((sum, c) => sum + c.duration, 0);
+  //           const totalQueryMs = new Date(sessionEnd) - new Date(sessionStart);
+  //           const downtimeMs = totalQueryMs - runtimeMs;
+  //           const runtimeSeconds = runtimeMs / 1000;
+
+  //           const availability = calculateAvailability(runtimeMs, downtimeMs, totalQueryMs);
+  //           const throughput = calculateThroughput(totalCount, misfeedCount);
+  //           const efficiency = runtimeSeconds > 0 ? totalTimeCredit / runtimeSeconds : 0;
+  //           const oee = calculateOEE(availability, efficiency, throughput);
+
+  //           const performance = {
+  //             runtime: { total: runtimeMs, formatted: formatDuration(runtimeMs) },
+  //             downtime: { total: downtimeMs, formatted: formatDuration(downtimeMs) },
+  //             output: { totalCount, misfeedCount },
+  //             performance: {
+  //               availability: { value: availability, percentage: (availability * 100).toFixed(2) + "%" },
+  //               throughput: { value: throughput, percentage: (throughput * 100).toFixed(2) + "%" },
+  //               efficiency: { value: efficiency, percentage: (efficiency * 100).toFixed(2) + "%" },
+  //               oee: { value: oee, percentage: (oee * 100).toFixed(2) + "%" }
+  //             }
+  //           };
+
+  //           const itemSummary = formatItemSummaryFromAggregation(aggResult.itemSummary || []);
+  //           const itemHourlyStack = formatItemHourlyStackFromAggregation(aggResult.hourlyStack || []);
+
+  //           const faultData = buildFaultData(states, sessionStart, sessionEnd); // still JS-based
+  //           const operatorEfficiency = await buildOperatorEfficiency(states, [], sessionStart, sessionEnd, serial);
+
+  //           return {
+  //             machine: {
+  //               serial,
+  //               name: machineName
+  //             },
+  //             currentStatus: {
+  //               code: statusCode,
+  //               name: statusName
+  //             },
+  //             performance,
+  //             itemSummary,
+  //             itemHourlyStack,
+  //             faultData,
+  //             operatorEfficiency
+  //           };
+  //         })
+  //       );
+
+  //       res.json(results.filter(Boolean));
+  //     } catch (err) {
+  //       logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
+  //       res
+  //         .status(500)
+  //         .json({
+  //           error: "Failed to fetch session-based machine dashboard data",
+  //         });
+  //     }
+  //   });
+
+  // Route for machine dashboard sessions for each session
+
+  // router.get("/analytics/machine-dashboard-sessions", async (req, res) => {
+  //     try {
+
+  //       const { start, end } = parseAndValidateQueryParams(req);
+  //       const activeSerials = await getActiveMachineSerials(db, start, end);
+  //       const results = await Promise.all(
+  //         activeSerials.map(async (serial) => {
+  //           const bookended = await getBookendedStatesAndTimeRange(
+  //             db,
+  //             serial,
+  //             start,
+  //             end
+  //           );
+  //           if (!bookended) return null;
+
+  //           const { states, sessionStart, sessionEnd } = bookended;
+  //           const runSessions = extractAllCyclesFromStatesForDashboard(
+  //             states,
+  //             sessionStart,
+  //             sessionEnd
+  //           ).running;
+
+  //           if (!runSessions.length) return null;
+
+  //           const machineName = states.at(-1)?.machine?.name || "Unknown";
+  //           const statusCode = states.at(-1)?.status?.code || 0;
+  //           const statusName = states.at(-1)?.status?.name || "Unknown";
+
+  //           const sessionResults = await Promise.all(
+  //             runSessions.map(async (session) => {
+  //               const [aggResult] = await db.collection("count").aggregate([
+  //                 { $match: {
+  //                     "machine.serial": serial,
+  //                     timestamp: { $gte: session.start, $lte: session.end }
+  //                 }},
+  //                 { $facet: {
+  //                     performance: [
+  //                       { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
+  //                       { $count: "totalCount" }
+  //                     ],
+  //                     misfeeds: [
+  //                       { $match: { misfeed: true } },
+  //                       { $count: "misfeedCount" }
+  //                     ],
+  //                     itemSummary: [
+  //                       { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
+  //                       { $group: {
+  //                           _id: "$item.id",
+  //                           name: { $first: "$item.name" },
+  //                           standard: { $first: "$item.standard" },
+  //                           count: { $sum: 1 }
+  //                       }}
+  //                     ],
+  //                     hourlyStack: [
+  //                       { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
+  //                       { $project: {
+  //                           hour: { $hour: "$timestamp" },
+  //                           itemId: "$item.id"
+  //                       }},
+  //                       { $group: {
+  //                           _id: { hour: "$hour", itemId: "$itemId" },
+  //                           count: { $sum: 1 }
+  //                       }},
+  //                       { $project: {
+  //                           hour: "$_id.hour",
+  //                           itemId: "$_id.itemId",
+  //                           count: 1,
+  //                           _id: 0
+  //                       }}
+  //                     ],
+  //                     timeCredit: [
+  //                       { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
+  //                       { $group: {
+  //                           _id: { id: "$item.id", name: "$item.name" },
+  //                           standard: { $first: "$item.standard" },
+  //                           count: { $sum: 1 }
+  //                       }},
+  //                       { $addFields: {
+  //                           standardPerHour: {
+  //                             $cond: [
+  //                               { $lt: ["$standard", 60] },
+  //                               { $multiply: ["$standard", 60] },
+  //                               "$standard"
+  //                             ]
+  //                           }
+  //                       }},
+  //                       { $addFields: {
+  //                           timeCredit: {
+  //                             $cond: [
+  //                               { $gt: ["$standardPerHour", 0] },
+  //                               { $divide: ["$count", { $divide: ["$standardPerHour", 3600] }] },
+  //                               0
+  //                             ]
+  //                           }
+  //                       }},
+  //                       { $group: {
+  //                           _id: null,
+  //                           totalTimeCredit: { $sum: "$timeCredit" }
+  //                       }}
+  //                     ]
+  //                 }}
+  //               ]).toArray();
+
+  //               const totalCount = aggResult.performance?.[0]?.totalCount || 0;
+  //               const misfeedCount = aggResult.misfeeds?.[0]?.misfeedCount || 0;
+  //               const totalTimeCredit = aggResult.timeCredit?.[0]?.totalTimeCredit || 0;
+  //               const runtimeMs = extractAllCyclesFromStates(states, session.start, session.end).running
+  //                 .reduce((sum, c) => sum + c.duration, 0);
+  //               const totalQueryMs = new Date(session.end) - new Date(session.start);
+  //               const downtimeMs = totalQueryMs - runtimeMs;
+  //               const runtimeSeconds = runtimeMs / 1000;
+
+  //               const availability = calculateAvailability(runtimeMs, downtimeMs, totalQueryMs);
+  //               const throughput = calculateThroughput(totalCount, misfeedCount);
+  //               const efficiency = runtimeSeconds > 0 ? totalTimeCredit / runtimeSeconds : 0;
+  //               const oee = calculateOEE(availability, efficiency, throughput);
+
+  //               const performance = {
+  //                 runtime: { total: runtimeMs, formatted: formatDuration(runtimeMs) },
+  //                 downtime: { total: downtimeMs, formatted: formatDuration(downtimeMs) },
+  //                 output: { totalCount, misfeedCount },
+  //                 performance: {
+  //                   availability: { value: availability, percentage: (availability * 100).toFixed(2) + "%" },
+  //                   throughput: { value: throughput, percentage: (throughput * 100).toFixed(2) + "%" },
+  //                   efficiency: { value: efficiency, percentage: (efficiency * 100).toFixed(2) + "%" },
+  //                   oee: { value: oee, percentage: (oee * 100).toFixed(2) + "%" }
+  //                 }
+  //               };
+
+  //               const itemSummary = formatItemSummaryFromAggregation(aggResult.itemSummary || []);
+  //               const itemHourlyStack = formatItemHourlyStackFromAggregation(aggResult.hourlyStack || []);
+
+  //               const faultData = buildFaultData(states, session.start, session.end); // still JS-based
+  //               const operatorEfficiency = await buildOperatorEfficiency(states, [], session.start, session.end, serial);
+
+  //               return {
+  //                 performance,
+  //                 itemSummary,
+  //                 itemHourlyStack,
+  //                 faultData,
+  //                 operatorEfficiency
+  //               };
+  //             })
+  //           );
+
+  //           // Aggregate all sessionResults into a single summary
+  //           const summary = sessionResults.reduce((acc, curr) => {
+  //             // Sum performance fields
+  //             if (!acc.performance) acc.performance = { ...curr.performance };
+  //             else {
+  //               acc.performance.runtime.total += curr.performance.runtime.total;
+  //               acc.performance.downtime.total += curr.performance.downtime.total;
+  //               acc.performance.output.totalCount += curr.performance.output.totalCount;
+  //               acc.performance.output.misfeedCount += curr.performance.output.misfeedCount;
+  //               // For percentages, you may want to recalculate after summing
+  //             }
+  //             // Merge itemSummary
+  //             if (!acc.itemSummary) acc.itemSummary = { ...curr.itemSummary };
+  //             else {
+  //               for (const key in curr.itemSummary) {
+  //                 if (!acc.itemSummary[key]) acc.itemSummary[key] = { ...curr.itemSummary[key] };
+  //                 else {
+  //                   acc.itemSummary[key].countTotal += curr.itemSummary[key].countTotal;
+  //                 }
+  //               }
+  //             }
+  //             // Merge itemHourlyStack (append data)
+  //             if (!acc.itemHourlyStack) acc.itemHourlyStack = Array.isArray(curr.itemHourlyStack) ? [...curr.itemHourlyStack] : curr.itemHourlyStack;
+  //             else if (Array.isArray(acc.itemHourlyStack) && Array.isArray(curr.itemHourlyStack)) {
+  //               acc.itemHourlyStack = acc.itemHourlyStack.concat(curr.itemHourlyStack);
+  //             }
+  //             // Merge faultData (object with arrays inside)
+  //             if (!acc.faultData) acc.faultData = { ...curr.faultData };
+  //             else {
+  //               // Merge faultCycles
+  //               acc.faultData.faultCycles = [
+  //                 ...(acc.faultData.faultCycles || []),
+  //                 ...(curr.faultData.faultCycles || [])
+  //               ];
+  //               // Merge faultSummaries by faultCode and faultType
+  //               const summaryMap = {};
+  //               for (const s of [...(acc.faultData.faultSummaries || []), ...(curr.faultData.faultSummaries || [])]) {
+  //                 const key = `${s.faultCode}_${s.faultType}`;
+  //                 if (!summaryMap[key]) summaryMap[key] = { ...s };
+  //                 else {
+  //                   summaryMap[key].totalDuration += s.totalDuration;
+  //                   summaryMap[key].count += s.count;
+  //                   // Optionally merge formatted, etc.
+  //                 }
+  //               }
+  //               acc.faultData.faultSummaries = Object.values(summaryMap);
+  //             }
+  //             // Merge operatorEfficiency
+  //             if (!acc.operatorEfficiency) acc.operatorEfficiency = { ...curr.operatorEfficiency };
+  //             else {
+  //               for (const key in curr.operatorEfficiency) {
+  //                 if (!acc.operatorEfficiency[key]) acc.operatorEfficiency[key] = { ...curr.operatorEfficiency[key] };
+  //                 else {
+  //                   acc.operatorEfficiency[key].count += curr.operatorEfficiency[key].count;
+  //                 }
+  //               }
+  //             }
+  //             return acc;
+  //           }, {});
+
+  //           // Limit the faultCycles array in the merged faultData to the first 100 records per machine in the final API response.
+  //           if (summary.faultData && Array.isArray(summary.faultData.faultCycles)) {
+  //             summary.faultData.faultCycles = summary.faultData.faultCycles.slice(0, 100);
+  //           }
+
+  //           return {
+  //             machine: {
+  //               serial,
+  //               name: machineName
+  //             },
+  //             currentStatus: {
+  //               code: statusCode,
+  //               name: statusName
+  //             },
+  //             ...summary
+  //           };
+  //         })
+  //       );
+
+  //       res.json(results.filter(Boolean));
+
+  //     } catch (err) {
+  //       logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
+  //       res
+  //         .status(500)
+  //         .json({
+  //           error: `Failed to fetch machine dashboard data for ${req.url}`,
+  //         });
+  //     }
+  //   });
+
+  // router.get("/analytics/machine-dashboard-sessions", async (req, res) => {
+  //     try {
+  //       const { start, end } = parseAndValidateQueryParams(req);
+  //       const activeSerials = await getActiveMachineSerials(db, start, end);
+
+  //       const results = await Promise.all(
+  //         activeSerials.map(async (serial) => {
+  //           const bookended = await getBookendedStatesAndTimeRange(db, serial, start, end);
+  //           if (!bookended) return null;
+
+  //           const { states, sessionStart, sessionEnd } = bookended;
+  //           const runSessions = extractAllCyclesFromStatesForDashboard(states, sessionStart, sessionEnd).running;
+  //           if (!runSessions.length) return null;
+
+  //           const machineName = states.at(-1)?.machine?.name || "Unknown";
+  //           const statusCode = states.at(-1)?.status?.code || 0;
+  //           const statusName = states.at(-1)?.status?.name || "Unknown";
+
+  //           let totalRuntimeMs = 0;
+  //           let totalCount = 0;
+  //           let misfeedCount = 0;
+  //           let totalTimeCredit = 0;
+
+  //           const totalQueryStart = runSessions[0].start;
+  //           const totalQueryEnd = runSessions.at(-1).end;
+
+  //           for (const session of runSessions) {
+  //             const [aggResult] = await db.collection("count").aggregate([
+  //               {
+  //                 $match: {
+  //                   "machine.serial": serial,
+  //                   timestamp: { $gte: session.start, $lte: session.end }
+  //                 }
+  //               },
+  //               {
+  //                 $facet: {
+  //                   performance: [
+  //                     { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
+  //                     { $count: "totalCount" }
+  //                   ],
+  //                   misfeeds: [
+  //                     { $match: { misfeed: true } },
+  //                     { $count: "misfeedCount" }
+  //                   ],
+  //                   timeCredit: [
+  //                     { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
+  //                     {
+  //                       $group: {
+  //                         _id: { id: "$item.id" },
+  //                         standard: { $first: "$item.standard" },
+  //                         count: { $sum: 1 }
+  //                       }
+  //                     },
+  //                     {
+  //                       $addFields: {
+  //                         standardPerHour: {
+  //                           $cond: [
+  //                             { $lt: ["$standard", 60] },
+  //                             { $multiply: ["$standard", 60] },
+  //                             "$standard"
+  //                           ]
+  //                         }
+  //                       }
+  //                     },
+  //                     {
+  //                       $addFields: {
+  //                         timeCredit: {
+  //                           $cond: [
+  //                             { $gt: ["$standardPerHour", 0] },
+  //                             { $divide: ["$count", { $divide: ["$standardPerHour", 3600] }] },
+  //                             0
+  //                           ]
+  //                         }
+  //                       }
+  //                     },
+  //                     {
+  //                       $group: {
+  //                         _id: null,
+  //                         totalTimeCredit: { $sum: "$timeCredit" }
+  //                       }
+  //                     }
+  //                   ]
+  //                 }
+  //               }
+  //             ]).toArray();
+
+  //             const sessionTotalCount = aggResult.performance?.[0]?.totalCount || 0;
+  //             const sessionMisfeedCount = aggResult.misfeeds?.[0]?.misfeedCount || 0;
+  //             const sessionTimeCredit = aggResult.timeCredit?.[0]?.totalTimeCredit || 0;
+
+  //             const runtimeMs = session.end - session.start;
+
+  //             totalRuntimeMs += runtimeMs;
+  //             totalCount += sessionTotalCount;
+  //             misfeedCount += sessionMisfeedCount;
+  //             totalTimeCredit += sessionTimeCredit;
+  //           }
+
+  //           const totalQueryMs = totalQueryEnd - totalQueryStart;
+  //           const downtimeMs = totalQueryMs - totalRuntimeMs;
+  //           const runtimeSeconds = totalRuntimeMs / 1000;
+
+  //           const availability = calculateAvailability(totalRuntimeMs, downtimeMs, totalQueryMs);
+  //           const throughput = calculateThroughput(totalCount, misfeedCount);
+  //           const efficiency = runtimeSeconds > 0 ? totalTimeCredit / runtimeSeconds : 0;
+  //           const oee = calculateOEE(availability, efficiency, throughput);
+
+  //           const performance = {
+  //             runtimeMs: totalRuntimeMs,
+  //             downtimeMs,
+  //             totalCount,
+  //             misfeedCount,
+  //             availability: (availability * 100).toFixed(2) + "%",
+  //             throughput: (throughput * 100).toFixed(2) + "%",
+  //             efficiency: (efficiency * 100).toFixed(2) + "%",
+  //             oee: (oee * 100).toFixed(2) + "%"
+  //           };
+
+  //           return {
+  //             machine: {
+  //               serial,
+  //               name: machineName
+  //             },
+  //             currentStatus: {
+  //               code: statusCode,
+  //               name: statusName
+  //             },
+  //             performance
+  //           };
+  //         })
+  //       );
+
+  //       res.json(results.filter(Boolean));
+  //     } catch (err) {
+  //       logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
+  //       res.status(500).json({
+  //         error: `Failed to fetch machine dashboard data for ${req.url}`,
+  //       });
+  //     }
+  //   });
+
 //   router.get("/analytics/machine-dashboard-sessions", async (req, res) => {
 //     try {
 //       const { start, end } = parseAndValidateQueryParams(req);
@@ -58,81 +722,254 @@ module.exports = function (server) {
 //             sessionStart,
 //             sessionEnd
 //           ).running;
-
 //           if (!runSessions.length) return null;
 
 //           const machineName = states.at(-1)?.machine?.name || "Unknown";
 //           const statusCode = states.at(-1)?.status?.code || 0;
 //           const statusName = states.at(-1)?.status?.name || "Unknown";
 
-//           const sessionResults = await Promise.all(
-//             runSessions.map(async (session) => {
-//               const counts = await db
-//                 .collection("count")
-//                 .find({
-//                   "machine.serial": serial,
-//                   timestamp: { $gte: session.start, $lte: session.end },
-//                 })
-//                 .project({
-//                   timestamp: 1,
-//                   "machine.serial": 1,
-//                   "operator.id": 1,
-//                   "operator.name": 1,
-//                   "item.id": 1,
-//                   "item.name": 1,
-//                   "item.standard": 1,
-//                   misfeed: 1,
-//                 })
-//                 .sort({ timestamp: 1 })
-//                 .toArray();
+//           let totalRuntimeMs = 0;
+//           let totalCount = 0;
+//           let misfeedCount = 0;
+//           let totalTimeCredit = 0;
 
-//               const valid = counts.filter(
-//                 (c) => !c.misfeed && c.operator?.id !== -1
-//               );
-//               const misfeed = counts.filter((c) => c.misfeed === true);
+//           let totalWorkedTimeMs = 0;
+//           const itemSummaryAccumulator = {};
+//           const validCountsAccumulator = [];
 
-//               const [
-//                 performance,
-//                 itemSummary,
-//                 itemHourlyStack,
-//                 faultData,
-//                 operatorEfficiency,
-//               ] = await Promise.all([
-//                 buildMachinePerformance(
-//                   states,
-//                   valid,
-//                   misfeed,
-//                   session.start,
-//                   session.end
-//                 ),
-//                 buildMachineItemSummary(
-//                   states,
-//                   valid,
-//                   session.start,
-//                   session.end
-//                 ),
-//                 buildItemHourlyStack(valid, session.start, session.end),
-//                 buildFaultData(states, session.start, session.end),
-//                 buildOperatorEfficiency(
-//                   states,
-//                   valid,
-//                   session.start,
-//                   session.end,
-//                   serial
-//                 ),
-//               ]);
 
-//               return {
-//                 sessionStart: session.start,
-//                 sessionEnd: session.end,
-//                 performance,
-//                 itemSummary,
-//                 itemHourlyStack,
-//                 faultData,
-//                 operatorEfficiency,
-//               };
-//             })
+//           const totalQueryStart = runSessions[0].start;
+//           const totalQueryEnd = runSessions.at(-1).end;
+
+//           for (const session of runSessions) {
+//             const aggResult = await db
+//               .collection("count")
+//               .aggregate([
+//                 {
+//                   $match: {
+//                     "machine.serial": serial,
+//                     timestamp: { $gte: session.start, $lte: session.end },
+//                     misfeed: { $ne: true },
+//                     "operator.id": { $ne: -1 },
+//                   },
+//                 },
+//                 {
+//                   $group: {
+//                     _id: {
+//                       itemId: "$item.id",
+//                       operatorId: "$operator.id",
+//                     },
+//                     itemName: { $first: "$item.name" },
+//                     standard: { $first: "$item.standard" },
+//                     count: { $sum: 1 },
+//                   },
+//                 },
+//                 {
+//                   $group: {
+//                     _id: "$_id.itemId",
+//                     name: { $first: "$itemName" },
+//                     standard: { $first: "$standard" },
+//                     count: { $sum: "$count" },
+//                     operators: { $addToSet: "$_id.operatorId" },
+//                   },
+//                 },
+//                 {
+//                   $project: {
+//                     name: 1,
+//                     standard: 1,
+//                     count: 1,
+//                     operatorCount: { $size: "$operators" },
+//                   },
+//                 },
+//               ])
+//               .toArray();
+
+//               const sessionValidCounts = await db.collection("count").find({
+//                 "machine.serial": serial,
+//                 timestamp: { $gte: session.start, $lte: session.end },
+//                 misfeed: { $ne: true },
+//                 "operator.id": { $ne: -1 }
+//               }).project({
+//                 timestamp: 1,
+//                 "item.name": 1
+//               }).toArray();
+              
+//               validCountsAccumulator.push(...sessionValidCounts);
+              
+
+//             const runtimeMs = session.end - session.start;
+//             totalRuntimeMs += runtimeMs;
+
+//             for (const row of aggResult) {
+//               const itemId = row._id;
+//               const name = row.name;
+//               const standard = row.standard || 666;
+//               const count = row.count;
+//               const operatorCount = row.operatorCount || 1;
+//               const workedTimeMs = runtimeMs * operatorCount;
+//               const hours = workedTimeMs / 3600000;
+//               const pph = hours > 0 ? count / hours : 0;
+//               const efficiency = standard > 0 ? pph / standard : 0;
+
+//               totalWorkedTimeMs += workedTimeMs;
+//               totalCount += count;
+
+//               if (!itemSummaryAccumulator[itemId]) {
+//                 itemSummaryAccumulator[itemId] = {
+//                   name,
+//                   standard,
+//                   countTotal: 0,
+//                   workedTimeMs: 0,
+//                 };
+//               }
+              
+//               itemSummaryAccumulator[itemId].countTotal += count;
+//               itemSummaryAccumulator[itemId].workedTimeMs += workedTimeMs;
+              
+              
+//             }
+
+//             // Misfeeds and timeCredit can remain separate for now
+//             const [countAgg] = await db
+//               .collection("count")
+//               .aggregate([
+//                 {
+//                   $match: {
+//                     "machine.serial": serial,
+//                     timestamp: { $gte: session.start, $lte: session.end },
+//                   },
+//                 },
+//                 {
+//                   $facet: {
+//                     misfeeds: [
+//                       { $match: { misfeed: true } },
+//                       { $count: "misfeedCount" },
+//                     ],
+//                     timeCredit: [
+//                       {
+//                         $match: {
+//                           misfeed: { $ne: true },
+//                           "operator.id": { $ne: -1 },
+//                         },
+//                       },
+//                       {
+//                         $group: {
+//                           _id: { id: "$item.id" },
+//                           standard: { $first: "$item.standard" },
+//                           count: { $sum: 1 },
+//                         },
+//                       },
+//                       {
+//                         $addFields: {
+//                           standardPerHour: {
+//                             $cond: [
+//                               { $lt: ["$standard", 60] },
+//                               { $multiply: ["$standard", 60] },
+//                               "$standard",
+//                             ],
+//                           },
+//                         },
+//                       },
+//                       {
+//                         $addFields: {
+//                           timeCredit: {
+//                             $cond: [
+//                               { $gt: ["$standardPerHour", 0] },
+//                               {
+//                                 $divide: [
+//                                   "$count",
+//                                   { $divide: ["$standardPerHour", 3600] },
+//                                 ],
+//                               },
+//                               0,
+//                             ],
+//                           },
+//                         },
+//                       },
+//                       {
+//                         $group: {
+//                           _id: null,
+//                           totalTimeCredit: { $sum: "$timeCredit" },
+//                         },
+//                       },
+//                     ],
+//                   },
+//                 },
+//               ])
+//               .toArray();
+
+//             misfeedCount += countAgg.misfeeds?.[0]?.misfeedCount || 0;
+//             totalTimeCredit += countAgg.timeCredit?.[0]?.totalTimeCredit || 0;
+//           }
+
+//           // Final summary math
+//           const totalQueryMs = totalQueryEnd - totalQueryStart;
+//           const downtimeMs = totalQueryMs - totalRuntimeMs;
+//           const runtimeSeconds = totalRuntimeMs / 1000;
+
+//           const availability = calculateAvailability(
+//             totalRuntimeMs,
+//             downtimeMs,
+//             totalQueryMs
 //           );
+//           const throughput = calculateThroughput(totalCount, misfeedCount);
+//           const efficiency =
+//             runtimeSeconds > 0 ? totalTimeCredit / runtimeSeconds : 0;
+//           const oee = calculateOEE(availability, efficiency, throughput);
+
+//           const machineHours = totalWorkedTimeMs / 3600000;
+//           const machinePPH = machineHours > 0 ? totalCount / machineHours : 0;
+//           const proratedStandard =
+//             totalCount > 0
+//               ? Object.values(itemSummaryAccumulator).reduce((acc, item) => {
+//                   const weight = item.countTotal / totalCount;
+//                   return acc + weight * item.standard;
+//                 }, 0)
+//               : 0;
+//           const machineEfficiency =
+//             proratedStandard > 0 ? machinePPH / proratedStandard : 0;
+
+//           // Format item summaries
+//           const formattedItemSummaries = {};
+//           for (const [itemId, item] of Object.entries(itemSummaryAccumulator)) {
+//             const hours = item.workedTimeMs / 3600000;
+//             const pph = hours > 0 ? item.countTotal / hours : 0;
+//             const eff = item.standard > 0 ? pph / item.standard : 0;
+
+//             formattedItemSummaries[itemId] = {
+//               name: item.name,
+//               standard: item.standard,
+//               countTotal: item.countTotal,
+//               workedTimeFormatted: formatDuration(item.workedTimeMs),
+//               pph: Math.round(pph * 100) / 100,
+//               efficiency: Math.round(eff * 10000) / 100,
+//             };
+//           }
+
+//           const performance = {
+//             runtimeMs: totalRuntimeMs,
+//             downtimeMs,
+//             totalCount,
+//             misfeedCount,
+//             availability: (availability * 100).toFixed(2) + "%",
+//             throughput: (throughput * 100).toFixed(2) + "%",
+//             efficiency: (efficiency * 100).toFixed(2) + "%",
+//             oee: (oee * 100).toFixed(2) + "%",
+//           };
+
+//           const itemSummary = {
+//             totalCount,
+//             workedTimeMs: totalWorkedTimeMs,
+//             workedTimeFormatted: formatDuration(totalWorkedTimeMs),
+//             pph: Math.round(machinePPH * 100) / 100,
+//             proratedStandard: Math.round(proratedStandard * 100) / 100,
+//             efficiency: Math.round(machineEfficiency * 10000) / 100,
+//             itemSummaries: formattedItemSummaries,
+//           };
+
+//           const itemHourlyStack = buildItemHourlyStack(validCountsAccumulator, totalQueryStart, totalQueryEnd);
+//           const faultData = buildFaultData(states, sessionStart, sessionEnd);
+
 
 //           return {
 //             machine: {
@@ -143,29 +980,29 @@ module.exports = function (server) {
 //               code: statusCode,
 //               name: statusName,
 //             },
-//             sessions: sessionResults.filter(Boolean),
+//             performance,
+//             itemSummary,
+//             itemHourlyStack,
+//             faultData
 //           };
 //         })
 //       );
 
-//         res.json(results.filter(Boolean));
-//     //   res.json(activeSerials);
+//       res.json(results.filter(Boolean));
 //     } catch (err) {
 //       logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
-//       res
-//         .status(500)
-//         .json({
-//           error: "Failed to fetch session-based machine dashboard data",
-//         });
+//       res.status(500).json({
+//         error: `Failed to fetch machine dashboard data for ${req.url}`,
+//       });
 //     }
 //   });
 
-// Route for machine dashboard sessions for entire time range
 
 router.get("/analytics/machine-dashboard-sessions", async (req, res) => {
     try {
       const { start, end } = parseAndValidateQueryParams(req);
       const activeSerials = await getActiveMachineSerials(db, start, end);
+  
       const results = await Promise.all(
         activeSerials.map(async (serial) => {
           const bookended = await getBookendedStatesAndTimeRange(
@@ -175,385 +1012,332 @@ router.get("/analytics/machine-dashboard-sessions", async (req, res) => {
             end
           );
           if (!bookended) return null;
-
+  
           const { states, sessionStart, sessionEnd } = bookended;
+          const runSessions = extractAllCyclesFromStatesForDashboard(
+            states,
+            sessionStart,
+            sessionEnd
+          ).running;
+          if (!runSessions.length) return null;
+  
           const machineName = states.at(-1)?.machine?.name || "Unknown";
           const statusCode = states.at(-1)?.status?.code || 0;
           const statusName = states.at(-1)?.status?.name || "Unknown";
-
-          // Aggregate analytics for the entire time range (not per session)
-          const [aggResult] = await db.collection("count").aggregate([
-            { $match: {
+  
+          let totalRuntimeMs = 0;
+          let totalCount = 0;
+          let misfeedCount = 0;
+          let totalTimeCredit = 0;
+          let totalWorkedTimeMs = 0;
+  
+          const itemSummaryAccumulator = {};
+          const validCountsAccumulator = [];
+          const allCountsAccumulator = [];
+  
+          const totalQueryStart = runSessions[0].start;
+          const totalQueryEnd = runSessions.at(-1).end;
+  
+          for (const session of runSessions) {
+            const [aggResult, sessionValidCounts, sessionAllCounts] = await Promise.all([
+              db.collection("count").aggregate([
+                {
+                  $match: {
+                    "machine.serial": serial,
+                    timestamp: { $gte: session.start, $lte: session.end },
+                    misfeed: { $ne: true },
+                    "operator.id": { $ne: -1 },
+                  },
+                },
+                {
+                  $group: {
+                    _id: {
+                      itemId: "$item.id",
+                      operatorId: "$operator.id",
+                    },
+                    itemName: { $first: "$item.name" },
+                    standard: { $first: "$item.standard" },
+                    count: { $sum: 1 },
+                  },
+                },
+                {
+                  $group: {
+                    _id: "$_id.itemId",
+                    name: { $first: "$itemName" },
+                    standard: { $first: "$standard" },
+                    count: { $sum: "$count" },
+                    operators: { $addToSet: "$_id.operatorId" },
+                  },
+                },
+                {
+                  $project: {
+                    name: 1,
+                    standard: 1,
+                    count: 1,
+                    operatorCount: { $size: "$operators" },
+                  },
+                },
+              ]).toArray(),
+  
+              db.collection("count").find({
                 "machine.serial": serial,
-                timestamp: { $gte: sessionStart, $lte: sessionEnd }
-            }},
-            { $facet: {
-                performance: [
-                  { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
-                  { $count: "totalCount" }
-                ],
-                misfeeds: [
-                  { $match: { misfeed: true } },
-                  { $count: "misfeedCount" }
-                ],
-                itemSummary: [
-                  { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
-                  { $group: {
-                      _id: "$item.id",
-                      name: { $first: "$item.name" },
-                      standard: { $first: "$item.standard" },
-                      count: { $sum: 1 }
-                  }}
-                ],
-                hourlyStack: [
-                  { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
-                  { $project: {
-                      hour: { $hour: "$timestamp" },
-                      itemId: "$item.id"
-                  }},
-                  { $group: {
-                      _id: { hour: "$hour", itemId: "$itemId" },
-                      count: { $sum: 1 }
-                  }},
-                  { $project: {
-                      hour: "$_id.hour",
-                      itemId: "$_id.itemId",
-                      count: 1,
-                      _id: 0
-                  }}
-                ],
-                timeCredit: [
-                  { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
-                  { $group: {
-                      _id: { id: "$item.id", name: "$item.name" },
-                      standard: { $first: "$item.standard" },
-                      count: { $sum: 1 }
-                  }},
-                  { $addFields: {
-                      standardPerHour: {
-                        $cond: [
-                          { $lt: ["$standard", 60] },
-                          { $multiply: ["$standard", 60] },
-                          "$standard"
-                        ]
-                      }
-                  }},
-                  { $addFields: {
-                      timeCredit: {
-                        $cond: [
-                          { $gt: ["$standardPerHour", 0] },
-                          { $divide: ["$count", { $divide: ["$standardPerHour", 3600] }] },
-                          0
-                        ]
-                      }
-                  }},
-                  { $group: {
-                      _id: null,
-                      totalTimeCredit: { $sum: "$timeCredit" }
-                  }}
-                ]
-            }}
-          ]).toArray();
-
-          const totalCount = aggResult.performance?.[0]?.totalCount || 0;
-          const misfeedCount = aggResult.misfeeds?.[0]?.misfeedCount || 0;
-          const totalTimeCredit = aggResult.timeCredit?.[0]?.totalTimeCredit || 0;
-          const runtimeMs = extractAllCyclesFromStates(states, sessionStart, sessionEnd).running
-            .reduce((sum, c) => sum + c.duration, 0);
-          const totalQueryMs = new Date(sessionEnd) - new Date(sessionStart);
-          const downtimeMs = totalQueryMs - runtimeMs;
-          const runtimeSeconds = runtimeMs / 1000;
-
-          const availability = calculateAvailability(runtimeMs, downtimeMs, totalQueryMs);
+                timestamp: { $gte: session.start, $lte: session.end },
+                misfeed: { $ne: true },
+                "operator.id": { $ne: -1 },
+              }).project({
+                timestamp: 1,
+                "item.name": 1,
+                "item.standard": 1,
+                "operator.id": 1,
+                "operator.name": 1,
+                "machine.serial": 1,
+                misfeed: 1,
+              }).toArray(),
+  
+              db.collection("count").find({
+                "machine.serial": serial,
+                timestamp: { $gte: session.start, $lte: session.end },
+              }).project({
+                timestamp: 1,
+                misfeed: 1,
+                "item.standard": 1,
+                "item.id": 1,
+                "operator.id": 1,
+                "operator.name": 1,
+                "machine.serial": 1,
+              }).toArray(),
+            ]);
+  
+            validCountsAccumulator.push(...sessionValidCounts);
+            allCountsAccumulator.push(...sessionAllCounts);
+  
+            const runtimeMs = session.end - session.start;
+            totalRuntimeMs += runtimeMs;
+  
+            for (const row of aggResult) {
+              const itemId = row._id;
+              const name = row.name;
+              const standard = row.standard || 666;
+              const count = row.count;
+              const operatorCount = row.operatorCount || 1;
+              const workedTimeMs = runtimeMs * operatorCount;
+              const hours = workedTimeMs / 3600000;
+              const pph = hours > 0 ? count / hours : 0;
+              const efficiency = standard > 0 ? pph / standard : 0;
+  
+              totalWorkedTimeMs += workedTimeMs;
+              totalCount += count;
+  
+              if (!itemSummaryAccumulator[itemId]) {
+                itemSummaryAccumulator[itemId] = {
+                  name,
+                  standard,
+                  countTotal: 0,
+                  workedTimeMs: 0,
+                };
+              }
+  
+              itemSummaryAccumulator[itemId].countTotal += count;
+              itemSummaryAccumulator[itemId].workedTimeMs += workedTimeMs;
+            }
+  
+            const [countAgg] = await db.collection("count").aggregate([
+              {
+                $match: {
+                  "machine.serial": serial,
+                  timestamp: { $gte: session.start, $lte: session.end },
+                },
+              },
+              {
+                $facet: {
+                  misfeeds: [
+                    { $match: { misfeed: true } },
+                    { $count: "misfeedCount" },
+                  ],
+                  timeCredit: [
+                    {
+                      $match: {
+                        misfeed: { $ne: true },
+                        "operator.id": { $ne: -1 },
+                      },
+                    },
+                    {
+                      $group: {
+                        _id: { id: "$item.id" },
+                        standard: { $first: "$item.standard" },
+                        count: { $sum: 1 },
+                      },
+                    },
+                    {
+                      $addFields: {
+                        standardPerHour: {
+                          $cond: [
+                            { $lt: ["$standard", 60] },
+                            { $multiply: ["$standard", 60] },
+                            "$standard",
+                          ],
+                        },
+                      },
+                    },
+                    {
+                      $addFields: {
+                        timeCredit: {
+                          $cond: [
+                            { $gt: ["$standardPerHour", 0] },
+                            {
+                              $divide: [
+                                "$count",
+                                { $divide: ["$standardPerHour", 3600] },
+                              ],
+                            },
+                            0,
+                          ],
+                        },
+                      },
+                    },
+                    {
+                      $group: {
+                        _id: null,
+                        totalTimeCredit: { $sum: "$timeCredit" },
+                      },
+                    },
+                  ],
+                },
+              },
+            ]).toArray();
+  
+            misfeedCount += countAgg?.misfeeds?.[0]?.misfeedCount || 0;
+            totalTimeCredit += countAgg?.timeCredit?.[0]?.totalTimeCredit || 0;
+          }
+  
+          // Final metrics
+          const totalQueryMs = totalQueryEnd - totalQueryStart;
+          const downtimeMs = totalQueryMs - totalRuntimeMs;
+          const runtimeSeconds = totalRuntimeMs / 1000;
+  
+          const availability = calculateAvailability(
+            totalRuntimeMs,
+            downtimeMs,
+            totalQueryMs
+          );
           const throughput = calculateThroughput(totalCount, misfeedCount);
           const efficiency = runtimeSeconds > 0 ? totalTimeCredit / runtimeSeconds : 0;
           const oee = calculateOEE(availability, efficiency, throughput);
-
+  
+          const machineHours = totalWorkedTimeMs / 3600000;
+          const machinePPH = machineHours > 0 ? totalCount / machineHours : 0;
+          const proratedStandard =
+            totalCount > 0
+              ? Object.values(itemSummaryAccumulator).reduce((acc, item) => {
+                  const weight = item.countTotal / totalCount;
+                  return acc + weight * item.standard;
+                }, 0)
+              : 0;
+          const machineEfficiency =
+            proratedStandard > 0 ? machinePPH / proratedStandard : 0;
+  
+          const formattedItemSummaries = {};
+          for (const [itemId, item] of Object.entries(itemSummaryAccumulator)) {
+            const hours = item.workedTimeMs / 3600000;
+            const pph = hours > 0 ? item.countTotal / hours : 0;
+            const eff = item.standard > 0 ? pph / item.standard : 0;
+  
+            formattedItemSummaries[itemId] = {
+              name: item.name,
+              standard: item.standard,
+              countTotal: item.countTotal,
+              workedTimeFormatted: formatDuration(item.workedTimeMs),
+              pph: Math.round(pph * 100) / 100,
+              efficiency: Math.round(eff * 10000) / 100,
+            };
+          }
+  
           const performance = {
-            runtime: { total: runtimeMs, formatted: formatDuration(runtimeMs) },
-            downtime: { total: downtimeMs, formatted: formatDuration(downtimeMs) },
-            output: { totalCount, misfeedCount },
+            runtime: {
+              total: totalRuntimeMs,
+              formatted: formatDuration(totalRuntimeMs),
+            },
+            downtime: {
+              total: downtimeMs,
+              formatted: formatDuration(downtimeMs),
+            },
+            output: {
+              totalCount,
+              misfeedCount,
+            },
             performance: {
-              availability: { value: availability, percentage: (availability * 100).toFixed(2) + "%" },
-              throughput: { value: throughput, percentage: (throughput * 100).toFixed(2) + "%" },
-              efficiency: { value: efficiency, percentage: (efficiency * 100).toFixed(2) + "%" },
-              oee: { value: oee, percentage: (oee * 100).toFixed(2) + "%" }
-            }
+              availability: {
+                value: availability,
+                percentage: (availability * 100).toFixed(2) + "%",
+              },
+              throughput: {
+                value: throughput,
+                percentage: (throughput * 100).toFixed(2) + "%",
+              },
+              efficiency: {
+                value: efficiency,
+                percentage: (efficiency * 100).toFixed(2) + "%",
+              },
+              oee: {
+                value: oee,
+                percentage: (oee * 100).toFixed(2) + "%",
+              },
+            },
           };
-
-          const itemSummary = formatItemSummaryFromAggregation(aggResult.itemSummary || []);
-          const itemHourlyStack = formatItemHourlyStackFromAggregation(aggResult.hourlyStack || []);
-
-          const faultData = buildFaultData(states, sessionStart, sessionEnd); // still JS-based
-          const operatorEfficiency = await buildOperatorEfficiency(states, [], sessionStart, sessionEnd, serial);
-
+  
+          const itemSummary = {
+            totalCount,
+            workedTimeMs: totalWorkedTimeMs,
+            workedTimeFormatted: formatDuration(totalWorkedTimeMs),
+            pph: Math.round(machinePPH * 100) / 100,
+            proratedStandard: Math.round(proratedStandard * 100) / 100,
+            efficiency: Math.round(machineEfficiency * 10000) / 100,
+            itemSummaries: formattedItemSummaries,
+          };
+  
+          const itemHourlyStack = buildItemHourlyStack(
+            validCountsAccumulator,
+            totalQueryStart,
+            totalQueryEnd
+          );
+  
+          const faultData = buildFaultData(states, sessionStart, sessionEnd);
+  
+          const operatorEfficiency = await buildOperatorEfficiency(
+            states,
+            allCountsAccumulator,
+            sessionStart,
+            sessionEnd,
+            serial
+          );
+  
           return {
             machine: {
               serial,
-              name: machineName
+              name: machineName,
             },
             currentStatus: {
               code: statusCode,
-              name: statusName
+              name: statusName,
             },
             performance,
             itemSummary,
             itemHourlyStack,
             faultData,
-            operatorEfficiency
+            operatorEfficiency,
           };
         })
       );
-
+  
       res.json(results.filter(Boolean));
     } catch (err) {
       logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
-      res
-        .status(500)
-        .json({
-          error: "Failed to fetch session-based machine dashboard data",
-        });
+      res.status(500).json({
+        error: `Failed to fetch machine dashboard data for ${req.url}`,
+      });
     }
   });
-
-// Route for machine dashboard sessions for each session
-
-// router.get("/analytics/machine-dashboard-sessions", async (req, res) => {
-//     try {
-
-//       const { start, end } = parseAndValidateQueryParams(req);
-//       const activeSerials = await getActiveMachineSerials(db, start, end);
-//       const results = await Promise.all(
-//         activeSerials.map(async (serial) => {
-//           const bookended = await getBookendedStatesAndTimeRange(
-//             db,
-//             serial,
-//             start,
-//             end
-//           );
-//           if (!bookended) return null;
-
-//           const { states, sessionStart, sessionEnd } = bookended;
-//           const runSessions = extractAllCyclesFromStatesForDashboard(
-//             states,
-//             sessionStart,
-//             sessionEnd
-//           ).running;
-
-//           if (!runSessions.length) return null;
-
-//           const machineName = states.at(-1)?.machine?.name || "Unknown";
-//           const statusCode = states.at(-1)?.status?.code || 0;
-//           const statusName = states.at(-1)?.status?.name || "Unknown";
-
-//           const sessionResults = await Promise.all(
-//             runSessions.map(async (session) => {
-//               const [aggResult] = await db.collection("count").aggregate([
-//                 { $match: {
-//                     "machine.serial": serial,
-//                     timestamp: { $gte: session.start, $lte: session.end }
-//                 }},
-//                 { $facet: {
-//                     performance: [
-//                       { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
-//                       { $count: "totalCount" }
-//                     ],
-//                     misfeeds: [
-//                       { $match: { misfeed: true } },
-//                       { $count: "misfeedCount" }
-//                     ],
-//                     itemSummary: [
-//                       { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
-//                       { $group: {
-//                           _id: "$item.id",
-//                           name: { $first: "$item.name" },
-//                           standard: { $first: "$item.standard" },
-//                           count: { $sum: 1 }
-//                       }}
-//                     ],
-//                     hourlyStack: [
-//                       { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
-//                       { $project: {
-//                           hour: { $hour: "$timestamp" },
-//                           itemId: "$item.id"
-//                       }},
-//                       { $group: {
-//                           _id: { hour: "$hour", itemId: "$itemId" },
-//                           count: { $sum: 1 }
-//                       }},
-//                       { $project: {
-//                           hour: "$_id.hour",
-//                           itemId: "$_id.itemId",
-//                           count: 1,
-//                           _id: 0
-//                       }}
-//                     ],
-//                     timeCredit: [
-//                       { $match: { misfeed: { $ne: true }, "operator.id": { $ne: -1 } } },
-//                       { $group: {
-//                           _id: { id: "$item.id", name: "$item.name" },
-//                           standard: { $first: "$item.standard" },
-//                           count: { $sum: 1 }
-//                       }},
-//                       { $addFields: {
-//                           standardPerHour: {
-//                             $cond: [
-//                               { $lt: ["$standard", 60] },
-//                               { $multiply: ["$standard", 60] },
-//                               "$standard"
-//                             ]
-//                           }
-//                       }},
-//                       { $addFields: {
-//                           timeCredit: {
-//                             $cond: [
-//                               { $gt: ["$standardPerHour", 0] },
-//                               { $divide: ["$count", { $divide: ["$standardPerHour", 3600] }] },
-//                               0
-//                             ]
-//                           }
-//                       }},
-//                       { $group: {
-//                           _id: null,
-//                           totalTimeCredit: { $sum: "$timeCredit" }
-//                       }}
-//                     ]
-//                 }}
-//               ]).toArray();
   
-//               const totalCount = aggResult.performance?.[0]?.totalCount || 0;
-//               const misfeedCount = aggResult.misfeeds?.[0]?.misfeedCount || 0;
-//               const totalTimeCredit = aggResult.timeCredit?.[0]?.totalTimeCredit || 0;
-//               const runtimeMs = extractAllCyclesFromStates(states, session.start, session.end).running
-//                 .reduce((sum, c) => sum + c.duration, 0);
-//               const totalQueryMs = new Date(session.end) - new Date(session.start);
-//               const downtimeMs = totalQueryMs - runtimeMs;
-//               const runtimeSeconds = runtimeMs / 1000;
-  
-//               const availability = calculateAvailability(runtimeMs, downtimeMs, totalQueryMs);
-//               const throughput = calculateThroughput(totalCount, misfeedCount);
-//               const efficiency = runtimeSeconds > 0 ? totalTimeCredit / runtimeSeconds : 0;
-//               const oee = calculateOEE(availability, efficiency, throughput);
-  
-//               const performance = {
-//                 runtime: { total: runtimeMs, formatted: formatDuration(runtimeMs) },
-//                 downtime: { total: downtimeMs, formatted: formatDuration(downtimeMs) },
-//                 output: { totalCount, misfeedCount },
-//                 performance: {
-//                   availability: { value: availability, percentage: (availability * 100).toFixed(2) + "%" },
-//                   throughput: { value: throughput, percentage: (throughput * 100).toFixed(2) + "%" },
-//                   efficiency: { value: efficiency, percentage: (efficiency * 100).toFixed(2) + "%" },
-//                   oee: { value: oee, percentage: (oee * 100).toFixed(2) + "%" }
-//                 }
-//               };
-  
-//               const itemSummary = formatItemSummaryFromAggregation(aggResult.itemSummary || []);
-//               const itemHourlyStack = formatItemHourlyStackFromAggregation(aggResult.hourlyStack || []);
-  
-//               const faultData = buildFaultData(states, session.start, session.end); // still JS-based
-//               const operatorEfficiency = await buildOperatorEfficiency(states, [], session.start, session.end, serial);
-  
-//               return {
-//                 performance,
-//                 itemSummary,
-//                 itemHourlyStack,
-//                 faultData,
-//                 operatorEfficiency
-//               };
-//             })
-//           );
-
-//           // Aggregate all sessionResults into a single summary
-//           const summary = sessionResults.reduce((acc, curr) => {
-//             // Sum performance fields
-//             if (!acc.performance) acc.performance = { ...curr.performance };
-//             else {
-//               acc.performance.runtime.total += curr.performance.runtime.total;
-//               acc.performance.downtime.total += curr.performance.downtime.total;
-//               acc.performance.output.totalCount += curr.performance.output.totalCount;
-//               acc.performance.output.misfeedCount += curr.performance.output.misfeedCount;
-//               // For percentages, you may want to recalculate after summing
-//             }
-//             // Merge itemSummary
-//             if (!acc.itemSummary) acc.itemSummary = { ...curr.itemSummary };
-//             else {
-//               for (const key in curr.itemSummary) {
-//                 if (!acc.itemSummary[key]) acc.itemSummary[key] = { ...curr.itemSummary[key] };
-//                 else {
-//                   acc.itemSummary[key].countTotal += curr.itemSummary[key].countTotal;
-//                 }
-//               }
-//             }
-//             // Merge itemHourlyStack (append data)
-//             if (!acc.itemHourlyStack) acc.itemHourlyStack = Array.isArray(curr.itemHourlyStack) ? [...curr.itemHourlyStack] : curr.itemHourlyStack;
-//             else if (Array.isArray(acc.itemHourlyStack) && Array.isArray(curr.itemHourlyStack)) {
-//               acc.itemHourlyStack = acc.itemHourlyStack.concat(curr.itemHourlyStack);
-//             }
-//             // Merge faultData (object with arrays inside)
-//             if (!acc.faultData) acc.faultData = { ...curr.faultData };
-//             else {
-//               // Merge faultCycles
-//               acc.faultData.faultCycles = [
-//                 ...(acc.faultData.faultCycles || []),
-//                 ...(curr.faultData.faultCycles || [])
-//               ];
-//               // Merge faultSummaries by faultCode and faultType
-//               const summaryMap = {};
-//               for (const s of [...(acc.faultData.faultSummaries || []), ...(curr.faultData.faultSummaries || [])]) {
-//                 const key = `${s.faultCode}_${s.faultType}`;
-//                 if (!summaryMap[key]) summaryMap[key] = { ...s };
-//                 else {
-//                   summaryMap[key].totalDuration += s.totalDuration;
-//                   summaryMap[key].count += s.count;
-//                   // Optionally merge formatted, etc.
-//                 }
-//               }
-//               acc.faultData.faultSummaries = Object.values(summaryMap);
-//             }
-//             // Merge operatorEfficiency
-//             if (!acc.operatorEfficiency) acc.operatorEfficiency = { ...curr.operatorEfficiency };
-//             else {
-//               for (const key in curr.operatorEfficiency) {
-//                 if (!acc.operatorEfficiency[key]) acc.operatorEfficiency[key] = { ...curr.operatorEfficiency[key] };
-//                 else {
-//                   acc.operatorEfficiency[key].count += curr.operatorEfficiency[key].count;
-//                 }
-//               }
-//             }
-//             return acc;
-//           }, {});
-
-//           // Limit the faultCycles array in the merged faultData to the first 100 records per machine in the final API response.
-//           if (summary.faultData && Array.isArray(summary.faultData.faultCycles)) {
-//             summary.faultData.faultCycles = summary.faultData.faultCycles.slice(0, 100);
-//           }
-
-//           return {
-//             machine: {
-//               serial,
-//               name: machineName
-//             },
-//             currentStatus: {
-//               code: statusCode,
-//               name: statusName
-//             },
-//             ...summary
-//           };
-//         })
-//       );
-  
-//       res.json(results.filter(Boolean));
-//     //   res.json(activeSerials);
-//     } catch (err) {
-//       logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
-//       res
-//         .status(500)
-//         .json({
-//           error: `Failed to fetch machine dashboard data for ${req.url}`,
-//         });
-//     }
-//   });
-
 
   return router;
 };
