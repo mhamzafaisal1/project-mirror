@@ -53,6 +53,11 @@ module.exports = function (server) {
     getActiveOperatorIds, buildOperatorCyclePie, buildOptimizedOperatorFaultHistorySingle
   } = require("../../utils/operatorFunctions");
 
+  const {
+    fetchStatesForOperator,
+    getCompletedCyclesForOperator
+  } = require("../../utils/state");
+
   //   router.get("/analytics/machine-dashboard-sessions", async (req, res) => {
   //     try {
   //       const { start, end } = parseAndValidateQueryParams(req);
@@ -1077,7 +1082,7 @@ router.get("/analytics/machine-dashboard-sessions", async (req, res) => {
 //     }
 //   });
 
-
+// Current working route for operator dashboard sessions
 router.get("/analytics/operator-dashboard-sessions", async (req, res) => {
     try {
       const { start, end } = parseAndValidateQueryParams(req);
@@ -1258,8 +1263,130 @@ router.get("/analytics/operator-dashboard-sessions", async (req, res) => {
 const machineSerial = itemDetails[0]?.machineSerial || "Unknown";
 const machineName = itemDetails[0]?.machineName || "Unknown";
 
-          const pph = totalHours > 0 ? totals.totalValid / totalHours : 0;
-          const efficiency = totals.avgStandard > 0 ? pph / totals.avgStandard : 0;
+          // Calculate runtime, pausedTime, faultTime from states
+          const cycles = extractAllCyclesFromStates(states, sessionStart, sessionEnd);
+          const runtimeMs = cycles.running.reduce((sum, c) => sum + c.duration, 0);
+          const pausedMs = cycles.paused.reduce((sum, c) => sum + c.duration, 0);
+          const faultMs = cycles.fault.reduce((sum, c) => sum + c.duration, 0);
+
+          // Format durations as { hours, minutes }
+          function formatHM(ms) {
+            const totalMinutes = Math.floor(ms / 60000);
+            return {
+              hours: Math.floor(totalMinutes / 60),
+              minutes: totalMinutes % 60
+            };
+          }
+
+          // Calculate output counts from itemDetails
+          const totalCount = totals.totalCount || 0;
+          const misfeedCount = totals.totalMisfeed || 0;
+          const validCount = totals.totalValid || 0;
+
+          // Calculate piecesPerHour and efficiency
+          const runtimeHours = runtimeMs / 3600000;
+          const piecesPerHour = runtimeHours > 0 ? validCount / runtimeHours : 0;
+          const avgStandard = totals.avgStandard > 0 ? totals.avgStandard : 666;
+          const efficiencyVal = avgStandard > 0 ? piecesPerHour / avgStandard : 0;
+
+          // Build the detailed performance object
+          const performance = {
+            runtime: {
+              total: runtimeMs,
+              formatted: formatHM(runtimeMs)
+            },
+            pausedTime: {
+              total: pausedMs,
+              formatted: formatHM(pausedMs)
+            },
+            faultTime: {
+              total: faultMs,
+              formatted: formatHM(faultMs)
+            },
+            output: {
+              totalCount,
+              misfeedCount,
+              validCount
+            },
+            performance: {
+              piecesPerHour: {
+                value: piecesPerHour,
+                formatted: Math.round(piecesPerHour).toString()
+              },
+              efficiency: {
+                value: efficiencyVal,
+                percentage: (efficiencyVal * 100).toFixed(2) + "%"
+              }
+            }
+          };
+
+          // Step 1: Calculate local startDate and endDate for daily efficiency
+          const originalEndDate = new Date(end);
+          let efficiencyStartDate = new Date(start);
+          if (originalEndDate - efficiencyStartDate < 7 * 86400000) {
+            efficiencyStartDate = new Date(originalEndDate);
+            efficiencyStartDate.setDate(originalEndDate.getDate() - 6);
+            efficiencyStartDate.setHours(0, 0, 0, 0);
+          }
+
+          // Step 2: Run aggregation pipeline for daily valid count totals and avg standards
+          const dailyCountsPipeline = [
+            {
+              $match: {
+                "operator.id": operatorId,
+                misfeed: { $ne: true },
+                timestamp: { $gte: efficiencyStartDate, $lte: originalEndDate }
+              }
+            },
+            {
+              $project: {
+                timestamp: 1,
+                day: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+                "item.standard": 1
+              }
+            },
+            {
+              $group: {
+                _id: "$day",
+                count: { $sum: 1 },
+                avgStandard: {
+                  $avg: {
+                    $cond: [{ $gt: ["$item.standard", 0] }, "$item.standard", 666]
+                  }
+                }
+              }
+            },
+            { $sort: { _id: 1 } }
+          ];
+          const dailyCountsResult = await db.collection("count").aggregate(dailyCountsPipeline).toArray();
+
+          // Step 3: Fetch all states for this operator, just for the daily efficiency time window
+          const operatorStates = await fetchStatesForOperator(
+            db,
+            operatorId,
+            efficiencyStartDate,
+            originalEndDate
+          );
+
+          // Step 4: Extract completed Run cycles and calculate run time per day
+          const runCycles = getCompletedCyclesForOperator(operatorStates);
+          const runTimeByDay = {};
+          for (const cycle of runCycles) {
+            const dateKey = new Date(cycle.start).toISOString().split("T")[0];
+            runTimeByDay[dateKey] = (runTimeByDay[dateKey] || 0) + (cycle.duration || 0);
+          }
+
+          // Step 5: Build the dailyEfficiency array from both sources
+          const dailyEfficiencyArr = dailyCountsResult.map(day => {
+            const runMs = runTimeByDay[day._id] || 0;
+            const runHours = runMs / 3600000;
+            const pph = runHours > 0 ? day.count / runHours : 0;
+            const efficiency = day.avgStandard > 0 ? (pph / day.avgStandard) * 100 : 0;
+            return {
+              date: day._id,
+              efficiency: Math.round(efficiency * 100) / 100
+            };
+          });
 
           // Build countsByItem for stacked chart
           const countsByItem = {
@@ -1290,30 +1417,32 @@ const machineName = itemDetails[0]?.machineName || "Unknown";
           return {
             operator: {
               id: operatorId,
-              name: itemDetails[0]?.operatorName || "Unknown"
+              name: operatorName
             },
-            performance: {
-              piecesPerHour: {
-                value: pph,
-                formatted: Math.round(pph).toString()
-              },
-              efficiency: {
-                value: efficiency,
-                percentage: (efficiency * 100).toFixed(2) + "%"
-              }
+            currentStatus: {
+              code: states.at(-1)?.status?.code || 0,
+              name: states.at(-1)?.status?.name || "Unknown"
             },
-            output: {
-              totalCount: totals.totalCount,
-              validCount: totals.totalValid,
-              misfeedCount: totals.totalMisfeed
-            },
+            performance: performance,
             itemSummary: itemDetails.map(item => ({
               ...item,
               workedTimeFormatted: formatDuration(totalRunMs)
             })),
-            countByItemStacked: countsByItem,
+            countByItem: countsByItem, // renamed from countByItemStacked
             cyclePie: cyclePie,
-            faultHistory: faultHistory
+            faultHistory: faultHistory,
+            dailyEfficiency: {
+              operator: {
+                id: operatorId,
+                name: operatorName
+              },
+              timeRange: {
+                start: efficiencyStartDate.toISOString(),
+                end: originalEndDate.toISOString(),
+                totalDays: dailyEfficiencyArr.length
+              },
+              data: dailyEfficiencyArr
+            }
           };
         })
       );
@@ -1328,7 +1457,356 @@ const machineName = itemDetails[0]?.machineName || "Unknown";
   });
   
 
+// Route without operator efficiency line
+// router.get("/analytics/operator-dashboard-sessions", async (req, res) => {
+//     try {
+//       const { start, end } = parseAndValidateQueryParams(req);
+//       const activeOperatorIds = await getActiveOperatorIds(db, start, end);
+  
+//       const results = await Promise.all(
+//         activeOperatorIds.map(async (operatorId) => {
+//           const bookended = await getBookendedOperatorStatesAndTimeRange(
+//             db,
+//             operatorId,
+//             start,
+//             end
+//           );
+//           if (!bookended) return null;
+  
+//           const { states, sessionStart, sessionEnd } = bookended;
+//           const cyclePie = buildOperatorCyclePie(states, sessionStart, sessionEnd);
 
+//           if (!states.length) return null;
+  
+//           const runSessions = extractAllCyclesFromStatesForDashboard(
+//             states,
+//             sessionStart,
+//             sessionEnd
+//           ).running;
+//           if (!runSessions.length) return null;
+  
+//                     const totalRunMs = runSessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+//           const totalHours = totalRunMs / 3600000;
+
+//           const sessionWindows = runSessions.map(({ start, end }) => ({
+//             timestamp: { $gte: new Date(start), $lte: new Date(end) }
+//           }));
+
+//           const pipeline = [
+//             {
+//               $match: {
+//                 "operator.id": operatorId,
+//                 $or: sessionWindows
+//               }
+//             },
+//             {
+//               $project: {
+//                 misfeed: 1,
+//                 timestamp: 1,
+//                 hour: { $hour: "$timestamp" },
+//                 "item.id": 1,
+//                 "item.name": 1,
+//                 "item.standard": 1,
+//                 "operator.name": 1,
+//                 "machine.serial": 1,
+//                 "machine.name": 1
+//               }
+//             },
+//             {
+//               $facet: {
+//                 itemDetails: [
+//                   {
+//                     $group: {
+//                       _id: {
+//                         itemName: "$item.name",
+//                         itemId: "$item.id",
+//                         machineSerial: "$machine.serial",
+//                         machineName: "$machine.name",
+//                         operatorName: "$operator.name"
+//                       },
+//                       count: { $sum: 1 },
+//                       misfeed: { $sum: { $cond: ["$misfeed", 1, 0] } },
+//                       standard: { $first: "$item.standard" }
+//                     }
+//                   },
+//                   {
+//                     $addFields: {
+//                       valid: { $subtract: ["$count", "$misfeed"] },
+//                       standard: { $ifNull: ["$standard", 666] }
+//                     }
+//                   },
+//                   {
+//                     $addFields: {
+//                       pph: {
+//                         $cond: [
+//                           { $gt: [totalHours, 0] },
+//                           { $divide: ["$valid", totalHours] },
+//                           0
+//                         ]
+//                       },
+//                       efficiency: {
+//                         $cond: [
+//                           { $gt: ["$standard", 0] },
+//                           { $divide: [
+//                             {
+//                               $cond: [
+//                                 { $gt: [totalHours, 0] },
+//                                 { $divide: ["$valid", totalHours] },
+//                                 0
+//                               ]
+//                             },
+//                             "$standard"
+//                           ]},
+//                           0
+//                         ]
+//                       }
+//                     }
+//                   },
+//                   {
+//                     $project: {
+//                       operatorName: "$_id.operatorName",
+//                       machineSerial: "$_id.machineSerial",
+//                       machineName: "$_id.machineName",
+//                       itemName: "$_id.itemName",
+//                       count: 1,
+//                       misfeed: 1,
+//                       standard: 1,
+//                       pph: { $round: ["$pph", 2] },
+//                       efficiency: { $round: [{ $multiply: ["$efficiency", 100] }, 2] }
+//                     }
+//                   },
+//                   { $sort: { itemName: 1 } }
+//                 ],
+//                 totals: [
+//                   {
+//                     $group: {
+//                       _id: null,
+//                       totalValid: { $sum: { $subtract: ["$count", "$misfeed"] } },
+//                       totalMisfeed: { $sum: "$misfeed" },
+//                       totalCount: { $sum: "$count" },
+//                       avgStandard: { $avg: { $ifNull: ["$item.standard", 666] } }
+//                     }
+//                   }
+//                 ],
+//                 hourlyItemBreakdown: [
+//                   {
+//                     $group: {
+//                       _id: {
+//                         hour: "$hour",
+//                         itemName: "$item.name"
+//                       },
+//                       count: { $sum: 1 }
+//                     }
+//                   },
+//                   {
+//                     $group: {
+//                       _id: "$_id.itemName",
+//                       hourlyCounts: {
+//                         $push: {
+//                           k: { $toString: "$_id.hour" },
+//                           v: "$count"
+//                         }
+//                       }
+//                     }
+//                   },
+//                   {
+//                     $project: {
+//                       item: "$_id",
+//                       hourlyCounts: {
+//                         $arrayToObject: "$hourlyCounts"
+//                       }
+//                     }
+//                   }
+//                 ]
+//               }
+//             }
+//           ];
+
+//           const [result] = await db.collection("count").aggregate(pipeline).toArray();
+          
+//           const totals = result.totals[0] || { 
+//             totalValid: 0, 
+//             totalMisfeed: 0, 
+//             totalCount: 0, 
+//             avgStandard: 666 
+//           };
+          
+//           const itemDetails = result.itemDetails || [];
+//           const breakdown = result.hourlyItemBreakdown || [];
+
+//           const pph = totalHours > 0 ? totals.totalValid / totalHours : 0;
+//           const efficiency = totals.avgStandard > 0 ? pph / totals.avgStandard : 0;
+
+//           // Build countsByItem for stacked chart
+//           const countsByItem = {
+//             title: "Operator Counts by item",
+//             data: {
+//               hours: Array.from({ length: 24 }, (_, i) => i),
+//               operators: {}
+//             }
+//           };
+//           for (const row of breakdown) {
+//             const hourly = Array(24).fill(0);
+//             for (let h = 0; h < 24; h++) {
+//               hourly[h] = row.hourlyCounts?.[h.toString()] || 0;
+//             }
+//             countsByItem.data.operators[row.item] = hourly;
+//           }
+
+//           return {
+//             operator: {
+//               id: operatorId,
+//               name: itemDetails[0]?.operatorName || "Unknown"
+//             },
+//             performance: {
+//               piecesPerHour: {
+//                 value: pph,
+//                 formatted: Math.round(pph).toString()
+//               },
+//               efficiency: {
+//                 value: efficiency,
+//                 percentage: (efficiency * 100).toFixed(2) + "%"
+//               }
+//             },
+//             output: {
+//               totalCount: totals.totalCount,
+//               validCount: totals.totalValid,
+//               misfeedCount: totals.totalMisfeed
+//             },
+//             itemSummary: itemDetails.map(item => ({
+//               ...item,
+//               workedTimeFormatted: formatDuration(totalRunMs)
+//             })),
+//             countByItemStacked: countsByItem,
+//             cyclePie: cyclePie
+//           };
+//         })
+//       );
+  
+//       res.json(results.filter(Boolean));
+//     } catch (err) {
+//       logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
+//       res.status(500).json({
+//         error: `Failed to fetch operator dashboard data for ${req.url}`
+//       });
+//     }
+//   });
+
+router.get("/analytics/operator-dashboard-sessions2", async (req, res) => {
+    try {
+      const { start, end } = parseAndValidateQueryParams(req);
+      const activeOperatorIds = await getActiveOperatorIds(db, start, end);
+  
+      const results = await Promise.all(
+        activeOperatorIds.map(async (operatorId) => {
+          const bookended = await getBookendedOperatorStatesAndTimeRange(
+            db,
+            operatorId,
+            start,
+            end
+          );
+  
+          if (!bookended) return null;
+  
+          const { states: operatorStates, sessionStart, sessionEnd } = bookended;
+          if (!operatorStates.length) return null;
+  
+          const runSessions = extractAllCyclesFromStatesForDashboard(
+            operatorStates,
+            sessionStart,
+            sessionEnd
+          ).running;
+  
+          if (!runSessions.length) return null;
+  
+          // Get all counts for this operator only within session windows
+          const sessionWindows = runSessions.map(({ start, end }) => ({
+            $and: [
+              { timestamp: { $gte: new Date(start), $lte: new Date(end) } },
+              { "operator.id": operatorId },
+            ],
+          }));
+  
+          const counts = await db
+            .collection("count")
+            .find({ $or: sessionWindows })
+            .project({
+              timestamp: 1,
+              "item.id": 1,
+              "item.name": 1,
+              "item.standard": 1,
+              misfeed: 1,
+              operator: 1,
+            })
+            .sort({ timestamp: 1 })
+            .toArray();
+  
+          const groupedCounts = groupCountsByOperatorAndMachine(counts);
+          const validCounts = counts.filter((c) => !c.misfeed);
+          const misfeedCounts = counts.filter((c) => c.misfeed);
+  
+          const stats = processCountStatistics(counts);
+  
+          const { runtime, pausedTime, faultTime } = calculateOperatorTimes(
+            operatorStates,
+            sessionStart,
+            sessionEnd
+          );
+  
+          const pph = calculatePiecesPerHour(stats.total, runtime);
+          const efficiency = calculateEfficiency(runtime, stats.total, validCounts);
+  
+          const latestState = operatorStates.at(-1);
+  
+          return {
+            operator: {
+              id: operatorId,
+              name: counts[0]?.operator?.name || "Unknown",
+            },
+            currentStatus: {
+              code: latestState?.status?.code || 0,
+              name: latestState?.status?.name || "Unknown",
+            },
+            runtime: {
+              total: runtime,
+              formatted: formatDuration(runtime),
+            },
+            pausedTime: {
+              total: pausedTime,
+              formatted: formatDuration(pausedTime),
+            },
+            faultTime: {
+              total: faultTime,
+              formatted: formatDuration(faultTime),
+            },
+            output: {
+              totalCount: stats.total,
+              misfeedCount: stats.misfeeds,
+              validCount: stats.valid,
+            },
+            performance: {
+              piecesPerHour: {
+                value: pph,
+                formatted: Math.round(pph).toString(),
+              },
+              efficiency: {
+                value: efficiency,
+                percentage: (efficiency * 100).toFixed(2) + "%",
+              },
+            },
+          };
+        })
+      );
+  
+      res.json(results.filter(Boolean));
+    } catch (err) {
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
+      res.status(500).json({
+        error: `Failed to fetch operator dashboard data for ${req.url}`,
+      });
+    }
+  });
+  
   
 
   return router;
