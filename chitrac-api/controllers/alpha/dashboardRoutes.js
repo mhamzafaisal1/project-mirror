@@ -50,7 +50,7 @@ module.exports = function (server) {
   } = require("../../utils/machineFunctions");
 
   const {
-    getActiveOperatorIds
+    getActiveOperatorIds, buildOperatorCyclePie, buildOptimizedOperatorFaultHistorySingle
   } = require("../../utils/operatorFunctions");
 
   //   router.get("/analytics/machine-dashboard-sessions", async (req, res) => {
@@ -1094,6 +1094,8 @@ router.get("/analytics/operator-dashboard-sessions", async (req, res) => {
           if (!bookended) return null;
   
           const { states, sessionStart, sessionEnd } = bookended;
+          const cyclePie = buildOperatorCyclePie(states, sessionStart, sessionEnd);
+
           if (!states.length) return null;
   
           const runSessions = extractAllCyclesFromStatesForDashboard(
@@ -1120,6 +1122,8 @@ router.get("/analytics/operator-dashboard-sessions", async (req, res) => {
             {
               $project: {
                 misfeed: 1,
+                timestamp: 1,
+                hour: { $hour: "$timestamp" },
                 "item.id": 1,
                 "item.name": 1,
                 "item.standard": 1,
@@ -1129,24 +1133,22 @@ router.get("/analytics/operator-dashboard-sessions", async (req, res) => {
               }
             },
             {
-              $group: {
-                _id: {
-                  itemName: "$item.name",
-                  itemId: "$item.id",
-                  machineSerial: "$machine.serial",
-                  machineName: "$machine.name",
-                  operatorName: "$operator.name"
-                },
-                count: { $sum: 1 },
-                misfeed: {
-                  $sum: { $cond: ["$misfeed", 1, 0] }
-                },
-                standard: { $first: "$item.standard" }
-              }
-            },
-            {
               $facet: {
                 itemDetails: [
+                  {
+                    $group: {
+                      _id: {
+                        itemName: "$item.name",
+                        itemId: "$item.id",
+                        machineSerial: "$machine.serial",
+                        machineName: "$machine.name",
+                        operatorName: "$operator.name"
+                      },
+                      count: { $sum: 1 },
+                      misfeed: { $sum: { $cond: ["$misfeed", 1, 0] } },
+                      standard: { $first: "$item.standard" }
+                    }
+                  },
                   {
                     $addFields: {
                       valid: { $subtract: ["$count", "$misfeed"] },
@@ -1161,15 +1163,20 @@ router.get("/analytics/operator-dashboard-sessions", async (req, res) => {
                           { $divide: ["$valid", totalHours] },
                           0
                         ]
-                      }
-                    }
-                  },
-                  {
-                    $addFields: {
+                      },
                       efficiency: {
                         $cond: [
                           { $gt: ["$standard", 0] },
-                          { $divide: ["$pph", "$standard"] },
+                          { $divide: [
+                            {
+                              $cond: [
+                                { $gt: [totalHours, 0] },
+                                { $divide: ["$valid", totalHours] },
+                                0
+                              ]
+                            },
+                            "$standard"
+                          ]},
                           0
                         ]
                       }
@@ -1197,7 +1204,37 @@ router.get("/analytics/operator-dashboard-sessions", async (req, res) => {
                       totalValid: { $sum: { $subtract: ["$count", "$misfeed"] } },
                       totalMisfeed: { $sum: "$misfeed" },
                       totalCount: { $sum: "$count" },
-                      avgStandard: { $avg: { $ifNull: ["$standard", 666] } }
+                      avgStandard: { $avg: { $ifNull: ["$item.standard", 666] } }
+                    }
+                  }
+                ],
+                hourlyItemBreakdown: [
+                  {
+                    $group: {
+                      _id: {
+                        hour: "$hour",
+                        itemName: "$item.name"
+                      },
+                      count: { $sum: 1 }
+                    }
+                  },
+                  {
+                    $group: {
+                      _id: "$_id.itemName",
+                      hourlyCounts: {
+                        $push: {
+                          k: { $toString: "$_id.hour" },
+                          v: "$count"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    $project: {
+                      item: "$_id",
+                      hourlyCounts: {
+                        $arrayToObject: "$hourlyCounts"
+                      }
                     }
                   }
                 ]
@@ -1215,9 +1252,40 @@ router.get("/analytics/operator-dashboard-sessions", async (req, res) => {
           };
           
           const itemDetails = result.itemDetails || [];
+          const breakdown = result.hourlyItemBreakdown || [];
+
+          const operatorName = itemDetails[0]?.operatorName || "Unknown";
+const machineSerial = itemDetails[0]?.machineSerial || "Unknown";
+const machineName = itemDetails[0]?.machineName || "Unknown";
 
           const pph = totalHours > 0 ? totals.totalValid / totalHours : 0;
           const efficiency = totals.avgStandard > 0 ? pph / totals.avgStandard : 0;
+
+          // Build countsByItem for stacked chart
+          const countsByItem = {
+            title: "Operator Counts by item",
+            data: {
+              hours: Array.from({ length: 24 }, (_, i) => i),
+              operators: {}
+            }
+          };
+          for (const row of breakdown) {
+            const hourly = Array(24).fill(0);
+            for (let h = 0; h < 24; h++) {
+              hourly[h] = row.hourlyCounts?.[h.toString()] || 0;
+            }
+            countsByItem.data.operators[row.item] = hourly;
+          }
+
+          const faultHistory = buildOptimizedOperatorFaultHistorySingle(
+            operatorId,
+            operatorName,
+            machineSerial,
+            machineName,
+            states,
+            sessionStart,
+            sessionEnd
+          );
 
           return {
             operator: {
@@ -1242,7 +1310,10 @@ router.get("/analytics/operator-dashboard-sessions", async (req, res) => {
             itemSummary: itemDetails.map(item => ({
               ...item,
               workedTimeFormatted: formatDuration(totalRunMs)
-            }))
+            })),
+            countByItemStacked: countsByItem,
+            cyclePie: cyclePie,
+            faultHistory: faultHistory
           };
         })
       );
