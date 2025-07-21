@@ -12,23 +12,25 @@ export class PollingService {
   }
 
   poll<T>(
-    pollFn: () => Observable<T>, 
-    intervalMs: number, 
+    pollFn: () => Observable<T>,
+    intervalMs: number,
     stop$: Observable<any>,
-    isModal: boolean = false
+    isModal: boolean = false,
+    immediate: boolean = true // ← new param
   ): Observable<T> {
     const source$ = isModal ? this.modalOpen$ : new BehaviorSubject(true);
-    
+  
     return source$.pipe(
       filter(isActive => isActive),
-      switchMap(() => 
-        timer(0, intervalMs).pipe(
+      switchMap(() =>
+        timer(immediate ? 0 : intervalMs, intervalMs).pipe( // ✅ toggle first emission
           takeUntil(stop$),
           concatMap(() => pollFn())
         )
       )
     );
   }
+  
 
   // Utility method to update end timestamp to now
   updateEndTimestampToNow(): string {

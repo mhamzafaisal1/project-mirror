@@ -93,7 +93,6 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-
     const isLive = this.dateTimeService.getLiveMode();
     const wasConfirmed = this.dateTimeService.getConfirmed();
 
@@ -173,41 +172,41 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
   private setupPolling(): void {
     if (this.liveMode) {
       // Initial data fetch
-      this.analyticsService.getMachineDashboard(this.startTime, this.endTime)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe((data: any) => {
-          const responses = Array.isArray(data) ? data : [data];
-          this.machineData = responses;
-          const formattedData = responses.map((response) => ({
-            Status: getStatusDotByCode(response.currentStatus?.code),
-            "Machine Name": response.machine.name,
-            "Serial Number": response.machine.serial,
-            Runtime: `${response.performance.runtime.formatted.hours}h ${response.performance.runtime.formatted.minutes}m`,
-            Downtime: `${response.performance.downtime.formatted.hours}h ${response.performance.downtime.formatted.minutes}m`,
-            "Total Count": response.performance.output.totalCount,
-            "Misfeed Count": response.performance.output.misfeedCount,
-            Availability: response.performance.performance.availability.percentage,
-            Throughput: response.performance.performance.throughput.percentage,
-            Efficiency: response.performance.performance.efficiency.percentage,
-            OEE: response.performance.performance.oee.percentage,
+      // this.analyticsService.getMachineDashboard(this.startTime, this.endTime)
+      //   .pipe(takeUntil(this.destroy$))
+      //   .subscribe((data: any) => {
+      //     const responses = Array.isArray(data) ? data : [data];
+      //     this.machineData = responses;
+      //     const formattedData = responses.map((response) => ({
+      //       Status: getStatusDotByCode(response.currentStatus?.code),
+      //       "Machine Name": response.machine.name,
+      //       "Serial Number": response.machine.serial,
+      //       Runtime: `${response.performance.runtime.formatted.hours}h ${response.performance.runtime.formatted.minutes}m`,
+      //       Downtime: `${response.performance.downtime.formatted.hours}h ${response.performance.downtime.formatted.minutes}m`,
+      //       "Total Count": response.performance.output.totalCount,
+      //       "Misfeed Count": response.performance.output.misfeedCount,
+      //       Availability: response.performance.performance.availability.percentage,
+      //       Throughput: response.performance.performance.throughput.percentage,
+      //       Efficiency: response.performance.performance.efficiency.percentage,
+      //       OEE: response.performance.performance.oee.percentage,
             
-          }));
-          this.columns = [
-            "Status",
-            "Machine Name",
-            "Serial Number",
-            "Runtime",
-            "Downtime",
-            "Total Count",
-            "Misfeed Count",
-            "Availability",
-            "Throughput",
-            "Efficiency",
-            "OEE"
-          ];
+      //     }));
+      //     this.columns = [
+      //       "Status",
+      //       "Machine Name",
+      //       "Serial Number",
+      //       "Runtime",
+      //       "Downtime",
+      //       "Total Count",
+      //       "Misfeed Count",
+      //       "Availability",
+      //       "Throughput",
+      //       "Efficiency",
+      //       "OEE"
+      //     ];
           
-          this.rows = formattedData;
-        });
+      //     this.rows = formattedData;
+      //   });
 
       // Setup polling for subsequent updates
       this.pollingSubscription = this.pollingService.poll(
@@ -236,7 +235,9 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
           );
         },
         this.POLLING_INTERVAL,
-        this.destroy$
+        this.destroy$,
+        false,  // isModal
+        false   // 👈 prevents immediate call
       ).subscribe();
     }
   }
@@ -266,6 +267,7 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
   
 
   fetchAnalyticsData(): void {
+    console.log('fetch analytics running')
     if (!this.startTime || !this.endTime) return;
 
     this.isLoading = true;
