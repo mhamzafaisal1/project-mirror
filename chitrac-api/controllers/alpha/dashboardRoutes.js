@@ -1112,11 +1112,11 @@ router.get("/analytics/operator-dashboard-sessions", async (req, res) => {
   
                     const totalRunMs = runSessions.reduce((sum, s) => sum + (s.duration || 0), 0);
           const totalHours = totalRunMs / 3600000;
-
+  
           const sessionWindows = runSessions.map(({ start, end }) => ({
             timestamp: { $gte: new Date(start), $lte: new Date(end) }
           }));
-
+  
           const pipeline = [
             {
               $match: {
@@ -1140,18 +1140,18 @@ router.get("/analytics/operator-dashboard-sessions", async (req, res) => {
             {
               $facet: {
                 itemDetails: [
-                  {
-                    $group: {
-                      _id: {
-                        itemName: "$item.name",
-                        itemId: "$item.id",
-                        machineSerial: "$machine.serial",
-                        machineName: "$machine.name",
-                        operatorName: "$operator.name"
-                      },
-                      count: { $sum: 1 },
+            {
+              $group: {
+                _id: {
+                  itemName: "$item.name",
+                  itemId: "$item.id",
+                  machineSerial: "$machine.serial",
+                  machineName: "$machine.name",
+                  operatorName: "$operator.name"
+                },
+                count: { $sum: 1 },
                       misfeed: { $sum: { $cond: ["$misfeed", 1, 0] } },
-                      standard: { $first: "$item.standard" }
+                standard: { $first: "$item.standard" }
                     }
                   },
                   {
@@ -1203,16 +1203,24 @@ router.get("/analytics/operator-dashboard-sessions", async (req, res) => {
                   { $sort: { itemName: 1 } }
                 ],
                 totals: [
-                  {
-                    $group: {
-                      _id: null,
-                      totalValid: { $sum: { $subtract: ["$count", "$misfeed"] } },
-                      totalMisfeed: { $sum: "$misfeed" },
-                      totalCount: { $sum: "$count" },
-                      avgStandard: { $avg: { $ifNull: ["$item.standard", 666] } }
+                    {
+                      $project: {
+                        count: { $literal: 1 },
+                        misfeed: { $cond: ["$misfeed", 1, 0] },
+                        "item.standard": 1
+                      }
+                    },
+                    {
+                      $group: {
+                        _id: null,
+                        totalValid: { $sum: { $cond: ["$misfeed", 0, 1] } },
+                        totalMisfeed: { $sum: "$misfeed" },
+                        totalCount: { $sum: "$count" },
+                        avgStandard: { $avg: { $ifNull: ["$item.standard", 666] } }
+                      }
                     }
-                  }
-                ],
+                  ]
+                  ,
                 hourlyItemBreakdown: [
                   {
                     $group: {
@@ -1272,7 +1280,7 @@ const machineName = itemDetails[0]?.machineName || "Unknown";
           // Format durations as { hours, minutes }
           function formatHM(ms) {
             const totalMinutes = Math.floor(ms / 60000);
-            return {
+          return {
               hours: Math.floor(totalMinutes / 60),
               minutes: totalMinutes % 60
             };
@@ -1382,7 +1390,7 @@ const machineName = itemDetails[0]?.machineName || "Unknown";
             const runHours = runMs / 3600000;
             const pph = runHours > 0 ? day.count / runHours : 0;
             const efficiency = day.avgStandard > 0 ? (pph / day.avgStandard) * 100 : 0;
-            return {
+              return {
               date: day._id,
               efficiency: Math.round(efficiency * 100) / 100
             };
