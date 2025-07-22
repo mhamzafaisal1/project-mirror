@@ -18,7 +18,7 @@ export class OperatorAnalyticsService {
       params = params.set('operatorId', operatorId.toString());
     }
 
-    return this.http.get('/api/alpha/analytics/operator-dashboard', { params });
+    return this.http.get('/api/alpha/analytics/operator-dashboard-sessions', { params });
   }
 
   getOperatorPerformance(startTime: string, endTime: string, operatorId?: number): Observable<any> {

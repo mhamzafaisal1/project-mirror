@@ -162,11 +162,11 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   private setupPolling(): void {
     if (this.liveMode) {
       // Initial data fetch
-      this.analyticsService.getOperatorDashboard(this.startTime, this.endTime, this.operatorId)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe((data: any) => {
-          this.updateDashboardData(data);
-        });
+      // this.analyticsService.getOperatorDashboard(this.startTime, this.endTime, this.operatorId)
+      //   .pipe(takeUntil(this.destroy$))
+      //   .subscribe((data: any) => {
+      //     this.updateDashboardData(data);
+      //   });
 
       // Setup polling for subsequent updates
       this.pollingSubscription = this.pollingService.poll(
@@ -181,8 +181,11 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
             );
         },
         this.POLLING_INTERVAL,
-        this.destroy$
+        this.destroy$,
+        false,  // isModal
+        false   // 👈 prevents immediate call
       ).subscribe();
+      
     }
   }
 

@@ -105,6 +105,25 @@ export class MachineAnalyticsService {
       params = params.set('serial', serial.toString());
     }
 
+    return this.http.get(`${this.apiUrl}/analytics/machine-dashboard-sessions`, { params });
+  }
+
+  getMachineSummary(start: string, end: string): Observable<any> {
+    const params = new HttpParams()
+      .set('start', start)
+      .set('end', end);
+  
+    return this.http.get(`${this.apiUrl}/analytics/machine-summary`, { params });
+  }
+
+  getMachineDetails(start: string, end: string, serial: number): Observable<any> {
+    const params = new HttpParams()
+      .set('start', start)
+      .set('end', end)
+      .set('serial', serial.toString());
+  
     return this.http.get(`${this.apiUrl}/analytics/machine-dashboard`, { params });
   }
+  
+  
 }
