@@ -183,15 +183,16 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
                 Status: getStatusDotByCode(response.currentStatus?.code),
                 "Machine Name": response.machine.name,
                 "Serial Number": response.machine.serial,
-                Runtime: `${response.performance.runtime.formatted.hours}h ${response.performance.runtime.formatted.minutes}m`,
-                Downtime: `${response.performance.downtime.formatted.hours}h ${response.performance.downtime.formatted.minutes}m`,
-                "Total Count": response.performance.output.totalCount,
-                "Misfeed Count": response.performance.output.misfeedCount,
-                Availability: `${response.performance.performance.availability.percentage}`,
-                Throughput: `${response.performance.performance.throughput.percentage}`,
-                Efficiency: `${response.performance.performance.efficiency.percentage}`,
-                OEE: `${response.performance.performance.oee.percentage}`,
+                Runtime: `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
+                Downtime: `${response.metrics.downtime.formatted.hours}h ${response.metrics.downtime.formatted.minutes}m`,
+                "Total Count": response.metrics.output.totalCount,
+                "Misfeed Count": response.metrics.output.misfeedCount,
+                Availability: `${response.metrics.performance.availability.percentage}`,
+                Throughput: `${response.metrics.performance.throughput.percentage}`,
+                Efficiency: `${response.metrics.performance.efficiency.percentage}`,
+                OEE: `${response.metrics.performance.oee.percentage}`,
               }));
+              
               this.columns = Object.keys(formattedData[0]);
               this.rows = formattedData;
             })
@@ -235,9 +236,25 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
     this.analyticsService.getMachineSummary(this.startTime, this.endTime).subscribe({
       next: (data: any) => {
         const responses = Array.isArray(data) ? data : [data];
-        this.machineData = responses;
 
-        const formattedData = responses.map((response) => ({
+        // Guard: if responses is not an array or is empty, set rows to [] and return
+        if (!Array.isArray(responses) || responses.length === 0) {
+          this.rows = [];
+          this.isLoading = false;
+          return;
+        }
+
+        // Filter out undefined/null/invalid responses
+        const validResponses = responses.filter(
+          response => response && response.metrics && response.machine && response.currentStatus
+        );
+        if (validResponses.length === 0) {
+          this.rows = [];
+          this.isLoading = false;
+          return;
+        }
+
+        const formattedData = validResponses.map((response) => ({
           Status: getStatusDotByCode(response.currentStatus?.code),
           "Machine Name": response.machine?.name ?? "Unknown",
           "Serial Number": response.machine?.serial,
@@ -250,8 +267,7 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
           Efficiency: (response.metrics?.performance?.efficiency?.percentage ?? "0") + "%",
           OEE: (response.metrics?.performance?.oee?.percentage ?? "0") + "%",
         }));
-        
-    
+
         const allColumns = Object.keys(formattedData[0]);
         const columnsToHide: string[] = [""];
         this.columns = allColumns.filter(col => !columnsToHide.includes(col));
