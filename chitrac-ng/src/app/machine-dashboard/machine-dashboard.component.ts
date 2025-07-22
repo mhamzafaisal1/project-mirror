@@ -245,10 +245,10 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
           Downtime: `${response.metrics?.downtime?.formatted?.hours ?? 0}h ${response.metrics?.downtime?.formatted?.minutes ?? 0}m`,
           "Total Count": response.metrics?.output?.totalCount ?? 0,
           "Misfeed Count": response.metrics?.output?.misfeedCount ?? 0,
-          Availability: response.metrics?.performance?.availability?.percentage ?? "0%",
-          Throughput: response.metrics?.performance?.throughput?.percentage ?? "0%",
-          Efficiency: response.metrics?.performance?.efficiency?.percentage ?? "0%",
-          OEE: response.metrics?.performance?.oee?.percentage ?? "0%",
+          Availability: (response.metrics?.performance?.availability?.percentage ?? "0") + "%",
+          Throughput: (response.metrics?.performance?.throughput?.percentage ?? "0") + "%",
+          Efficiency: (response.metrics?.performance?.efficiency?.percentage ?? "0") + "%",
+          OEE: (response.metrics?.performance?.oee?.percentage ?? "0") + "%",
         }));
         
     
