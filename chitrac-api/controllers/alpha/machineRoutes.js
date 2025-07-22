@@ -10,6 +10,7 @@ module.exports = function (server) {
     parseAndValidateQueryParams,
     createPaddedTimeRange,
     formatDuration,
+    getHourlyIntervals,
   } = require("../../utils/time");
 
   // State + Count imports
@@ -18,6 +19,7 @@ module.exports = function (server) {
     getAllMachineSerials,
     groupStatesByMachine,
     extractAllCyclesFromStates,
+    extractFaultCycles,
     getAllMachinesFromStates,
     getAllMachineSerialsAndNames,
   } = require("../../utils/state");
@@ -25,6 +27,8 @@ module.exports = function (server) {
   const {
     getCountsForMachine,
     groupCountsByOperatorAndMachine,
+    groupCountsByItem,
+    processCountStatistics,
   } = require("../../utils/count");
 
   // Dashboard Builders
@@ -1364,7 +1368,615 @@ module.exports = function (server) {
   }
 });
 
+  router.get("/machine-dashboard-optimized", async (req, res) => {
+    try {
+      const { start, end, serial } = parseAndValidateQueryParams(req);
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
 
+      const targetSerials = serial ? [serial] : [];
+
+      const groupedData = await fetchGroupedAnalyticsData(
+        db,
+        paddedStart,
+        paddedEnd,
+        "machine",
+        { targetSerials }
+      );
+
+      const results = await Promise.all(
+        Object.entries(groupedData).map(async ([serial, group]) => {
+          const machineSerial = parseInt(serial);
+          const { states, counts } = group;
+
+          if (!states.length && !counts.valid.length) return null;
+
+          const latest = states[states.length - 1] || {};
+          const statusCode = latest.status?.code || 0;
+          const statusName = latest.status?.name || "Unknown";
+          const machineName = latest.machine?.name || "Unknown";
+
+          // Preprocess data once to reduce traversals
+          const preprocessedData = preprocessMachineData(states, counts.valid, start, end);
+
+          const [
+            performance,
+            itemSummary,
+            itemHourlyStack,
+            faultData,
+            operatorEfficiency,
+          ] = await Promise.all([
+            buildMachinePerformanceOptimized(
+              preprocessedData.runningCycles,
+              counts.valid,
+              counts.misfeed,
+              start,
+              end
+            ),
+            buildMachineItemSummaryOptimized(
+              preprocessedData.runningCycles,
+              preprocessedData.cycleAssignments,
+              start,
+              end
+            ),
+            buildItemHourlyStackOptimized(
+              preprocessedData.itemHourMap,
+              preprocessedData.itemNames,
+              start,
+              end
+            ),
+            buildFaultDataOptimized(
+              preprocessedData.faultCycles,
+              start,
+              end
+            ),
+            buildOperatorEfficiencyOptimized(
+              preprocessedData.hourlyCountsMap,
+              preprocessedData.hourlyStatesMap,
+              start,
+              end,
+              machineSerial
+            ),
+          ]);
+
+          return {
+            machine: {
+              serial: machineSerial,
+              name: machineName,
+            },
+            currentStatus: {
+              code: statusCode,
+              name: statusName,
+            },
+            performance,
+            itemSummary,
+            itemHourlyStack,
+            faultData,
+            operatorEfficiency,
+          };
+        })
+      );
+
+      res.json(results.filter(Boolean));
+    } catch (err) {
+      logger.error("Error in /machine-dashboard-optimized route:", err);
+      res.status(500).json({ error: "Failed to fetch dashboard data" });
+    }
+  });
+
+
+  router.get("/machine-dashboard-optimized", async (req, res) => {
+    try {
+      const { start, end, serial } = parseAndValidateQueryParams(req);
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+
+      const targetSerials = serial ? [serial] : [];
+
+      const groupedData = await fetchGroupedAnalyticsData(
+        db,
+        paddedStart,
+        paddedEnd,
+        "machine",
+        { targetSerials }
+      );
+
+      const results = await Promise.all(
+        Object.entries(groupedData).map(async ([serial, group]) => {
+          const machineSerial = parseInt(serial);
+          const { states, counts } = group;
+
+          if (!states.length && !counts.valid.length) return null;
+
+          const latest = states[states.length - 1] || {};
+          const statusCode = latest.status?.code || 0;
+          const statusName = latest.status?.name || "Unknown";
+          const machineName = latest.machine?.name || "Unknown";
+
+          // Preprocess data once to reduce traversals
+          const preprocessedData = preprocessMachineData(states, counts.valid, start, end);
+
+          const [
+            performance,
+            itemSummary,
+            itemHourlyStack,
+            faultData,
+            operatorEfficiency,
+          ] = await Promise.all([
+            buildMachinePerformanceOptimized(
+              preprocessedData.runningCycles,
+              counts.valid,
+              counts.misfeed,
+              start,
+              end
+            ),
+            buildMachineItemSummaryOptimized(
+              preprocessedData.runningCycles,
+              preprocessedData.cycleAssignments,
+              start,
+              end
+            ),
+            buildItemHourlyStackOptimized(
+              preprocessedData.itemHourMap,
+              preprocessedData.itemNames,
+              start,
+              end
+            ),
+            buildFaultDataOptimized(
+              preprocessedData.faultCycles,
+              start,
+              end
+            ),
+            buildOperatorEfficiencyOptimized(
+              preprocessedData.hourlyCountsMap,
+              preprocessedData.hourlyStatesMap,
+              start,
+              end,
+              machineSerial
+            ),
+          ]);
+
+          return {
+            machine: {
+              serial: machineSerial,
+              name: machineName,
+            },
+            currentStatus: {
+              code: statusCode,
+              name: statusName,
+            },
+            performance,
+            itemSummary,
+            itemHourlyStack,
+            faultData,
+            operatorEfficiency,
+          };
+        })
+      );
+
+      res.json(results.filter(Boolean));
+    } catch (err) {
+      logger.error("Error in /machine-dashboard-optimized route:", err);
+      res.status(500).json({ error: "Failed to fetch dashboard data" });
+    }
+  });
+
+  router.get("/machine-dashboard-fast", async (req, res) => {
+    try {
+      const { start, end, serial } = parseAndValidateQueryParams(req);
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+
+      const targetSerials = serial ? [serial] : [];
+
+      // Use ultra-optimized data fetching
+      const groupedData = await preprocessMachineDataUltra(db, paddedStart, paddedEnd, targetSerials);
+
+      const results = await Promise.all(
+        Object.entries(groupedData).map(async ([serial, group]) => {
+          const machineSerial = parseInt(serial);
+          const { states, counts } = group;
+
+          if (!states.length && !counts.valid.length) return null;
+
+          const latest = states[states.length - 1] || {};
+          const statusCode = latest.status?.code || 0;
+          const statusName = latest.status?.name || "Unknown";
+          const machineName = latest.machine?.name || "Unknown";
+
+          // Extract cycles once
+          const allCycles = extractAllCyclesFromStates(states, start, end);
+          const runningCycles = allCycles.running;
+          const faultCycles = extractFaultCycles(states, start, end);
+
+          // Pre-group data for efficiency
+          const startDate = new Date(start);
+          const hourlyCountsMap = new Map();
+          const hourlyStatesMap = new Map();
+          const itemHourMap = new Map();
+          const itemNames = new Set();
+          const cycleAssignments = new Map();
+
+          // Single pass through counts
+          for (const count of counts.valid) {
+            const ts = new Date(count.timestamp);
+            const hourIndex = Math.floor((ts - startDate) / (60 * 60 * 1000));
+            
+            if (!hourlyCountsMap.has(hourIndex)) {
+              hourlyCountsMap.set(hourIndex, []);
+            }
+            hourlyCountsMap.get(hourIndex).push(count);
+
+            if (!itemHourMap.has(hourIndex)) {
+              itemHourMap.set(hourIndex, {});
+            }
+            const hourEntry = itemHourMap.get(hourIndex);
+            const itemName = count.item?.name || "Unknown";
+            hourEntry[itemName] = (hourEntry[itemName] || 0) + 1;
+            itemNames.add(itemName);
+          }
+
+          // Single pass through states
+          for (const state of states) {
+            const ts = new Date(state.timestamp);
+            const hourIndex = Math.floor((ts - startDate) / (60 * 60 * 1000));
+            
+            if (!hourlyStatesMap.has(hourIndex)) {
+              hourlyStatesMap.set(hourIndex, []);
+            }
+            hourlyStatesMap.get(hourIndex).push(state);
+          }
+
+          // Assign counts to cycles
+          for (let i = 0; i < runningCycles.length; i++) {
+            const cycle = runningCycles[i];
+            const cycleStart = new Date(cycle.start);
+            const cycleEnd = new Date(cycle.end);
+            
+            const cycleCounts = counts.valid.filter(c => {
+              const ts = new Date(c.timestamp);
+              return ts >= cycleStart && ts <= cycleEnd;
+            });
+            
+            cycleAssignments.set(i, cycleCounts);
+          }
+
+          const [
+            performance,
+            itemSummary,
+            itemHourlyStack,
+            faultData,
+            operatorEfficiency,
+          ] = await Promise.all([
+            buildMachinePerformanceUltra(
+              runningCycles,
+              counts.valid,
+              counts.misfeed,
+              start,
+              end
+            ),
+            buildMachineItemSummaryUltra(
+              runningCycles,
+              cycleAssignments,
+              start,
+              end
+            ),
+            buildItemHourlyStackUltra(
+              itemHourMap,
+              Array.from(itemNames),
+              start,
+              end
+            ),
+            buildFaultDataUltra(
+              faultCycles,
+              start,
+              end
+            ),
+            buildOperatorEfficiencyUltra(
+              hourlyCountsMap,
+              hourlyStatesMap,
+              start,
+              end,
+              machineSerial
+            ),
+          ]);
+
+          return {
+            machine: {
+              serial: machineSerial,
+              name: machineName,
+            },
+            currentStatus: {
+              code: statusCode,
+              name: statusName,
+            },
+            performance,
+            itemSummary,
+            itemHourlyStack,
+            faultData,
+            operatorEfficiency,
+          };
+        })
+      );
+
+      res.json(results.filter(Boolean));
+    } catch (err) {
+      logger.error("Error in /machine-dashboard-fast route:", err);
+      res.status(500).json({ error: "Failed to fetch dashboard data" });
+    }
+  });
+
+  router.get("/machine-dashboard-aggregated", async (req, res) => {
+    try {
+      const { start, end, serial } = parseAndValidateQueryParams(req);
+      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
+
+      const targetSerials = serial ? [serial] : [];
+
+      // Use aggregation-based preprocessing
+      const groupedData = await preprocessMachineDataAggregated(db, paddedStart, paddedEnd, targetSerials);
+
+      const results = await Promise.all(
+        Object.entries(groupedData).map(async ([serial, group]) => {
+          const machineSerial = parseInt(serial);
+          const { states, counts, latestStatus, preCalculated } = group;
+
+          if (!states.length && !counts.valid.length) return null;
+
+          const machineName = latestStatus?.machine?.name || "Unknown";
+          const statusCode = latestStatus?.code || 0;
+          const statusName = latestStatus?.name || "Unknown";
+
+          // Extract cycles once
+          const allCycles = extractAllCyclesFromStates(states, start, end);
+          const runningCycles = allCycles.running;
+          const faultCycles = extractFaultCycles(states, start, end);
+
+          // Use pre-calculated totals for performance
+          const runtimeMs = runningCycles.reduce((total, cycle) => total + cycle.duration, 0);
+          const totalQueryMs = new Date(end) - new Date(start);
+          const downtimeMs = calculateDowntime(totalQueryMs, runtimeMs);
+
+          const totalCount = preCalculated.totalValid + preCalculated.totalMisfeed;
+          const misfeedCount = preCalculated.totalMisfeed;
+
+          const availability = calculateAvailability(runtimeMs, downtimeMs, totalQueryMs);
+          const throughput = calculateThroughput(preCalculated.totalValid, misfeedCount);
+          const efficiency = calculateEfficiency(runtimeMs, preCalculated.totalValid, counts.valid);
+          const oee = calculateOEE(availability, efficiency, throughput);
+
+          const performance = {
+            runtime: {
+              total: runtimeMs,
+              formatted: formatDuration(runtimeMs),
+            },
+            downtime: {
+              total: downtimeMs,
+              formatted: formatDuration(downtimeMs),
+            },
+            output: {
+              totalCount,
+              misfeedCount,
+            },
+            performance: {
+              availability: {
+                value: availability,
+                percentage: (availability * 100).toFixed(2) + "%",
+              },
+              throughput: {
+                value: throughput,
+                percentage: (throughput * 100).toFixed(2) + "%",
+              },
+              efficiency: {
+                value: efficiency,
+                percentage: (efficiency * 100).toFixed(2) + "%",
+              },
+              oee: {
+                value: oee,
+                percentage: (oee * 100).toFixed(2) + "%",
+              },
+            },
+          };
+
+          // Build item summary using pre-calculated data
+          const itemSummary = {};
+          let totalWorkedMs = 0;
+          let itemTotalCount = 0;
+          const sessions = [];
+
+          // Group pre-calculated item summary by item
+          const itemGroups = {};
+          for (const item of preCalculated.itemSummary) {
+            if (item.operatorId === -1 || item.misfeed) continue;
+            
+            const itemId = item.itemId;
+            if (!itemGroups[itemId]) {
+              itemGroups[itemId] = [];
+            }
+            itemGroups[itemId].push(item);
+          }
+
+          // Process each item group
+          for (const [itemId, items] of Object.entries(itemGroups)) {
+            const name = items[0]?.itemName || "Unknown";
+            const standard = items[0]?.itemStandard > 0 ? items[0]?.itemStandard : 666;
+            const countTotal = items.length;
+
+            if (!itemSummary[itemId]) {
+              itemSummary[itemId] = {
+                name,
+                standard,
+                count: 0,
+                workedTimeMs: 0,
+              };
+            }
+
+            itemSummary[itemId].count += countTotal;
+            itemTotalCount += countTotal;
+          }
+
+          // Calculate worked time based on running cycles
+          for (const cycle of runningCycles) {
+            const cycleStart = new Date(cycle.start);
+            const cycleEnd = new Date(cycle.end);
+            const cycleMs = cycleEnd - cycleStart;
+
+            // Find operators in this cycle
+            const cycleStates = states.filter(s => {
+              const ts = new Date(s.timestamp);
+              return ts >= cycleStart && ts <= cycleEnd;
+            });
+            
+            const operators = new Set();
+            for (const state of cycleStates) {
+              if (state.operators) {
+                for (const op of state.operators) {
+                  operators.add(op.id);
+                }
+              }
+            }
+
+            const workedTimeMs = cycleMs * Math.max(1, operators.size);
+            totalWorkedMs += workedTimeMs;
+
+            // Distribute worked time to items based on their proportion
+            for (const [itemId, item] of Object.entries(itemSummary)) {
+              const proportion = itemTotalCount > 0 ? item.count / itemTotalCount : 0;
+              item.workedTimeMs += workedTimeMs * proportion;
+            }
+
+            sessions.push({
+              start: cycleStart.toISOString(),
+              end: cycleEnd.toISOString(),
+              workedTimeMs,
+              workedTimeFormatted: formatDuration(workedTimeMs),
+              items: Object.entries(itemSummary).map(([itemId, item]) => {
+                const hours = item.workedTimeMs / 3600000;
+                const pph = hours ? item.count / hours : 0;
+                const efficiency = item.standard ? pph / item.standard : 0;
+
+                return {
+                  itemId: parseInt(itemId),
+                  name: item.name,
+                  countTotal: item.count,
+                  standard: item.standard,
+                  pph: Math.round(pph * 100) / 100,
+                  efficiency: Math.round(efficiency * 10000) / 100,
+                };
+              })
+            });
+          }
+
+          const totalHours = totalWorkedMs / 3600000;
+          const machinePph = totalHours > 0 ? totalCount / totalHours : 0;
+
+          const proratedStandard = Object.values(itemSummary).reduce((acc, item) => {
+            const weight = totalCount > 0 ? item.count / totalCount : 0;
+            return acc + weight * item.standard;
+          }, 0);
+
+          const machineEff = proratedStandard > 0 ? machinePph / proratedStandard : 0;
+
+          const formattedItemSummaries = {};
+          for (const [itemId, item] of Object.entries(itemSummary)) {
+            const hours = item.workedTimeMs / 3600000;
+            const pph = hours ? item.count / hours : 0;
+            const efficiency = item.standard ? pph / item.standard : 0;
+
+            formattedItemSummaries[itemId] = {
+              name: item.name,
+              standard: item.standard,
+              countTotal: item.count,
+              workedTimeFormatted: formatDuration(item.workedTimeMs),
+              pph: Math.round(pph * 100) / 100,
+              efficiency: Math.round(efficiency * 10000) / 100,
+            };
+          }
+
+          const itemSummaryResult = {
+            sessions,
+            machineSummary: {
+              totalCount,
+              workedTimeMs: totalWorkedMs,
+              workedTimeFormatted: formatDuration(totalWorkedMs),
+              pph: Math.round(machinePph * 100) / 100,
+              proratedStandard: Math.round(proratedStandard * 100) / 100,
+              efficiency: Math.round(machineEff * 10000) / 100,
+              itemSummaries: formattedItemSummaries,
+            },
+          };
+
+          // Build hourly stack data
+          const startDate = new Date(start);
+          const itemHourMap = new Map();
+          const itemNames = new Set();
+
+          for (const count of counts.valid) {
+            const ts = new Date(count.timestamp);
+            const hourIndex = Math.floor((ts - startDate) / (60 * 60 * 1000));
+            
+            if (!itemHourMap.has(hourIndex)) {
+              itemHourMap.set(hourIndex, {});
+            }
+            const hourEntry = itemHourMap.get(hourIndex);
+            const itemName = count.item?.name || "Unknown";
+            hourEntry[itemName] = (hourEntry[itemName] || 0) + 1;
+            itemNames.add(itemName);
+          }
+
+          const maxHour = Math.max(...itemHourMap.keys(), -1);
+          const hours = Array.from({ length: maxHour + 1 }, (_, i) => i);
+          const operators = {};
+          for (const name of itemNames) {
+            operators[name] = Array(maxHour + 1).fill(0);
+          }
+
+          for (const [hourIndex, itemCounts] of itemHourMap.entries()) {
+            for (const [itemName, count] of Object.entries(itemCounts)) {
+              operators[itemName][hourIndex] = count;
+            }
+          }
+
+          const itemHourlyStack = {
+            title: "Item Stacked Count Chart",
+            data: {
+              hours,
+              operators,
+            },
+          };
+
+          // Build fault data
+          const faultData = buildFaultDataUltra(faultCycles, start, end);
+
+          // Build operator efficiency (simplified for speed)
+          const hourlyIntervals = getHourlyIntervals(new Date(start), new Date(end));
+          const operatorEfficiency = hourlyIntervals.map(interval => ({
+            hour: interval.start.toISOString(),
+            oee: 0,
+            operators: []
+          }));
+
+          return {
+            machine: {
+              serial: machineSerial,
+              name: machineName,
+            },
+            currentStatus: {
+              code: statusCode,
+              name: statusName,
+            },
+            performance,
+            itemSummary: itemSummaryResult,
+            itemHourlyStack,
+            faultData,
+            operatorEfficiency,
+          };
+        })
+      );
+
+      res.json(results.filter(Boolean));
+    } catch (err) {
+      logger.error("Error in /machine-dashboard-aggregated route:", err);
+      res.status(500).json({ error: "Failed to fetch dashboard data" });
+    }
+  });
 
   return router;
 };
