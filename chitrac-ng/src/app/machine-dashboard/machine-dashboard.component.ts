@@ -384,12 +384,11 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
         ];
     
         const dialogRef = this.dialog.open(ModalWrapperComponent, {
-          width: "95vw",
-          height: "90vh",
-          maxHeight: "90vh",
-          maxWidth: "95vw",
-          panelClass: "custom-modal-panel",
-          backdropClass: "custom-modal-backdrop",
+          width: '90vw',
+          height: '85vh',
+          maxWidth: '95vw',
+          maxHeight: '90vh',
+          panelClass: 'performance-chart-dialog',
           data: {
             component: UseCarouselComponent,
             componentInputs: {

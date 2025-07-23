@@ -168,7 +168,7 @@ body.cdk-global-scrollblock {
 .mat-dialog-container,
 body,
 html {
-  overflow-y: hidden !important;
+  // overflow-y: hidden !important;
 }
 
 .modal-wrapper::-webkit-scrollbar,
@@ -177,13 +177,13 @@ html {
 .mat-dialog-container::-webkit-scrollbar,
 body::-webkit-scrollbar,
 html::-webkit-scrollbar {
-  display: none !important;
+  // display: none !important;
 }
 
 ::ng-deep .performance-chart-dialog .mat-dialog-container {
   padding: 0;
   border-radius: 8px;
-  overflow: hidden;
+  // overflow: hidden;
 }
 
 

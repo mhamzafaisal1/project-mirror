@@ -323,7 +323,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
           dashboardData: this.operatorData,
           operatorId: operatorId.toString(),
           isModal: true,
-          chartHeight: (this.chartHeight - 50),
+          chartHeight: (this.chartHeight - 100),
           chartWidth: this.chartWidth
         }
       }
