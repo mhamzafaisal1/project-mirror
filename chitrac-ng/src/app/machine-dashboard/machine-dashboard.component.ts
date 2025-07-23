@@ -187,10 +187,10 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
                 Downtime: `${response.metrics.downtime.formatted.hours}h ${response.metrics.downtime.formatted.minutes}m`,
                 "Total Count": response.metrics.output.totalCount,
                 "Misfeed Count": response.metrics.output.misfeedCount,
-                Availability: `${response.metrics.performance.availability.percentage}`,
-                Throughput: `${response.metrics.performance.throughput.percentage}`,
-                Efficiency: `${response.metrics.performance.efficiency.percentage}`,
-                OEE: `${response.metrics.performance.oee.percentage}`,
+                Availability: `${response.metrics.performance.availability.percentage}%`,
+                Throughput: `${response.metrics.performance.throughput.percentage}%`,
+                Efficiency: `${response.metrics.performance.efficiency.percentage}%`,
+                OEE: `${response.metrics.performance.oee.percentage}%`,
               }));
               
               this.columns = Object.keys(formattedData[0]);
