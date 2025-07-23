@@ -3,11 +3,7 @@ import {
   Input,
   ElementRef,
   ViewChild,
-  OnChanges,
-  SimpleChanges,
-  OnDestroy,
-  OnInit,
-  Renderer2
+  AfterViewInit
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
@@ -23,15 +19,6 @@ export interface StackedBarChartData {
 
 export type StackedBarChartMode = 'time' | 'machine';
 
-interface StackedBarPoint {
-  key: string;
-  isTop: boolean;
-  0: number;
-  1: number;
-  data: { [key: string]: number };
-  machineName?: string;
-}
-
 @Component({
   selector: 'app-stacked-bar-chart',
   standalone: true,
@@ -39,56 +26,22 @@ interface StackedBarPoint {
   templateUrl: './stacked-bar-chart.component.html',
   styleUrl: './stacked-bar-chart.component.scss'
 })
-export class StackedBarChartComponent implements OnInit, OnDestroy, OnChanges {
+export class StackedBarChartComponent implements AfterViewInit {
+  @ViewChild('chartContainer', { static: true }) private chartContainer!: ElementRef;
   @Input() data: StackedBarChartData | null = null;
   @Input() mode: StackedBarChartMode = 'time';
-  @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
+  @Input() isDarkTheme: boolean = true;
 
-  private observer!: MutationObserver;
-  private svg: any;
-  private isDarkTheme = false;
-
-  private defaultWidth = 800;
-  private defaultHeight = 500;
-  private margin = { top: 40, right: 40, bottom: 100, left: 40 };
+  private chartWidth = 800;
+  private chartHeight = 500;
+  private margin = { top: 40, right: 150, bottom: 60, left: 60 };
 
   private static colorMapping = new Map<string, string>();
   private static customPalette = ['#66bb6a', '#42a5f5', '#ffca28', '#ab47bc', '#ef5350', '#29b6f6', '#ffa726', '#7e57c2', '#26c6da', '#ec407a'];
   private static nextColorIndex = 0;
 
-  constructor(private elRef: ElementRef, private renderer: Renderer2) {}
-
-  ngOnInit() {
-    this.detectTheme();
-    this.observer = new MutationObserver(() => this.renderChart());
-    this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-
-    if (this.data) this.renderChart();
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['data'] && this.data) {
-      this.renderChart();
-    }
-  }
-
-  ngOnDestroy(): void {
-    if (this.observer) this.observer.disconnect();
-    if (this.svg) this.svg.remove();
-  }
-
-  private detectTheme() {
-    const dark = document.body.classList.contains('dark-theme');
-    this.isDarkTheme = dark;
-    const el = this.elRef.nativeElement;
-    this.renderer.setStyle(el, 'background-color', dark ? '#121212' : '#ffffff');
-    this.renderer.setStyle(el, 'color', dark ? '#e0e0e0' : '#000000');
-  }
-
-  private formatHour(hour: number): string {
-    const days = Math.floor(hour / 24);
-    const remainingHours = hour % 24;
-    return days > 0 ? `Day ${days + 1}, ${remainingHours}:00` : `${remainingHours}:00`;
+  ngAfterViewInit(): void {
+    if (this.data) this.createChart();
   }
 
   private getColorScale(keys: string[]) {
@@ -105,198 +58,127 @@ export class StackedBarChartComponent implements OnInit, OnDestroy, OnChanges {
       .range(keys.map(k => StackedBarChartComponent.colorMapping.get(k)!));
   }
 
-  private renderLegend(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, keys: string[], textColor: string): number {
-    const maxPerRow = Math.max(1, Math.floor((this.defaultWidth - this.margin.left - this.margin.right) / 120));
-    const rowHeight = 16;
-    const rowCount = Math.ceil(keys.length / maxPerRow);
-
-    const legend = svg.append('g')
-      .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`);
-
-    keys.forEach((key, i) => {
-      const col = i % maxPerRow;
-      const row = Math.floor(i / maxPerRow);
-      const legendRow = legend.append('g')
-        .attr('transform', `translate(${col * 120}, ${row * rowHeight})`);
-
-      legendRow.append('circle')
-        .attr('r', 5)
-        .attr('cx', 5)
-        .attr('cy', 5)
-        .attr('fill', this.getColorScale(keys)(key));
-
-      legendRow.append('text')
-        .attr('x', 14)
-        .attr('y', 9)
-        .style('font-size', '11px')
-        .style('fill', textColor)
-        .text(key);
-    });
-
-    return rowCount * rowHeight;
+  private formatHour(hour: number): string {
+    const days = Math.floor(hour / 24);
+    const remaining = hour % 24;
+    return days > 0 ? `Day ${days + 1}, ${remaining}:00` : `${remaining}:00`;
   }
 
-  renderChart(): void {
+  private createChart(): void {
     if (!this.data) return;
 
-    const element = this.chartContainer.nativeElement;
-    element.innerHTML = '';
+    d3.select(this.chartContainer.nativeElement).selectAll("*").remove();
+    const textColor = this.isDarkTheme ? 'white' : 'black';
 
-    const svg = d3.select(element)
-      .append('svg')
-      .attr('viewBox', `0 0 ${this.defaultWidth} ${this.defaultHeight}`)
-      .style('width', '100%')
-      .style('height', 'auto')
-      .style('aspect-ratio', `${this.defaultWidth} / ${this.defaultHeight}`)
-      .style('display', 'block')
-      .style('margin', '0 auto')
-      .style('font-family', "'Inter', sans-serif")
-      .style('font-size', '0.875rem');
-
-    const textColor = this.isDarkTheme ? '#e0e0e0' : '#333';
     const keys = Object.keys(this.data.data.operators);
-    const colorScale = this.getColorScale(keys);
-    const legendHeight = this.renderLegend(svg, keys, textColor);
+    const color = this.getColorScale(keys);
+
+    const svg = d3.select(this.chartContainer.nativeElement)
+      .append("svg")
+      .attr("viewBox", `0 0 ${this.chartWidth} ${this.chartHeight}`)
+      .style("width", "100%")
+      .style("height", "auto")
+      .style("display", "block")
+      .style("font-family", "'Inter', sans-serif")
+      .style("font-size", "0.875rem");
+
+    const legend = svg.append("g")
+      .attr("transform", `translate(${this.margin.left}, ${this.margin.top})`);
+
+    keys.forEach((key, i) => {
+      const g = legend.append("g")
+        .attr("transform", `translate(${(i % 5) * 120}, ${Math.floor(i / 5) * 16})`);
+
+      g.append("circle").attr("r", 5).attr("cx", 5).attr("cy", 5).attr("fill", color(key));
+      g.append("text").attr("x", 14).attr("y", 9).style("font-size", "11px").style("fill", textColor).text(key);
+    });
+
+    const legendHeight = Math.ceil(keys.length / 5) * 16;
     const chartTop = this.margin.top + legendHeight;
+    const chartBottom = this.chartHeight - this.margin.bottom;
+    const chartRight = this.chartWidth - this.margin.right;
 
-    const chartBottom = this.defaultHeight - this.margin.bottom;
-    const chartRight = this.defaultWidth - this.margin.right;
-
-    const getBarPath = (xPos: number, yTop: number, barWidth: number, barHeight: number, isTop: boolean) => {
-      const radius = isTop ? 4 : 0;
-      if (isTop) {
-        return `
-          M${xPos},${yTop + radius}
-          a${radius},${radius} 0 0 1 ${radius},-${radius}
-          h${barWidth - 2 * radius}
-          a${radius},${radius} 0 0 1 ${radius},${radius}
-          v${barHeight - radius}
-          h${-barWidth}
-          Z`;
-      } else {
-        return `
-          M${xPos},${yTop}
-          h${barWidth}
-          v${barHeight}
-          h${-barWidth}
-          Z`;
-      }
+    const getBarPath = (x: number, y: number, width: number, height: number, isTop: boolean) => {
+      const r = isTop ? 4 : 0;
+      return isTop
+        ? `M${x},${y + r}a${r},${r} 0 0 1 ${r},-${r}h${width - 2 * r}a${r},${r} 0 0 1 ${r},${r}v${height - r}h${-width}Z`
+        : `M${x},${y}h${width}v${height}h${-width}Z`;
     };
 
-    if (this.mode === 'machine') {
-      const machineCount = this.data.data.operators[keys[0]].length;
-      const machineNames = this.data.data.machineNames ||
-        Array.from({ length: machineCount }, (_, i) => `Machine ${i + 1}`);
+    const xLabels = this.mode === 'machine'
+      ? (this.data.data.machineNames ?? Array.from({ length: keys.length }, (_, i) => `Machine ${i + 1}`))
+      : this.data.data.hours.map(String);
 
-      const x = d3.scaleBand()
-        .domain(machineNames)
-        .range([this.margin.left, chartRight])
-        .padding(0.2);
+    const x = d3.scaleBand()
+      .domain(xLabels)
+      .range([this.margin.left, chartRight])
+      .padding(0.2);
 
-      const stackedData = d3.stack()
-        .keys(keys)
-        (Array.from({ length: machineCount }, (_, i) => {
+    const baseData = this.mode === 'machine'
+      ? Array.from({ length: xLabels.length }, (_, i) => {
           const entry: any = {};
-          keys.forEach(k => entry[k] = this.data!.data.operators[k][i]);
+          keys.forEach(k => entry[k] = this.data!.data.operators[k][i] || 0);
           return entry;
-        }));
-
-      const y = d3.scaleLinear()
-        .domain([0, d3.max(stackedData[stackedData.length - 1], d => d[1]) || 0])
-        .nice()
-        .range([chartBottom, chartTop]);
-
-      svg.append('g')
-        .selectAll('g')
-        .data(stackedData)
-        .join('g')
-        .attr('fill', d => colorScale(d.key))
-        .selectAll('path')
-        .data((d, i) => d.map((point, j) => ({
-          ...point,
-          key: d.key,
-          isTop: i === stackedData.length - 1,
-          machineName: machineNames[j]
-        } as StackedBarPoint)))
-        .join('path')
-        .attr('d', d => getBarPath(x(d.machineName!)!, y(d[1]), x.bandwidth(), y(d[0]) - y(d[1]), d.isTop))
-        .style('fill', d => colorScale(d.key));
-
-      svg.append('g')
-        .attr('transform', `translate(0,${chartBottom})`)
-        .call(d3.axisBottom(x))
-        .selectAll('text')
-        .attr('transform', 'rotate(-45)')
-        .style('text-anchor', 'end')
-        .style('fill', textColor);
-
-    } else {
-      const hourLabels = new Map(this.data.data.hours.map(hour => [hour.toString(), this.formatHour(hour)]));
-      const x = d3.scaleBand()
-        .domain(this.data.data.hours.map(String))
-        .range([this.margin.left, chartRight])
-        .padding(0.2);
-
-      const stackedData = d3.stack()
-        .keys(keys)
-        (this.data.data.hours.map((hour, i) => {
+        })
+      : this.data.data.hours.map((hour, i) => {
           const entry: any = {};
           keys.forEach(k => entry[k] = this.data!.data.operators[k][i] || 0);
           entry.hour = hour;
           return entry;
-        }));
+        });
 
-      const y = d3.scaleLinear()
-        .domain([0, d3.max(stackedData[stackedData.length - 1], d => d[1]) || 0])
-        .nice()
-        .range([chartBottom, chartTop]);
+    const stackedData = d3.stack().keys(keys)(baseData);
 
-      svg.append('g')
-        .selectAll('g')
-        .data(stackedData)
-        .join('g')
-        .attr('fill', d => colorScale(d.key))
-        .selectAll('path')
-        .data((d, i) => d.map(point => ({
-          ...point,
-          key: d.key,
-          isTop: i === stackedData.length - 1
-        } as StackedBarPoint)))
-        .join('path')
-        .attr('d', d => getBarPath(x(String(d.data['hour']))!, y(d[1]), x.bandwidth(), y(d[0]) - y(d[1]), d.isTop))
-        .style('fill', d => colorScale(d.key));
+    const y = d3.scaleLinear()
+      .domain([0, d3.max(stackedData[stackedData.length - 1], d => d[1]) || 0])
+      .nice()
+      .range([chartBottom, chartTop]);
 
-      svg.append('g')
-        .attr('transform', `translate(0,${chartBottom})`)
-        .call(
-          d3.axisBottom(x)
-            .tickValues(x.domain().filter((_, i) => i % 4 === 0))
-            .tickFormat(d => hourLabels.get(d) || '')
-            .tickSizeOuter(0)
-        )
-        .selectAll('text')
-        .attr('transform', 'rotate(-45)')
-        .style('text-anchor', 'end')
-        .style('fill', textColor);
-    }
-
-    svg.append('g')
-      .attr('transform', `translate(${this.margin.left},0)`)
-      .call(d3.axisLeft(
-        d3.scaleLinear()
-          .domain([0, d3.max(Object.values(this.data.data.operators).flat()) || 0])
-          .nice()
-          .range([chartBottom, chartTop])
+    svg.append("g")
+      .selectAll("g")
+      .data(stackedData)
+      .join("g")
+      .attr("fill", d => color(d.key))
+      .selectAll("path")
+      .data((layer, i) => layer.map((d, j) => ({
+        ...d,
+        isTop: i === stackedData.length - 1,
+        xLabel: xLabels[j]
+      })))
+      .join("path")
+      .attr("d", d => getBarPath(
+        x(d.xLabel)!,
+        y(d[1]),
+        x.bandwidth(),
+        y(d[0]) - y(d[1]),
+        d.isTop
       ))
-      .selectAll('text')
-      .style('fill', textColor);
+      .style("fill", d => color((d as any).key));
 
-    svg.append('text')
-      .attr('x', this.defaultWidth / 2)
-      .attr('y', this.margin.top / 2)
-      .attr('text-anchor', 'middle')
-      .style('font-size', '16px')
-      .style('fill', textColor)
+    svg.append("g")
+      .attr("transform", `translate(0,${chartBottom})`)
+      .call(
+        d3.axisBottom(x)
+          .tickValues(this.mode === 'time' ? x.domain().filter((_, i) => i % 4 === 0) : x.domain())
+          .tickFormat(d => this.mode === 'time' ? this.formatHour(+d) : d)
+      )
+      .selectAll("text")
+      .attr("transform", "rotate(-45)")
+      .style("text-anchor", "end")
+      .style("fill", textColor);
+
+    svg.append("g")
+      .attr("transform", `translate(${this.margin.left},0)`)
+      .call(d3.axisLeft(y))
+      .selectAll("text")
+      .style("fill", textColor);
+
+    svg.append("text")
+      .attr("x", this.chartWidth / 2)
+      .attr("y", this.margin.top / 2)
+      .attr("text-anchor", "middle")
+      .style("font-size", "16px")
+      .style("fill", textColor)
       .text(this.data.title);
   }
 }
