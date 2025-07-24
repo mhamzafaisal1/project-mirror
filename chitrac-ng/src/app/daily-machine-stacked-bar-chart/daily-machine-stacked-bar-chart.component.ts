@@ -52,7 +52,7 @@ export class DailyMachineStackedBarChartComponent implements OnChanges {
   }
 
   private formatMachineData(data: MachineStatus[]): StackedBarChartData {
-    const hours = [0];
+    const hours: number[] = []; 
 
     const operators = {
       'Running': data.map(machine => this.convertMsToHours(machine.runningMs)),

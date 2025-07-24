@@ -29,6 +29,7 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
   @Input() mode: 'time' | 'oee' | 'count' = 'time';
   @Input() chartWidth: number = 600;
   @Input() chartHeight: number = 600;
+  @Input() extraBottomMargin: boolean = false;
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
   private observer!: MutationObserver;
@@ -57,7 +58,7 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
     const element = this.chartContainer.nativeElement;
     element.innerHTML = '';
 
-    const margin = { top: 40, right: 40, bottom: 120, left: 40 };
+    const margin = { top: 40, right: 60, bottom: this.extraBottomMargin ? 120 : 80, left: 60 };
     const width = this.chartWidth - margin.left - margin.right;
     const height = this.chartHeight - margin.top - margin.bottom;
 
@@ -69,9 +70,19 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
         .attr('width', width + margin.left + margin.right)
         .attr('height', height + margin.top + margin.bottom)
         .style('font-family', `'Inter', sans-serif`)
-        .style('font-size', '0.875rem')
-      .append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`);
+        .style('font-size', '0.875rem');
+
+    // Move title to the top of the SVG
+    svg.append('text')
+      .attr('x', (width + margin.left + margin.right) / 2)
+      .attr('y', 20)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '16px')
+      .style('fill', textColor)
+      .text(this.title);
+
+    const chartGroup = svg.append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
 
     const xLabels = this.mode === 'time'
       ? this.data.map(d => this.formatHour(d.hour))
@@ -87,20 +98,22 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
       .nice()
       .range([height, 0]);
 
-    svg.append('g')
+    chartGroup.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x))
       .selectAll('text')
         .attr('transform', 'rotate(-45)')
         .style('text-anchor', 'end')
-        .style('fill', textColor);
+        .style('fill', textColor)
+        .style('font-size', '14px');
 
-    svg.append('g')
+    chartGroup.append('g')
       .call(d3.axisLeft(y))
       .selectAll('text')
-        .style('fill', textColor);
+        .style('fill', textColor)
+        .style('font-size', '14px');
 
-    svg.selectAll('.bar')
+    chartGroup.selectAll('.bar')
       .data(this.data)
       .enter()
       .append('rect')
@@ -114,14 +127,6 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
         .attr('rx', 4)
         .attr('ry', 4)
         .attr('fill', d => this.getBarColor(d.counts));
-
-    svg.append('text')
-      .attr('x', width / 2)
-      .attr('y', -10)
-      .attr('text-anchor', 'middle')
-      .style('font-size', '16px')
-      .style('fill', textColor)
-      .text(this.title);
   }
 
   private formatHour(hour: number): string {

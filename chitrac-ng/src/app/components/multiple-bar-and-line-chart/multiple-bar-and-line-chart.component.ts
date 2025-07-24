@@ -79,13 +79,23 @@ export class MultipleBarAndLineChartComponent implements OnChanges, OnDestroy, A
     const svg = d3.select(element)
       .append('svg')
       .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
-      .append('g')
+      .attr('height', height + margin.top + margin.bottom);
+
+    // Move title to the top of the SVG
+    svg.append('text')
+      .attr('x', (width + margin.left + margin.right) / 2)
+      .attr('y', 20)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '16px')
+      .style('fill', textColor)
+      .text(this.data.title);
+
+    const chartGroup = svg.append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
     // Render legend at the top, horizontal
     const barMetrics = ['Availability', 'Efficiency', 'Throughput'];
-    const legendHeight = this.renderLegend(svg, [...barMetrics, 'OEE'], seriesColors, textColor, width);
+    const legendHeight = this.renderLegend(chartGroup, [...barMetrics, 'OEE'], seriesColors, textColor, width);
     const chartTop = legendHeight + 10; // 10px gap below legend
 
     const x = d3.scaleBand()
@@ -99,7 +109,7 @@ export class MultipleBarAndLineChartComponent implements OnChanges, OnDestroy, A
       .range([height, 0]);
 
     // Create groups for bars
-    const hourGroups = svg.selectAll('.hour-group')
+    const hourGroups = chartGroup.selectAll('.hour-group')
       .data(this.data.data.hours)
       .enter()
       .append('g')
@@ -114,8 +124,8 @@ export class MultipleBarAndLineChartComponent implements OnChanges, OnDestroy, A
         .attr('y', d => y(this.data!.data.series[metric][this.data!.data.hours.indexOf(d)]))
         .attr('width', subBarWidth)
         .attr('height', d => height - y(this.data!.data.series[metric][this.data!.data.hours.indexOf(d)]))
-        .attr('rx', 4)
-        .attr('ry', 4)
+        .attr('rx', 0)
+        .attr('ry', 0)
         .attr('fill', seriesColors[metric as keyof typeof seriesColors])
         .style('filter', 'drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1))');
     });
@@ -126,7 +136,7 @@ export class MultipleBarAndLineChartComponent implements OnChanges, OnDestroy, A
         .x(d => x(this.formatHour(d))! + x.bandwidth() / 2)
         .y(d => y(this.data!.data.series['OEE'][this.data!.data.hours.indexOf(d)]) + chartTop);
 
-      svg.append('path')
+      chartGroup.append('path')
         .datum(this.data.data.hours)
         .attr('fill', 'none')
         .attr('stroke', seriesColors.OEE)
@@ -135,28 +145,21 @@ export class MultipleBarAndLineChartComponent implements OnChanges, OnDestroy, A
     }
 
     // Axes
-    svg.append('g')
+    chartGroup.append('g')
       .attr('transform', `translate(0,${height + chartTop})`)
       .call(d3.axisBottom(x))
       .selectAll('text')
       .attr('transform', 'rotate(-45)')
       .style('text-anchor', 'end')
-      .style('fill', textColor);
+      .style('fill', textColor)
+      .style('font-size', '14px');
 
-    svg.append('g')
+    chartGroup.append('g')
       .attr('transform', `translate(0,${chartTop})`)
       .call(d3.axisLeft(y))
       .selectAll('text')
-      .style('fill', textColor);
-
-    // Title
-    svg.append('text')
-      .attr('x', width / 2)
-      .attr('y', -10)
-      .attr('text-anchor', 'middle')
-      .style('font-size', '16px')
       .style('fill', textColor)
-      .text(this.data.title);
+      .style('font-size', '14px');
   }
 
   private renderLegend(
@@ -182,7 +185,7 @@ export class MultipleBarAndLineChartComponent implements OnChanges, OnDestroy, A
       legendRow.append('text')
         .attr('x', 14)
         .attr('y', 9)
-        .style('font-size', '11px')
+        .style('font-size', '12px')
         .style('fill', textColor)
         .text(metric);
     });

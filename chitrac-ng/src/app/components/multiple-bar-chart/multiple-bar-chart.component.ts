@@ -111,7 +111,9 @@ export class MultipleBarChartComponent implements OnChanges, OnDestroy, AfterVie
         .attr('y', d => y(this.data!.data.series[series][d]))
         .attr('width', subBandWidth)
         .attr('height', d => height - y(this.data!.data.series[series][d]))
-        .attr('fill', seriesColors[seriesIndex]);
+        .attr('fill', seriesColors[seriesIndex])
+        .attr('rx', 0)
+        .attr('ry', 0);
     });
 
     // Add x-axis
@@ -121,13 +123,15 @@ export class MultipleBarChartComponent implements OnChanges, OnDestroy, AfterVie
       .selectAll('text')
       .attr('transform', 'rotate(-45)')
       .style('text-anchor', 'end')
-      .style('fill', textColor);
+      .style('fill', textColor)
+      .style('font-size', '14px');
 
     // Add y-axis
     svg.append('g')
       .call(d3.axisLeft(y))
       .selectAll('text')
-      .style('fill', textColor);
+      .style('fill', textColor)
+      .style('font-size', '14px');
 
     // Add title
     svg.append('text')
