@@ -170,14 +170,6 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
 
   private setupPolling(): void {
     if (this.liveMode) {
-      // Initial data fetch
-      this.dashboardService.getFullDailyDashboard(this.startTime, this.endTime)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe(data => {
-          this.fullDashboardData = data;
-          this.hasInitialData = true;
-        });
-
       // Setup polling for subsequent updates
       this.pollingSubscription = this.pollingService.poll(
         () => {
@@ -191,7 +183,9 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
             );
         },
         this.POLLING_INTERVAL,
-        this.destroy$
+        this.destroy$,
+        false, // isModal
+        false  // 👈 don’t run immediately
       ).subscribe();
     }
   }

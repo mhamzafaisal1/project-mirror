@@ -47,6 +47,7 @@ export class MultipleBarAndLineChartComponent implements OnChanges, OnDestroy, A
       this.renderChart();
     });
 
+
     this.observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   }
 
@@ -119,16 +120,29 @@ export class MultipleBarAndLineChartComponent implements OnChanges, OnDestroy, A
     const subBarWidth = x.bandwidth() / barMetrics.length;
 
     barMetrics.forEach((metric, i) => {
-      hourGroups.append('rect')
-        .attr('x', subBarWidth * i)
-        .attr('y', d => y(this.data!.data.series[metric][this.data!.data.hours.indexOf(d)]))
-        .attr('width', subBarWidth)
-        .attr('height', d => height - y(this.data!.data.series[metric][this.data!.data.hours.indexOf(d)]))
-        .attr('rx', 0)
-        .attr('ry', 0)
+      hourGroups.append('path')
+        .attr('d', d => {
+          const value = this.data!.data.series[metric][this.data!.data.hours.indexOf(d)];
+          const barX = subBarWidth * i;
+          const barY = y(value);
+          const barHeight = height - barY;
+          const barWidth = subBarWidth;
+          const r = 4; // radius for top corners
+    
+          return `
+            M${barX},${barY + r}
+            a${r},${r} 0 0 1 ${r},-${r}
+            h${barWidth - 2 * r}
+            a${r},${r} 0 0 1 ${r},${r}
+            v${barHeight - r}
+            h${-barWidth}
+            Z
+          `;
+        })
         .attr('fill', seriesColors[metric as keyof typeof seriesColors])
         .style('filter', 'drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1))');
     });
+    
     
     // Add line for OEE
     if (this.data.data.series['OEE']) {

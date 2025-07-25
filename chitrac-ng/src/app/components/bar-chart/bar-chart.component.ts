@@ -113,20 +113,31 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
         .style('fill', textColor)
         .style('font-size', '14px');
 
-    chartGroup.selectAll('.bar')
-      .data(this.data)
-      .enter()
-      .append('rect')
-        .attr('class', 'bar')
-        .attr('x', (d, i) =>
-          x(this.mode === 'time' ? this.formatHour(d.hour) : (d.label || `#${i + 1}`))!
-        )
-        .attr('y', d => y(d.counts))
-        .attr('width', x.bandwidth())
-        .attr('height', d => height - y(d.counts))
-        .attr('rx', 4)
-        .attr('ry', 4)
-        .attr('fill', d => this.getBarColor(d.counts));
+        chartGroup.selectAll('.bar')
+        .data(this.data)
+        .enter()
+        .append('path')
+          .attr('class', 'bar')
+          .attr('d', (d, i) => {
+            const label = this.mode === 'time' ? this.formatHour(d.hour) : (d.label || `#${i + 1}`);
+            const barX = x(label)!;
+            const barY = y(d.counts);
+            const barHeight = height - barY;
+            const barWidth = x.bandwidth();
+            const r = 4;
+      
+            return `
+              M${barX},${barY + r}
+              a${r},${r} 0 0 1 ${r},-${r}
+              h${barWidth - 2 * r}
+              a${r},${r} 0 0 1 ${r},${r}
+              v${barHeight - r}
+              h${-barWidth}
+              Z
+            `;
+          })
+          .attr('fill', d => this.getBarColor(d.counts));
+      
   }
 
   private formatHour(hour: number): string {
