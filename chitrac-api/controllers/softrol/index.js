@@ -337,7 +337,7 @@ function constructor(server) {
       programNumber: 2,
       item: {
         id: 1,
-        name: "Incontinent Pad"
+        name: "Incontinent Pads"
       },
       totals: {
         input: 2493,
