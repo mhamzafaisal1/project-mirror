@@ -4,6 +4,7 @@ import {
   ElementRef,
   ViewChild,
   AfterViewInit,
+  OnDestroy,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import * as d3 from "d3";
@@ -26,7 +27,7 @@ export type StackedBarChartMode = "time" | "machine";
   templateUrl: "./stacked-bar-chart.component.html",
   styleUrl: "./stacked-bar-chart.component.scss",
 })
-export class StackedBarChartComponent implements AfterViewInit {
+export class StackedBarChartComponent implements AfterViewInit, OnDestroy {
   @ViewChild("chartContainer", { static: true })
   private chartContainer!: ElementRef;
   @Input() data: StackedBarChartData | null = null;
@@ -34,9 +35,10 @@ export class StackedBarChartComponent implements AfterViewInit {
   // @Input() isDarkTheme: boolean = true;
 
   private chartWidth = 600;
-  private chartHeight = 500;
+  private chartHeight = 450; // Default height for normal mode
   private margin = { top: 40, right: 60, bottom: 100, left: 60 };
   private observer!: MutationObserver;
+  private fullscreenListener!: () => void;
 
 
   private static colorMapping = new Map<string, string>();
@@ -64,19 +66,45 @@ export class StackedBarChartComponent implements AfterViewInit {
       attributes: true,
       attributeFilter: ['class']
     });
+
+    // Add fullscreen mode listener
+    this.setupFullscreenListener();
   
     // Initial render
     this.createChart();
   }
 
-  
   ngOnDestroy(): void {
     if (this.observer) {
       this.observer.disconnect();
     }
+    
+    // Remove fullscreen listener
+    if (this.fullscreenListener) {
+      document.removeEventListener('fullscreenchange', this.fullscreenListener);
+      window.removeEventListener('resize', this.fullscreenListener);
+    }
   }
-  
 
+  private setupFullscreenListener(): void {
+    this.fullscreenListener = () => {
+      const isFullscreen =
+        !!document.fullscreenElement ||
+        window.innerHeight === screen.height;
+
+      this.chartHeight = isFullscreen ? 500 : 450;
+      
+      // Re-render chart with new dimensions
+      d3.select(this.chartContainer.nativeElement).selectAll("*").remove();
+      this.createChart();
+    };
+
+    // Listen for both F11-style fullscreen (resize) and programmatic fullscreen
+    window.addEventListener('resize', this.fullscreenListener);
+    document.addEventListener('fullscreenchange', this.fullscreenListener);
+  }
+
+  
   private getColorScale(keys: string[]) {
     keys.forEach((key) => {
       if (!StackedBarChartComponent.colorMapping.has(key)) {

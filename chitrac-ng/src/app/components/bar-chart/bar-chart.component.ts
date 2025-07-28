@@ -33,9 +33,14 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
   private observer!: MutationObserver;
+  private fullscreenListener!: () => void;
+  private isFullscreen: boolean = false;
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['data'] && this.data.length > 0) {
+    if ((changes['data'] && this.data.length > 0) || 
+        changes['chartWidth'] || 
+        changes['chartHeight'] || 
+        changes['extraBottomMargin']) {
       this.renderChart();
     }
   }
@@ -46,19 +51,51 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
       attributes: true,
       attributeFilter: ['class']
     });
+
+    // Add fullscreen mode listener
+    this.setupFullscreenListener();
   }
 
   ngOnDestroy(): void {
     if (this.observer) {
       this.observer.disconnect();
     }
+    
+    // Remove fullscreen listener
+    if (this.fullscreenListener) {
+      window.removeEventListener('resize', this.fullscreenListener);
+      document.removeEventListener('fullscreenchange', this.fullscreenListener);
+    }
+  }
+
+  private setupFullscreenListener(): void {
+    this.fullscreenListener = () => {
+      const wasFullscreen = this.isFullscreen;
+      this.isFullscreen =
+        !!document.fullscreenElement ||
+        window.innerHeight === screen.height;
+
+      // Only re-render if fullscreen state actually changed
+      if (wasFullscreen !== this.isFullscreen) {
+        this.renderChart();
+      }
+    };
+
+    // Listen for both F11-style fullscreen (resize) and programmatic fullscreen
+    window.addEventListener('resize', this.fullscreenListener);
+    document.addEventListener('fullscreenchange', this.fullscreenListener);
   }
 
   renderChart(): void {
     const element = this.chartContainer.nativeElement;
     element.innerHTML = '';
 
-    const margin = { top: 40, right: 60, bottom: this.extraBottomMargin ? 120 : 80, left: 60 };
+    // Adjust bottom margin based on fullscreen state
+    const bottomMargin = this.isFullscreen 
+      ? (this.extraBottomMargin ? 120 : 80)
+      : (this.extraBottomMargin ? 150 : 120);
+
+    const margin = { top: 40, right: 60, bottom: bottomMargin, left: 60 };
     const width = this.chartWidth - margin.left - margin.right;
     const height = this.chartHeight - margin.top - margin.bottom;
 

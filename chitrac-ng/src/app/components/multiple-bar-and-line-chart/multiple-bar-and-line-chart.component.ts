@@ -30,7 +30,7 @@ export interface MultipleBarChartData {
 export class MultipleBarAndLineChartComponent implements OnChanges, OnDestroy, AfterViewInit {
   @Input() data: MultipleBarChartData | null = null;
   @Input() chartWidth: number = 900;
-  @Input() chartHeight: number = 400;
+  @Input() chartHeight: number = 500;
   @Input() title: string = '';
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
