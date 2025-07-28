@@ -2179,23 +2179,22 @@ module.exports = function (server) {
             .aggregate(pipeline)
             .toArray();
 
-            // Get latest machine from most recent count for operator
-const latestMachineCount = await db.collection("count")
+            // Get latest machine from most recent stateTicker for operator
+const latestStateTicker = await db.collection("stateTicker")
 .find({ 
-  "operator.id": operatorId, 
-  timestamp: { $gte: sessionStart, $lte: sessionEnd } 
+  "operators.id": operatorId
 })
 .project({ 
   "machine.serial": 1, 
   "machine.name": 1, 
-  timestamp: 1 
+  "status.timestamp": 1 
 })
-.sort({ timestamp: -1 })
+.sort({ "status.timestamp": -1 })
 .limit(1)
 .toArray();
 
-const currentMachineSerial = latestMachineCount[0]?.machine?.serial || null;
-const currentMachineName = latestMachineCount[0]?.machine?.name || "Unknown";
+const currentMachineSerial = latestStateTicker[0]?.machine?.serial || null;
+const currentMachineName = latestStateTicker[0]?.machine?.name || "Unknown";
 
 
           const totals = result.totals[0] || {
