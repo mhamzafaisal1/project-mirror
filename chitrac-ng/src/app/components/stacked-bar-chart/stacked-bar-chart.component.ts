@@ -69,6 +69,9 @@ export class StackedBarChartComponent implements AfterViewInit, OnDestroy {
 
     // Add fullscreen mode listener
     this.setupFullscreenListener();
+    
+    // Check initial fullscreen state
+    this.checkFullscreenState();
   
     // Initial render
     this.createChart();
@@ -88,20 +91,24 @@ export class StackedBarChartComponent implements AfterViewInit, OnDestroy {
 
   private setupFullscreenListener(): void {
     this.fullscreenListener = () => {
-      const isFullscreen =
-        !!document.fullscreenElement ||
-        window.innerHeight === screen.height;
-
-      this.chartHeight = isFullscreen ? 500 : 450;
-      
-      // Re-render chart with new dimensions
-      d3.select(this.chartContainer.nativeElement).selectAll("*").remove();
-      this.createChart();
+      this.checkFullscreenState();
     };
 
     // Listen for both F11-style fullscreen (resize) and programmatic fullscreen
     window.addEventListener('resize', this.fullscreenListener);
     document.addEventListener('fullscreenchange', this.fullscreenListener);
+  }
+
+  private checkFullscreenState(): void {
+    const isFullscreen =
+      !!document.fullscreenElement ||
+      window.innerHeight === screen.height;
+
+    this.chartHeight = isFullscreen ? 500 : 450;
+    
+    // Re-render chart with new dimensions
+    d3.select(this.chartContainer.nativeElement).selectAll("*").remove();
+    this.createChart();
   }
 
   
