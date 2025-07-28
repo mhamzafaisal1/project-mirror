@@ -153,26 +153,15 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
         chartGroup.selectAll('.bar')
         .data(this.data)
         .enter()
-        .append('path')
+        .append('rect')
           .attr('class', 'bar')
-          .attr('d', (d, i) => {
+          .attr('x', (d, i) => {
             const label = this.mode === 'time' ? this.formatHour(d.hour) : (d.label || `#${i + 1}`);
-            const barX = x(label)!;
-            const barY = y(d.counts);
-            const barHeight = height - barY;
-            const barWidth = x.bandwidth();
-            const r = 4;
-      
-            return `
-              M${barX},${barY + r}
-              a${r},${r} 0 0 1 ${r},-${r}
-              h${barWidth - 2 * r}
-              a${r},${r} 0 0 1 ${r},${r}
-              v${barHeight - r}
-              h${-barWidth}
-              Z
-            `;
+            return x(label)!;
           })
+          .attr('y', d => y(d.counts))
+          .attr('width', x.bandwidth())
+          .attr('height', d => height - y(d.counts))
           .attr('fill', d => this.getBarColor(d.counts));
       
   }

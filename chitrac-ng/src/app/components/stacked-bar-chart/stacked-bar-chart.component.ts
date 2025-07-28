@@ -150,7 +150,8 @@ export class StackedBarChartComponent implements AfterViewInit, OnDestroy {
       .attr("width", this.chartWidth)
       .attr("height", this.chartHeight)
       .style("font-family", "'Inter', sans-serif")
-      .style("font-size", "0.875rem");
+      .style("font-size", "0.875rem")
+      .attr("shape-rendering", "crispEdges"); // Add crisp edges to eliminate anti-aliasing
 
     const chart = svg
       .append("g")
@@ -252,22 +253,25 @@ chart
       .join("path")
       .attr("d", (d) => {
         const x0 = x(d.xLabel)!;
-        const y0 = y(d[1]);
+        const yBottom = Math.floor(y(d[1]));
+        const yTop = Math.floor(y(d[0]));
+        const barHeight = yBottom - yTop;
         const barWidth = x.bandwidth();
-        const barHeight = Math.max(0, y(d[0]) - y(d[1]));
 
         if (d.isActualTop && barHeight >= 4) {
           const r = 4;
-          return `M${x0},${y0 + r}
-                  a${r},${r} 0 0 1 ${r},-${r}
-                  h${barWidth - 2 * r}
-                  a${r},${r} 0 0 1 ${r},${r}
-                  v${barHeight - r}
-                  h${-barWidth}
-                  Z`;
+          return `
+            M${x0 + r},${yTop}
+            a${r},${r} 0 0 1 ${r},${r}
+            h${barWidth - 2 * r}
+            a${r},${r} 0 0 1 ${r},-${r}
+            v${barHeight - r}
+            h${-barWidth}
+            Z
+          `;
         }
 
-        return `M${x0},${y0}h${barWidth}v${barHeight}h${-barWidth}Z`;
+        return `M${x0},${yTop}h${barWidth}v${barHeight}h${-barWidth}Z`;
       });
   });
 
