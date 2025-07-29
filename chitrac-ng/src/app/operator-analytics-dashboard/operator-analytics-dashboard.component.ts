@@ -203,6 +203,8 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
       'Status': getStatusDotByCode(response.currentStatus?.code),
       'Operator Name': response.operator.name,
       'Operator ID': response.operator.id,
+      'Current Machine': response.currentMachine?.name || 'Unknown',
+      'Current Machine Serial': response.currentMachine?.serial || 'Unknown',
       'Runtime': `${response.performance.runtime.formatted.hours}h ${response.performance.runtime.formatted.minutes}m`,
       'Paused Time': `${response.performance.pausedTime.formatted.hours}h ${response.performance.pausedTime.formatted.minutes}m`,
       'Fault Time': `${response.performance.faultTime.formatted.hours}h ${response.performance.faultTime.formatted.minutes}m`,
@@ -210,7 +212,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
       'Misfeed Count': response.performance.output.misfeedCount,
       'Valid Count': response.performance.output.validCount,
       'Pieces Per Hour': response.performance.performance.piecesPerHour.formatted,
-      'Efficiency': response.performance.performance.efficiency.percentage,
+      'Efficiency': `${response.performance.performance.efficiency.percentage}%`,
       'Time Range': `${this.startTime} to ${this.endTime}`
     }));
 
@@ -348,6 +350,17 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         this.selectedRow = null;
       }
     });
+  }
+
+  getEfficiencyClass(value: any, column: string): string {
+    if (column === 'Efficiency' && typeof value === 'string' && value.includes('%')) {
+      const num = parseInt(value.replace('%', ''));
+      if (isNaN(num)) return '';
+      if (num >= 90) return 'green';
+      if (num >= 70) return 'yellow';
+      return 'red';
+    }
+    return '';
   }
 
   private formatDateForInput(date: Date): string {
