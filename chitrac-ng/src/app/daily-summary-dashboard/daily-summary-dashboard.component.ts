@@ -4,6 +4,7 @@ import {
   OnDestroy,
   ElementRef,
   Renderer2,
+  ChangeDetectorRef,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatButtonModule } from "@angular/material/button";
@@ -13,7 +14,7 @@ import { forkJoin } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { Subject, takeUntil, tap } from 'rxjs';
+import { Subject, takeUntil, tap, delay, Observable } from 'rxjs';
 
 import { ModalWrapperComponent } from '../components/modal-wrapper-component/modal-wrapper-component.component';
 import { UseCarouselComponent } from '../use-carousel/use-carousel.component';
@@ -59,7 +60,8 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   operatorColumns: string[] = ['Status', 'Operator Name', 'Worked Time', 'Efficiency'];
   operatorRows: any[] = [];
   selectedOperator: any = null;
-  isLoading: boolean = false;
+  loading: boolean = false;
+  isPollingLoading: boolean = false;
   liveMode: boolean = false;
   rawMachineData: any[] = []; // store full API response for machines
   rawOperatorData: any[] = []; // store full API response for operators
@@ -78,7 +80,8 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     private dailyDashboardService: DailyDashboardService,
     private dialog: MatDialog,
     private pollingService: PollingService,
-    private dateTimeService: DateTimeService
+    private dateTimeService: DateTimeService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -115,6 +118,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     ).subscribe(isLive => {
       this.liveMode = isLive;
       if (isLive) {
+        this.isPollingLoading = true;
         // Reset startTime to today at 00:00
         const start = new Date();
         start.setHours(0, 0, 0, 0);
@@ -126,11 +130,12 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
         this.dateTimeService.setEndTime(this.endTime);
 
         // Initial data fetch
-        this.fetchData();
+        this.fetchData().subscribe();
         this.setupPolling();
       } else {
         this.stopPolling();
         this.clearData();
+        this.isPollingLoading = false;
       }
     });
 
@@ -145,7 +150,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       this.startTime = this.dateTimeService.getStartTime();
       this.endTime = this.dateTimeService.getEndTime();
 
-      this.fetchData(); // use them to fetch data
+      this.fetchData().subscribe(); // use them to fetch data
     });
   }
 
@@ -173,13 +178,6 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
 
   private setupPolling(): void {
     if (this.liveMode) {
-      // Initial data fetch
-      this.dailyDashboardService.getDailySummaryDashboard(this.startTime, this.endTime)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe((data: any) => {
-          this.updateDashboardData(data);
-        });
-
       // Setup polling for subsequent updates
       this.pollingSubscription = this.pollingService.poll(
         () => {
@@ -188,12 +186,19 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
           return this.dailyDashboardService.getDailySummaryDashboard(this.startTime, this.endTime)
             .pipe(
               tap((data: any) => {
+                // Stop loading spinner after first response
+                if (this.isPollingLoading) {
+                  this.isPollingLoading = false;
+                }
                 this.updateDashboardData(data);
-              })
+              }),
+              delay(0) // Force change detection cycle
             );
         },
         this.POLLING_INTERVAL,
-        this.destroy$
+        this.destroy$,
+        false, // isModal
+        false  // 👈 don't run immediately
       ).subscribe();
     }
   }
@@ -203,6 +208,7 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       this.pollingSubscription.unsubscribe();
       this.pollingSubscription = null;
     }
+    this.isPollingLoading = false;
   }
 
   private clearData(): void {
@@ -244,25 +250,33 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       }));
   }
 
-  fetchData(): void {
-    if (!this.startTime || !this.endTime) return;
+  fetchData(): Observable<any> {
+    if (!this.startTime || !this.endTime) {
+      return new Observable();
+    }
   
     const formattedStart = new Date(this.startTime).toISOString();
     const formattedEnd = new Date(this.endTime).toISOString();
   
-    this.isLoading = true;
+    // Set loading state for manual data fetching
+    this.loading = true;
   
-    this.dailyDashboardService.getDailySummaryDashboard(formattedStart, formattedEnd)
-      .subscribe({
-        next: (data: any) => {
-          this.updateDashboardData(data);
-          this.isLoading = false;
-        },
-        error: (err: any) => {
-          console.error('Error fetching summary data:', err);
-          this.isLoading = false;
-        }
-      });
+    return this.dailyDashboardService.getDailySummaryDashboard(formattedStart, formattedEnd)
+      .pipe(
+        takeUntil(this.destroy$),
+        tap({
+          next: (data: any) => {
+            this.updateDashboardData(data);
+            this.loading = false;
+          },
+          error: (err: any) => {
+            console.error('Error fetching summary data:', err);
+            this.clearData();
+            this.loading = false;
+          }
+        }),
+        delay(0) // Force change detection cycle
+      );
   }
 
   onDateChange(): void {

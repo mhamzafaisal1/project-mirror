@@ -1,4 +1,4 @@
-import { Component, OnInit, Renderer2, ElementRef, Input, OnDestroy } from "@angular/core";
+import { Component, OnInit, Renderer2, ElementRef, Input, OnDestroy, ChangeDetectorRef } from "@angular/core";
 import { MatIconModule } from '@angular/material/icon';
 import { CommonModule } from "@angular/common";
 import { DailyDashboardService } from "../services/daily-dashboard.service";
@@ -7,7 +7,7 @@ import { ChartTileComponent } from "../components/chart-tile/chart-tile.componen
 import { PollingService } from "../services/polling-service.service";
 import { DateTimeService } from "../services/date-time.service";
 import { Subject, Observable } from "rxjs";
-import { takeUntil, tap } from "rxjs/operators";
+import { takeUntil, tap, delay } from "rxjs/operators";
 import { FormsModule } from '@angular/forms';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
@@ -48,6 +48,7 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
   isDarkTheme: boolean = false;
   liveMode: boolean = false;
   loading: boolean = false;
+  isPollingLoading: boolean = false;
   private pollingSubscription: any;
 
   fullDashboardData: any = null;
@@ -106,7 +107,8 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
     private renderer: Renderer2,
     private elRef: ElementRef,
     private pollingService: PollingService,
-    private dateTimeService: DateTimeService
+    private dateTimeService: DateTimeService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -134,6 +136,7 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
         this.liveMode = isLive;
 
         if (this.liveMode) {
+          this.isPollingLoading = true;
           const start = new Date();
           start.setHours(0, 0, 0, 0);
           this.startTime = this.formatDateForInput(start);
@@ -145,6 +148,7 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
           this.stopPolling();
           this.hasInitialData = false;
           this.fullDashboardData = null;
+          this.isPollingLoading = false;
         }
       });
 
@@ -177,15 +181,20 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
           return this.dashboardService.getFullDailyDashboard(this.startTime, this.endTime)
             .pipe(
               tap(data => {
+                // Stop loading spinner after first response
+                if (this.isPollingLoading) {
+                  this.isPollingLoading = false;
+                }
                 this.fullDashboardData = data;
                 this.hasInitialData = true;
-              })
+              }),
+              delay(0) // Force change detection cycle
             );
         },
         this.POLLING_INTERVAL,
         this.destroy$,
         false, // isModal
-        false  // 👈 don’t run immediately
+        false  // 👈 don't run immediately
       ).subscribe();
     }
   }
@@ -195,6 +204,7 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
       this.pollingSubscription.unsubscribe();
       this.pollingSubscription = null;
     }
+    this.isPollingLoading = false;
   }
 
   onDateChange(): void {
@@ -227,9 +237,12 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
             this.loading = false;
           },
           error: () => {
+            this.fullDashboardData = null;
+            this.hasInitialData = false;
             this.loading = false;
           }
-        })
+        }),
+        delay(0) // Force change detection cycle
       );
   }
   
