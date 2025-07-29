@@ -4,6 +4,7 @@ import {
   ElementRef,
   ViewChild,
   AfterViewInit,
+  OnDestroy,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import * as d3 from "d3";
@@ -26,7 +27,7 @@ export type StackedBarChartMode = "time" | "machine";
   templateUrl: "./stacked-bar-chart.component.html",
   styleUrl: "./stacked-bar-chart.component.scss",
 })
-export class StackedBarChartComponent implements AfterViewInit {
+export class StackedBarChartComponent implements AfterViewInit, OnDestroy {
   @ViewChild("chartContainer", { static: true })
   private chartContainer!: ElementRef;
   @Input() data: StackedBarChartData | null = null;
@@ -34,9 +35,10 @@ export class StackedBarChartComponent implements AfterViewInit {
   // @Input() isDarkTheme: boolean = true;
 
   private chartWidth = 600;
-  private chartHeight = 500;
+  private chartHeight = 450; // Default height for normal mode
   private margin = { top: 40, right: 60, bottom: 100, left: 60 };
   private observer!: MutationObserver;
+  private fullscreenListener!: () => void;
 
 
   private static colorMapping = new Map<string, string>();
@@ -64,19 +66,52 @@ export class StackedBarChartComponent implements AfterViewInit {
       attributes: true,
       attributeFilter: ['class']
     });
+
+    // Add fullscreen mode listener
+    this.setupFullscreenListener();
+    
+    // Check initial fullscreen state
+    this.checkFullscreenState();
   
     // Initial render
     this.createChart();
   }
 
-  
   ngOnDestroy(): void {
     if (this.observer) {
       this.observer.disconnect();
     }
+    
+    // Remove fullscreen listener
+    if (this.fullscreenListener) {
+      document.removeEventListener('fullscreenchange', this.fullscreenListener);
+      window.removeEventListener('resize', this.fullscreenListener);
+    }
   }
-  
 
+  private setupFullscreenListener(): void {
+    this.fullscreenListener = () => {
+      this.checkFullscreenState();
+    };
+
+    // Listen for both F11-style fullscreen (resize) and programmatic fullscreen
+    window.addEventListener('resize', this.fullscreenListener);
+    document.addEventListener('fullscreenchange', this.fullscreenListener);
+  }
+
+  private checkFullscreenState(): void {
+    const isFullscreen =
+      !!document.fullscreenElement ||
+      window.innerHeight === screen.height;
+
+    this.chartHeight = isFullscreen ? 500 : 450;
+    
+    // Re-render chart with new dimensions
+    d3.select(this.chartContainer.nativeElement).selectAll("*").remove();
+    this.createChart();
+  }
+
+  
   private getColorScale(keys: string[]) {
     keys.forEach((key) => {
       if (!StackedBarChartComponent.colorMapping.has(key)) {
@@ -122,7 +157,8 @@ export class StackedBarChartComponent implements AfterViewInit {
       .attr("width", this.chartWidth)
       .attr("height", this.chartHeight)
       .style("font-family", "'Inter', sans-serif")
-      .style("font-size", "0.875rem");
+      .style("font-size", "0.875rem")
+      .attr("shape-rendering", "crispEdges"); // Add crisp edges to eliminate anti-aliasing
 
     const chart = svg
       .append("g")
@@ -224,22 +260,25 @@ chart
       .join("path")
       .attr("d", (d) => {
         const x0 = x(d.xLabel)!;
-        const y0 = y(d[1]);
+        const yBottom = Math.floor(y(d[1]));
+        const yTop = Math.floor(y(d[0]));
+        const barHeight = yBottom - yTop;
         const barWidth = x.bandwidth();
-        const barHeight = Math.max(0, y(d[0]) - y(d[1]));
 
         if (d.isActualTop && barHeight >= 4) {
           const r = 4;
-          return `M${x0},${y0 + r}
-                  a${r},${r} 0 0 1 ${r},-${r}
-                  h${barWidth - 2 * r}
-                  a${r},${r} 0 0 1 ${r},${r}
-                  v${barHeight - r}
-                  h${-barWidth}
-                  Z`;
+          return `
+            M${x0 + r},${yTop}
+            a${r},${r} 0 0 1 ${r},${r}
+            h${barWidth - 2 * r}
+            a${r},${r} 0 0 1 ${r},-${r}
+            v${barHeight - r}
+            h${-barWidth}
+            Z
+          `;
         }
 
-        return `M${x0},${y0}h${barWidth}v${barHeight}h${-barWidth}Z`;
+        return `M${x0},${yTop}h${barWidth}v${barHeight}h${-barWidth}Z`;
       });
   });
 

@@ -17,6 +17,7 @@
         [rows]="rows"
         [selectedRow]="selectedRow"
         (rowClicked)="onRowSelected($event)"
+      [getCellClass]="getEfficiencyClass"
         [class.dark]="isDarkTheme"
         [class.light]="!isDarkTheme"
       ></base-table>

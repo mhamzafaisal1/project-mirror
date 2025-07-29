@@ -170,7 +170,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         () => {
           this.endTime = this.pollingService.updateEndTimestampToNow();
           this.dateTimeService.setEndTime(this.endTime);
-          return this.analyticsService.getOperatorDashboard(this.startTime, this.endTime, this.operatorId)
+          return this.analyticsService.getOperatorSummary(this.startTime, this.endTime)
             .pipe(
               tap((data: any) => {
                 // Stop loading spinner after first response
@@ -206,45 +206,40 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
       'Status': getStatusDotByCode(response.currentStatus?.code),
       'Operator Name': response.operator.name,
       'Operator ID': response.operator.id,
-      'Runtime': `${response.performance.runtime.formatted.hours}h ${response.performance.runtime.formatted.minutes}m`,
-      'Paused Time': `${response.performance.pausedTime.formatted.hours}h ${response.performance.pausedTime.formatted.minutes}m`,
-      'Fault Time': `${response.performance.faultTime.formatted.hours}h ${response.performance.faultTime.formatted.minutes}m`,
-      'Total Count': response.performance.output.totalCount,
-      'Misfeed Count': response.performance.output.misfeedCount,
-      'Valid Count': response.performance.output.validCount,
-      'Pieces Per Hour': response.performance.performance.piecesPerHour.formatted,
-      'Efficiency': response.performance.performance.efficiency.percentage,
+      'Current Machine': response.currentMachine?.name || 'Unknown',
+      'Current Machine Serial': response.currentMachine?.serial || 'Unknown',
+      'Runtime': `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
+      'Downtime': `${response.metrics.downtime.formatted.hours}h ${response.metrics.downtime.formatted.minutes}m`,
+      'Total Count': response.metrics.output.totalCount,
+      'Misfeed Count': response.metrics.output.misfeedCount,
+      'Availability': `${response.metrics.performance.availability.percentage}%`,
+      'Throughput': `${response.metrics.performance.throughput.percentage}%`,
+      'Efficiency': `${`${response.metrics.performance.efficiency.percentage}%`}%`,
+      'OEE': `${response.metrics.performance.oee.percentage}%`,
       'Time Range': `${this.startTime} to ${this.endTime}`
     }));
 
     const allColumns = Object.keys(this.rows[0]);
-    this.columns = allColumns.filter(col => col !== 'Time Range');
+    const columnsToHide = ['Operator ID', 'Time Range'];
+    this.columns = allColumns.filter(col => !columnsToHide.includes(col));
   }
 
-  fetchAnalyticsData(): Observable<any> {
-    if (!this.startTime || !this.endTime) {
-      return new Observable();
-    }
+  async fetchAnalyticsData(): Promise<void> {
+    if (!this.startTime || !this.endTime) return;
 
-    // Set loading state for manual data fetching
     this.loading = true;
-
-    return this.analyticsService.getOperatorDashboard(this.startTime, this.endTime, this.operatorId)
-      .pipe(
-        takeUntil(this.destroy$),
-        tap({
-          next: (data: any) => {
-            this.updateDashboardData(data);
-            this.loading = false;
-          },
-          error: (error) => {
-            console.error('Error fetching analytics data:', error);
-            this.rows = [];
-            this.loading = false;
-          }
-        }),
-        delay(0) // Force change detection cycle
-      );
+    // Use operator-summary route for initial table data (all operators)
+    this.analyticsService.getOperatorSummary(this.startTime, this.endTime)
+      .subscribe({
+        next: (data: any) => {
+          this.updateDashboardData(data);
+          this.loading = false;
+        },
+        error: (error) => {
+          console.error('Error fetching analytics data:', error);
+          this.loading = false;
+        }
+      });
   }
 
   onDateChange(): void {
@@ -270,96 +265,109 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     }, 0);
   
     const operatorId = row['Operator ID'];
-  
     // Use the actual dashboard time range
     const startTimeStr = this.startTime;
     const endTimeStr = this.endTime;
 
-    // Find the operator data from the stored dashboard data
-    const operatorData = this.operatorData?.find((o: any) => o.operator?.id === operatorId);
-    if (!operatorData) {
-      console.error('Operator data not found for ID:', operatorId);
-      return;
-    }
+    // Fetch detailed operator data for the modal
+    this.analyticsService.getOperatorSummary(this.startTime, this.endTime)
+    .subscribe({
+      next: (summaryData) => {
+        const base = Array.isArray(summaryData) ? summaryData.find(d => d.operator.id === operatorId) : summaryData;
+  
+        this.analyticsService.getOperatorInfo(this.startTime, this.endTime, operatorId)
+          .subscribe({
+            next: (infoData) => {
+              const data = { ...base, ...infoData }; // Merge both
+  
+              const carouselTabs = [
+                {
+                  label: 'Item Summary',
+                  component: OperatorItemSummaryTableComponent,
+                  componentInputs: {
+                    mode: 'dashboard',
+                    dashboardData: [data],
+                    operatorId,
+                    isModal: true
+                  }
+                },
+                {
+                  label: 'Item Stacked Chart',
+                  component: OperatorCountbyitemChartComponent,
+                  componentInputs: {
+                    mode: 'dashboard',
+                    dashboardData: [data],
+                    operatorId,
+                    isModal: true,
+                    chartHeight: this.chartHeight,
+                    chartWidth: this.chartWidth
+                  }
+                },
+                {
+                  label: 'Running/Paused/Fault Pie Chart',
+                  component: OperatorCyclePieChartComponent,
+                  componentInputs: {
+                    mode: 'dashboard',
+                    dashboardData: [data],
+                    operatorId,
+                    isModal: true,
+                    chartHeight: (this.chartHeight - 200),
+                    chartWidth: this.chartWidth
+                  }
+                },
+                {
+                  label: 'Fault History',
+                  component: OperatorFaultHistoryComponent,
+                  componentInputs: {
+                    mode: 'dashboard',
+                    dashboardData: [data],
+                    operatorId: operatorId.toString(),
+                    isModal: true
+                  }
+                },
+                {
+                  label: 'Daily Efficiency Chart',
+                  component: OperatorLineChartComponent,
+                  componentInputs: {
+                    mode: 'dashboard',
+                    dashboardData: [data],
+                    operatorId: operatorId.toString(),
+                    isModal: true,
+                    chartHeight: (this.chartHeight - 100),
+                    chartWidth: this.chartWidth
+                  }
+                }
+              ];
+  
+              this.dialog.open(ModalWrapperComponent, {
+                width: '90vw',
+                height: '85vh',
+                maxWidth: '95vw',
+                maxHeight: '90vh',
+                panelClass: 'performance-chart-dialog',
+                data: {
+                  component: UseCarouselComponent,
+                  componentInputs: {
+                    tabData: carouselTabs
+                  }
+                }
+              });
+            }
+          });
+      }
+    });
+  
+  }
 
-    const carouselTabs = [
-      {
-        label: 'Item Summary',
-        component: OperatorItemSummaryTableComponent,
-        componentInputs: {
-          mode: 'dashboard',
-          dashboardData: this.operatorData,
-          operatorId: operatorId,
-          isModal: true
-        }
-      },
-      {
-        label: 'Item Stacked Chart',
-        component: OperatorCountbyitemChartComponent,
-        componentInputs: {
-          mode: 'dashboard',
-          dashboardData: this.operatorData,
-          operatorId: operatorId,
-          isModal: true,
-          chartHeight: this.chartHeight,
-          chartWidth: this.chartWidth
-        }
-      },
-      {
-        label: 'Running/Paused/Fault Pie Chart',
-        component: OperatorCyclePieChartComponent,
-        componentInputs: {
-          mode: 'dashboard',
-          dashboardData: this.operatorData,
-          operatorId: operatorId,
-          isModal: true,
-          chartHeight: (this.chartHeight - 200),
-          chartWidth: this.chartWidth
-        }
-      },
-      {
-        label: 'Fault History',
-        component: OperatorFaultHistoryComponent,
-        componentInputs: {
-          mode: 'dashboard',
-          dashboardData: this.operatorData,
-          operatorId: operatorId.toString(),
-          isModal: true
-        }
-      },
-      {
-        label: 'Daily Efficiency Chart',
-        component: OperatorLineChartComponent,
-        componentInputs: {
-          mode: 'dashboard',
-          dashboardData: this.operatorData,
-          operatorId: operatorId.toString(),
-          isModal: true,
-          chartHeight: (this.chartHeight - 100),
-          chartWidth: this.chartWidth
-        }
-      }
-    ];
-  
-    const dialogRef = this.dialog.open(ModalWrapperComponent, {
-      width: '90vw',
-      height: '85vh',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
-      panelClass: 'performance-chart-dialog',
-      data: {
-        component: UseCarouselComponent,
-        componentInputs: {
-          tabData: carouselTabs
-        }
-      }
-    });
-  
-    dialogRef.afterClosed().subscribe(() => {
-      if (this.selectedRow === row) {
-        this.selectedRow = null;
-      }
-    });
+  getEfficiencyClass(value: any, column: string): string {
+    if (column === 'Efficiency' && typeof value === 'string' && value.includes('%')) {
+      const num = parseInt(value.replace('%', ''));
+      if (isNaN(num)) return '';
+      if (num >= 90) return 'green';
+      if (num >= 70) return 'yellow';
+      return 'red';
+    }
+    return '';
   }
 
   private formatDateForInput(date: Date): string {
