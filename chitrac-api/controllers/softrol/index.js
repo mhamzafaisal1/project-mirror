@@ -28,6 +28,8 @@ const {
 
 const { buildSoftrolCycleSummary } = require("../../utils/miscFunctions");
 
+
+
 module.exports = function (server) {
   return constructor(server);
 };
@@ -37,6 +39,10 @@ function constructor(server) {
   const logger = server.logger;
   const xmlParser = server.xmlParser;
   const xml = xmlParser.xml;
+
+  // Import level-two dashboard-related routes
+  const levelTwoDashboardRoutes = require("./level-twoRoutes")(server);
+  router.use("/", levelTwoDashboardRoutes);
 
   router.get("/levelone/all", async (req, res, next) => {
     const stateCollection = db.collection("state");
@@ -327,7 +333,9 @@ function constructor(server) {
     res.json(machineRunTimesArray);
   });
 
-  router.get("/leveltwo", (req, res, next) => {
+
+
+  /*router.get("/leveltwo", (req, res, next) => {
     res.json({
       timers: {
         run: 63,
@@ -350,7 +358,7 @@ function constructor(server) {
       oee: 68.47,
       operatorEfficiency: 78.61,
     });
-  });
+  });*/
 
   // Import misc-related routes (This is the softrol routes)
   router.get("/historic-data/old", async (req, res) => {
