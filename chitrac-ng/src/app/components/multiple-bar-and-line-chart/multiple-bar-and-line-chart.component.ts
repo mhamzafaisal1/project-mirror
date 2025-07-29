@@ -30,7 +30,7 @@ export interface MultipleBarChartData {
 export class MultipleBarAndLineChartComponent implements OnChanges, OnDestroy, AfterViewInit {
   @Input() data: MultipleBarChartData | null = null;
   @Input() chartWidth: number = 900;
-  @Input() chartHeight: number = 400;
+  @Input() chartHeight: number = 500;
   @Input() title: string = '';
   @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
 
@@ -120,24 +120,16 @@ export class MultipleBarAndLineChartComponent implements OnChanges, OnDestroy, A
     const subBarWidth = x.bandwidth() / barMetrics.length;
 
     barMetrics.forEach((metric, i) => {
-      hourGroups.append('path')
-        .attr('d', d => {
+      hourGroups.append('rect')
+        .attr('x', subBarWidth * i)
+        .attr('y', d => {
           const value = this.data!.data.series[metric][this.data!.data.hours.indexOf(d)];
-          const barX = subBarWidth * i;
-          const barY = y(value);
-          const barHeight = height - barY;
-          const barWidth = subBarWidth;
-          const r = 4; // radius for top corners
-    
-          return `
-            M${barX},${barY + r}
-            a${r},${r} 0 0 1 ${r},-${r}
-            h${barWidth - 2 * r}
-            a${r},${r} 0 0 1 ${r},${r}
-            v${barHeight - r}
-            h${-barWidth}
-            Z
-          `;
+          return y(value);
+        })
+        .attr('width', subBarWidth)
+        .attr('height', d => {
+          const value = this.data!.data.series[metric][this.data!.data.hours.indexOf(d)];
+          return height - y(value);
         })
         .attr('fill', seriesColors[metric as keyof typeof seriesColors])
         .style('filter', 'drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1))');

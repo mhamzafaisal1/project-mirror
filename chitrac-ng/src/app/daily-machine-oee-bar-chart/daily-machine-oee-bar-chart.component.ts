@@ -11,7 +11,7 @@ import { BarChartComponent, BarChartDataPoint } from '../components/bar-chart/ba
 export class DailyMachineOeeBarChartComponent implements OnChanges {
   @Input() data: any[] = [];
   @Input() chartWidth: number = 600;
-  @Input() chartHeight: number = 400;
+  @Input() chartHeight: number = 200;
 
   chartData: BarChartDataPoint[] = [];
   isDarkTheme = false;
