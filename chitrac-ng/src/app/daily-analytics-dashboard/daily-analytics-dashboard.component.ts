@@ -110,6 +110,8 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // Calculate responsive chart dimensions
+    this.calculateChartDimensions();
 
     const isLive = this.dateTimeService.getLiveMode();
     const wasConfirmed = this.dateTimeService.getConfirmed();
@@ -160,6 +162,11 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
 
         this.fetchDashboardData().subscribe();
       });
+
+    // Listen for window resize to recalculate chart dimensions
+    window.addEventListener('resize', () => {
+      this.calculateChartDimensions();
+    });
   }
 
   ngOnDestroy(): void {
@@ -249,5 +256,30 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
     const h = String(date.getHours()).padStart(2, '0');
     const min = String(date.getMinutes()).padStart(2, '0');
     return `${y}-${m}-${d}T${h}:${min}`;
+  }
+
+  private calculateChartDimensions(): void {
+    // Get the dashboard container element
+    const dashboardElement = this.elRef.nativeElement.querySelector('.dashboard-wrapper');
+    if (!dashboardElement) return;
+
+    const containerRect = dashboardElement.getBoundingClientRect();
+    
+    // Calculate tile dimensions based on grid layout
+    let tilesPerRow = 3; // Default for large screens
+    
+    if (window.innerWidth <= 768) {
+      tilesPerRow = 1;
+    } else if (window.innerWidth <= 1200) {
+      tilesPerRow = 2;
+    }
+
+    // Calculate tile width and height
+    const tileWidth = containerRect.width / tilesPerRow;
+    const tileHeight = containerRect.height / 2; // 2 rows in the grid
+
+    // Set chart dimensions with some padding
+    this.chartWidth = Math.floor(tileWidth * 0.95); // 95% of tile width
+    this.chartHeight = Math.floor(tileHeight * 0.95); // 95% of tile height
   }
 }
