@@ -1,10 +1,10 @@
-import { Component, OnInit, OnDestroy, ElementRef, Renderer2 } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, Renderer2, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { Subject, takeUntil, tap } from 'rxjs';
+import { Subject, takeUntil, tap, delay, Observable } from 'rxjs';
 
 import { BaseTableComponent } from '../components/base-table/base-table.component';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
@@ -39,12 +39,18 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private readonly POLLING_INTERVAL = 6000; // 6 seconds
 
+  // Computed getter for cleaner template logic
+  get showOverlay(): boolean {
+    return this.isLoading || this.rows.length === 0;
+  }
+
   constructor(
     private analyticsService: ItemAnalyticsService,
     private renderer: Renderer2,
     private elRef: ElementRef,
     private pollingService: PollingService,
-    private dateTimeService: DateTimeService
+    private dateTimeService: DateTimeService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -53,9 +59,13 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
     const wasConfirmed = this.dateTimeService.getConfirmed();
   
     if (!isLive && wasConfirmed) {
+      this.isLoading = true;
+      this.rows = [];
+      this.cdr.detectChanges(); // Show overlay
+
       this.startTime = this.dateTimeService.getStartTime();
       this.endTime = this.dateTimeService.getEndTime();
-      this.fetchItemAnalytics();
+      this.fetchItemAnalytics().subscribe();
     }
 
     const now = new Date();
@@ -74,6 +84,10 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
     ).subscribe(isLive => {
       this.liveMode = isLive;
       if (isLive) {
+        this.isLoading = true;
+        this.rows = []; // Prevent table render flash
+        this.cdr.detectChanges(); // Force overlay to show before fetch
+
         // Reset startTime to today at 00:00
         const start = new Date();
         start.setHours(0, 0, 0, 0);
@@ -84,12 +98,15 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
         this.endTime = this.pollingService.updateEndTimestampToNow();
         this.dateTimeService.setEndTime(this.endTime);
 
-        // Initial data fetch
-        this.fetchItemAnalytics();
-        this.setupPolling();
+        // 🔥 Fix: defer fetchItemAnalytics to allow overlay to paint first
+        setTimeout(() => {
+          this.fetchItemAnalytics().subscribe();
+          this.setupPolling();
+        });
       } else {
         this.stopPolling();
         this.rows = [];
+        this.isLoading = false;
       }
     });
 
@@ -104,7 +121,7 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
       this.startTime = this.dateTimeService.getStartTime();
       this.endTime = this.dateTimeService.getEndTime();
 
-      this.fetchItemAnalytics(); // use them to fetch data
+      this.fetchItemAnalytics().subscribe(); // use them to fetch data
     });
   }
 
@@ -128,13 +145,6 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
 
   private setupPolling(): void {
     if (this.liveMode) {
-      // Initial data fetch
-      this.analyticsService.getItemAnalytics(this.startTime, this.endTime)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe((data: any[]) => {
-          this.updateTableData(data);
-        });
-
       // Setup polling for subsequent updates
       this.pollingSubscription = this.pollingService.poll(
         () => {
@@ -144,11 +154,14 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
             .pipe(
               tap((data: any[]) => {
                 this.updateTableData(data);
-              })
+              }),
+              delay(0) // Force change detection cycle
             );
         },
         this.POLLING_INTERVAL,
-        this.destroy$
+        this.destroy$,
+        false, // isModal
+        false  // 👈 don't run immediately
       ).subscribe();
     }
   }
@@ -175,20 +188,32 @@ export class ItemAnalyticsDashboardComponent implements OnInit, OnDestroy {
     this.columns = Object.keys(this.rows[0]);
   }
 
-  fetchItemAnalytics(): void {
-    if (!this.startTime || !this.endTime) return;
+  fetchItemAnalytics(): Observable<any> {
+    if (!this.startTime || !this.endTime) {
+      return new Observable();
+    }
 
+    // Set loading state
     this.isLoading = true;
-    this.analyticsService.getItemAnalytics(this.startTime, this.endTime).subscribe({
-      next: (data: any[]) => {
-        this.updateTableData(data);
-        this.isLoading = false;
-      },
-      error: (err) => {
-        console.error('Failed to load item analytics', err);
-        this.isLoading = false;
-      }
-    });
+
+    return this.analyticsService.getItemAnalytics(this.startTime, this.endTime)
+      .pipe(
+        takeUntil(this.destroy$),
+        tap({
+          next: (data: any[]) => {
+            this.updateTableData(data);
+            this.isLoading = false;
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            console.error('Failed to load item analytics', err);
+            this.rows = [];
+            this.isLoading = false;
+            this.cdr.detectChanges();
+          }
+        }),
+        delay(0) // Force change detection cycle
+      );
   }
 
   onDateChange(): void {

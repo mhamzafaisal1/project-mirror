@@ -1,23 +1,4 @@
 <div class="dashboard-container" [class.dark-mode]="isDarkTheme">
-  <div class="controls">
-    <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
-    <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
-
-    <div class="button-group">
-      <button mat-flat-button color="primary" (click)="fetchAnalyticsData()" [disabled]="!startTime || !endTime">
-        Fetch Data
-      </button>
-      <button mat-flat-button color="primary"  (click)="downloadMachineItemSummaryPdf(startTime, endTime)" [disabled]="!startTime || !endTime">
-        Download Machine Item Summary PDF
-      </button>
-      <button mat-flat-button color="primary"  (click)="downloadOperatorSummaryPdf(startTime, endTime)" [disabled]="!startTime || !endTime">
-        Download Operator Item Summary PDF
-      </button>
-      <button mat-flat-button color="primary"  (click)="downloadItemSummaryPdf(startTime, endTime)" [disabled]="!startTime || !endTime">
-        Download Item Summary PDF
-      </button>
-    </div>
-  </div>
   <base-table
   [class.dark]="isDarkTheme"
   [class.light]="!isDarkTheme"

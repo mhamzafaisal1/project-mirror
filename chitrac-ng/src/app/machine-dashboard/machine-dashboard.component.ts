@@ -54,6 +54,7 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
   isDarkTheme: boolean = false;
   isLoading: boolean = false;
   liveMode: boolean = false;
+  isPollingLoading: boolean = false;
   responsiveHiddenColumns: { [key: number]: string[] } = {
     1210: ['Misfeed Count', 'Serial Number'],
     1024: ['Misfeed Count'],
@@ -123,6 +124,7 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
         this.liveMode = isLive;
 
         if (this.liveMode) {
+          this.isPollingLoading = true;
           const start = new Date();
           start.setHours(0, 0, 0, 0);
           this.startTime = this.formatDateForInput(start);
@@ -134,6 +136,7 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
           this.stopPolling();
           this.machineData = [];
           this.rows = [];
+          this.isPollingLoading = false;
         }
       });
 
@@ -171,14 +174,22 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
 
   private setupPolling(): void {
     if (this.liveMode) {
-      // Setup polling for subsequent updates
+      this.isPollingLoading = true;
+  
       this.pollingSubscription = this.pollingService.poll(
         () => {
           this.endTime = this.pollingService.updateEndTimestampToNow();
+  
           return this.analyticsService.getMachineSummary(this.startTime, this.endTime).pipe(
             tap((data: any) => {
+              // Stop loading spinner after first response
+              if (this.isPollingLoading) {
+                this.isPollingLoading = false;
+              }
+  
               const responses = Array.isArray(data) ? data : [data];
               this.machineData = responses;
+  
               const formattedData = responses.map((response) => ({
                 Status: getStatusDotByCode(response.currentStatus?.code),
                 "Machine Name": response.machine.name,
@@ -192,7 +203,7 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
                 Efficiency: `${response.metrics.performance.efficiency.percentage}%`,
                 OEE: `${response.metrics.performance.oee.percentage}%`,
               }));
-              
+  
               this.columns = Object.keys(formattedData[0]);
               this.rows = formattedData;
             })
@@ -202,15 +213,17 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
         this.destroy$,
         false,
         false
-      ).subscribe();      
+      ).subscribe();
     }
   }
+  
 
   private stopPolling(): void {
     if (this.pollingSubscription) {
       this.pollingSubscription.unsubscribe();
       this.pollingSubscription = null;
     }
+    this.isPollingLoading = false;
   }
 
   private updateChartDimensions(): void {
@@ -277,10 +290,10 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
       },
       error: (err) => {
         console.error("Error fetching dashboard data:", err);
+        this.rows = [];
         this.isLoading = false;
       },
     });
-    
   }
 
   onRowClick(row: any): void {

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ElementRef, Renderer2 } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, Renderer2, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -8,7 +8,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { Subject, takeUntil, tap } from 'rxjs';
+import { Subject, takeUntil, tap, delay, Observable } from 'rxjs';
 
 import { BaseTableComponent } from '../components/base-table/base-table.component';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
@@ -54,7 +54,8 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   columns: string[] = [];
   rows: any[] = [];
   selectedRow: any = null;
-  isLoading = false;
+  loading: boolean = false;
+  isPollingLoading: boolean = false;
   operatorData: any[] = []; // Store the raw dashboard data
   liveMode: boolean = false;
   private pollingSubscription: any;
@@ -71,7 +72,8 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     private renderer: Renderer2,
     private elRef: ElementRef,
     private pollingService: PollingService,
-    private dateTimeService: DateTimeService
+    private dateTimeService: DateTimeService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -82,7 +84,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     if (!isLive && wasConfirmed) {
       this.startTime = this.dateTimeService.getStartTime();
       this.endTime = this.dateTimeService.getEndTime();
-      this.fetchAnalyticsData();
+      this.fetchAnalyticsData().subscribe();
     }
 
     const now = new Date();
@@ -106,6 +108,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     ).subscribe(isLive => {
       this.liveMode = isLive;
       if (isLive) {
+        this.isPollingLoading = true;
         // Reset startTime to today at 00:00
         const start = new Date();
         start.setHours(0, 0, 0, 0);
@@ -117,12 +120,13 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         this.dateTimeService.setEndTime(this.endTime);
 
         // Initial data fetch
-        this.fetchAnalyticsData();
+        this.fetchAnalyticsData().subscribe();
         this.setupPolling();
       } else {
         this.stopPolling();
         this.operatorData = [];
         this.rows = [];
+        this.isPollingLoading = false;
       }
     });
 
@@ -137,7 +141,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
       this.startTime = this.dateTimeService.getStartTime();
       this.endTime = this.dateTimeService.getEndTime();
 
-      this.fetchAnalyticsData(); // use them to fetch data
+      this.fetchAnalyticsData().subscribe(); // use them to fetch data
     });
   }
 
@@ -169,8 +173,13 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
           return this.analyticsService.getOperatorSummary(this.startTime, this.endTime)
             .pipe(
               tap((data: any) => {
+                // Stop loading spinner after first response
+                if (this.isPollingLoading) {
+                  this.isPollingLoading = false;
+                }
                 this.updateDashboardData(data);
-              })
+              }),
+              delay(0) // Force change detection cycle
             );
         },
         this.POLLING_INTERVAL,
@@ -187,6 +196,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
       this.pollingSubscription.unsubscribe();
       this.pollingSubscription = null;
     }
+    this.isPollingLoading = false;
   }
 
   private updateDashboardData(data: any): void {
@@ -217,17 +227,17 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   async fetchAnalyticsData(): Promise<void> {
     if (!this.startTime || !this.endTime) return;
 
-    this.isLoading = true;
+    this.loading = true;
     // Use operator-summary route for initial table data (all operators)
     this.analyticsService.getOperatorSummary(this.startTime, this.endTime)
       .subscribe({
         next: (data: any) => {
           this.updateDashboardData(data);
-          this.isLoading = false;
+          this.loading = false;
         },
         error: (error) => {
           console.error('Error fetching analytics data:', error);
-          this.isLoading = false;
+          this.loading = false;
         }
       });
   }
