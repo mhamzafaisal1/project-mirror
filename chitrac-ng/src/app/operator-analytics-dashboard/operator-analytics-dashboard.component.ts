@@ -84,7 +84,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     if (!isLive && wasConfirmed) {
       this.startTime = this.dateTimeService.getStartTime();
       this.endTime = this.dateTimeService.getEndTime();
-      this.fetchAnalyticsData().subscribe();
+      this.fetchAnalyticsData();
     }
 
     const now = new Date();
@@ -120,7 +120,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         this.dateTimeService.setEndTime(this.endTime);
 
         // Initial data fetch
-        this.fetchAnalyticsData().subscribe();
+        this.fetchAnalyticsData();
         this.setupPolling();
       } else {
         this.stopPolling();
@@ -141,7 +141,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
       this.startTime = this.dateTimeService.getStartTime();
       this.endTime = this.dateTimeService.getEndTime();
 
-      this.fetchAnalyticsData().subscribe(); // use them to fetch data
+      this.fetchAnalyticsData(); // use them to fetch data
     });
   }
 
