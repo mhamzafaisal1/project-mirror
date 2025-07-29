@@ -21,6 +21,33 @@ export class OperatorAnalyticsService {
     return this.http.get('/api/alpha/analytics/operator-dashboard-sessions', { params });
   }
 
+  getOperatorSummary(startTime: string, endTime: string): Observable<any> {
+    const params = new HttpParams()
+      .set('startTime', startTime)
+      .set('endTime', endTime);
+
+    return this.http.get('/api/alpha/analytics/operator-summary', { params });
+  }
+
+  getOperatorDetails(start: string, end: string, operatorId: number): Observable<any> {
+    const params = new HttpParams()
+      .set('start', start)
+      .set('end', end)
+      .set('operatorId', operatorId.toString());
+  
+    return this.http.get('/api/alpha/analytics/operator-dashboard', { params });
+  }
+
+  getOperatorInfo(start: string, end: string, operatorId: number): Observable<any> {
+    const params = new HttpParams()
+      .set('start', start)
+      .set('end', end)
+      .set('operatorId', operatorId.toString());
+  
+    return this.http.get('/api/alpha/analytics/operator-info', { params });
+  }
+  
+
   getOperatorPerformance(startTime: string, endTime: string, operatorId?: number): Observable<any> {
     let params = new HttpParams()
       .set('startTime', startTime)
