@@ -10,6 +10,7 @@
   <tr mat-row
       *matRowDef="let row; columns: visibleColumns"
       (click)="onRowClick(row)"
-      [class.selected]="isRowSelected(row)">
+      [class.selected]="isRowSelected(row)"
+      [ngClass]="row.cssClass || ''">
   </tr>
 </table>

@@ -54,10 +54,9 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   columns: string[] = [];
   rows: any[] = [];
   selectedRow: any = null;
-  loading: boolean = false;
-  isPollingLoading: boolean = false;
   operatorData: any[] = []; // Store the raw dashboard data
   liveMode: boolean = false;
+  isLoading: boolean = false;
   private pollingSubscription: any;
   private destroy$ = new Subject<void>();
   private readonly POLLING_INTERVAL = 6000; // 6 seconds
@@ -81,6 +80,9 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     const isLive = this.dateTimeService.getLiveMode();
     const wasConfirmed = this.dateTimeService.getConfirmed();
   
+    // Add dummy loading row initially
+    this.addDummyLoadingRow();
+
     if (!isLive && wasConfirmed) {
       this.startTime = this.dateTimeService.getStartTime();
       this.endTime = this.dateTimeService.getEndTime();
@@ -108,7 +110,8 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     ).subscribe(isLive => {
       this.liveMode = isLive;
       if (isLive) {
-        this.isPollingLoading = true;
+        // Add dummy loading row when switching to live mode
+        this.addDummyLoadingRow();
         // Reset startTime to today at 00:00
         const start = new Date();
         start.setHours(0, 0, 0, 0);
@@ -126,7 +129,8 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
         this.stopPolling();
         this.operatorData = [];
         this.rows = [];
-        this.isPollingLoading = false;
+        // Add dummy loading row when stopping live mode
+        this.addDummyLoadingRow();
       }
     });
 
@@ -136,6 +140,9 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     ).subscribe(() => {
       this.liveMode = false; // turn off polling
       this.stopPolling();
+
+      // Add dummy loading row when confirming date/time
+      this.addDummyLoadingRow();
 
       // get times from the shared service
       this.startTime = this.dateTimeService.getStartTime();
@@ -173,10 +180,6 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
           return this.analyticsService.getOperatorSummary(this.startTime, this.endTime)
             .pipe(
               tap((data: any) => {
-                // Stop loading spinner after first response
-                if (this.isPollingLoading) {
-                  this.isPollingLoading = false;
-                }
                 this.updateDashboardData(data);
               }),
               delay(0) // Force change detection cycle
@@ -196,7 +199,6 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
       this.pollingSubscription.unsubscribe();
       this.pollingSubscription = null;
     }
-    this.isPollingLoading = false;
   }
 
   private updateDashboardData(data: any): void {
@@ -227,17 +229,18 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   async fetchAnalyticsData(): Promise<void> {
     if (!this.startTime || !this.endTime) return;
 
-    this.loading = true;
+    this.isLoading = true;
     // Use operator-summary route for initial table data (all operators)
     this.analyticsService.getOperatorSummary(this.startTime, this.endTime)
       .subscribe({
         next: (data: any) => {
           this.updateDashboardData(data);
-          this.loading = false;
+          this.isLoading = false;
         },
         error: (error) => {
           console.error('Error fetching analytics data:', error);
-          this.loading = false;
+          this.rows = [];
+          this.isLoading = false;
         }
       });
   }
@@ -360,7 +363,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   }
 
   getEfficiencyClass(value: any, column: string): string {
-    if (column === 'Efficiency' && typeof value === 'string' && value.includes('%')) {
+    if ((column === 'Efficiency' || column === 'OEE') && typeof value === 'string' && value.includes('%')) {
       const num = parseInt(value.replace('%', ''));
       if (isNaN(num)) return '';
       if (num >= 90) return 'green';
@@ -377,5 +380,115 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
     const h = String(date.getHours()).padStart(2, '0');
     const min = String(date.getMinutes()).padStart(2, '0');
     return `${y}-${m}-${d}T${h}:${min}`;
+  }
+
+  private addDummyLoadingRow(): void {
+    // Add a dummy row with loading state
+    this.rows = [
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Operator Name': '',
+        'Operator ID': '',
+        'Current Machine': '',
+        'Current Machine Serial': '',
+        'Runtime': '',
+        'Downtime': '',
+        'Total Count': '',
+        'Misfeed Count': '',
+        'Availability': '',
+        'Throughput': '',
+        'Efficiency': '',
+        'OEE': '',
+        isDummy: true, // Flag to identify this as a dummy row
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Operator Name': '',
+        'Operator ID': '',
+        'Current Machine': '',
+        'Current Machine Serial': '',
+        'Runtime': '',
+        'Downtime': '',
+        'Total Count': '',
+        'Misfeed Count': '',
+        'Availability': '',
+        'Throughput': '',
+        'Efficiency': '',
+        'OEE': '',
+        isDummy: true, // Flag to identify this as a dummy row
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Operator Name': '',
+        'Operator ID': '',
+        'Current Machine': '',
+        'Current Machine Serial': '',
+        'Runtime': '',
+        'Downtime': '',
+        'Total Count': '',
+        'Misfeed Count': '',
+        'Availability': '',
+        'Throughput': '',
+        'Efficiency': '',
+        'OEE': '',
+        isDummy: true, // Flag to identify this as a dummy row
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Operator Name': '',
+        'Operator ID': '',
+        'Current Machine': '',
+        'Current Machine Serial': '',
+        'Runtime': '',
+        'Downtime': '',
+        'Total Count': '',
+        'Misfeed Count': '',
+        'Availability': '',
+        'Throughput': '',
+        'Efficiency': '',
+        'OEE': '',
+        isDummy: true, // Flag to identify this as a dummy row
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Operator Name': '',
+        'Operator ID': '',
+        'Current Machine': '',
+        'Current Machine Serial': '',
+        'Runtime': '',
+        'Downtime': '',
+        'Total Count': '',
+        'Misfeed Count': '',
+        'Availability': '',
+        'Throughput': '',
+        'Efficiency': '',
+        'OEE': '',
+        isDummy: true, // Flag to identify this as a dummy row
+        cssClass: "dummy-row", // CSS class for styling
+      },
+    ];
+
+    // Set columns if not already set
+    if (this.columns.length === 0) {
+      this.columns = [
+        'Status',
+        'Operator Name',
+        'Operator ID',
+        'Current Machine',
+        'Current Machine Serial',
+        'Runtime',
+        'Downtime',
+        'Total Count',
+        'Misfeed Count',
+        'Availability',
+        'Throughput',
+        'Efficiency',
+        'OEE',
+      ];
+    }
   }
 }

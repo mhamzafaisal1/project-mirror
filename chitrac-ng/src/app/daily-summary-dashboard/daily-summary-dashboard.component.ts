@@ -60,9 +60,8 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
   operatorColumns: string[] = ['Status', 'Operator Name', 'Worked Time', 'Efficiency'];
   operatorRows: any[] = [];
   selectedOperator: any = null;
-  loading: boolean = false;
-  isPollingLoading: boolean = false;
   liveMode: boolean = false;
+  isLoading: boolean = false;
   rawMachineData: any[] = []; // store full API response for machines
   rawOperatorData: any[] = []; // store full API response for operators
   private pollingSubscription: any;
@@ -89,6 +88,9 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     const isLive = this.dateTimeService.getLiveMode();
     const wasConfirmed = this.dateTimeService.getConfirmed();
   
+    // Add dummy loading rows initially
+    this.addDummyLoadingRows();
+
     if (!isLive && wasConfirmed) {
       this.startTime = this.dateTimeService.getStartTime();
       this.endTime = this.dateTimeService.getEndTime();
@@ -118,7 +120,8 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     ).subscribe(isLive => {
       this.liveMode = isLive;
       if (isLive) {
-        this.isPollingLoading = true;
+        // Add dummy loading rows when switching to live mode
+        this.addDummyLoadingRows();
         // Reset startTime to today at 00:00
         const start = new Date();
         start.setHours(0, 0, 0, 0);
@@ -135,7 +138,8 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       } else {
         this.stopPolling();
         this.clearData();
-        this.isPollingLoading = false;
+        // Add dummy loading rows when stopping live mode
+        this.addDummyLoadingRows();
       }
     });
 
@@ -145,6 +149,9 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     ).subscribe(() => {
       this.liveMode = false; // turn off polling
       this.stopPolling();
+
+      // Add dummy loading rows when confirming date/time
+      this.addDummyLoadingRows();
 
       // get times from the shared service
       this.startTime = this.dateTimeService.getStartTime();
@@ -186,10 +193,6 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
           return this.dailyDashboardService.getDailySummaryDashboard(this.startTime, this.endTime)
             .pipe(
               tap((data: any) => {
-                // Stop loading spinner after first response
-                if (this.isPollingLoading) {
-                  this.isPollingLoading = false;
-                }
                 this.updateDashboardData(data);
               }),
               delay(0) // Force change detection cycle
@@ -208,7 +211,6 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       this.pollingSubscription.unsubscribe();
       this.pollingSubscription = null;
     }
-    this.isPollingLoading = false;
   }
 
   private clearData(): void {
@@ -255,11 +257,9 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
       return new Observable();
     }
   
+    this.isLoading = true;
     const formattedStart = new Date(this.startTime).toISOString();
     const formattedEnd = new Date(this.endTime).toISOString();
-  
-    // Set loading state for manual data fetching
-    this.loading = true;
   
     return this.dailyDashboardService.getDailySummaryDashboard(formattedStart, formattedEnd)
       .pipe(
@@ -267,12 +267,12 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
         tap({
           next: (data: any) => {
             this.updateDashboardData(data);
-            this.loading = false;
+            this.isLoading = false;
           },
           error: (err: any) => {
             console.error('Error fetching summary data:', err);
             this.clearData();
-            this.loading = false;
+            this.isLoading = false;
           }
         }),
         delay(0) // Force change detection cycle
@@ -457,5 +457,128 @@ export class DailySummaryDashboardComponent implements OnInit, OnDestroy {
     if (num >= 60) return 'yellow';
     return 'red';
   }
-  
+
+  private addDummyLoadingRows(): void {
+    // Add dummy loading rows for machines
+    this.machineRows = [
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Machine Name': '',
+        'OEE': '',
+        'Total Count': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Machine Name': '',
+        'OEE': '',
+        'Total Count': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Machine Name': '',
+        'OEE': '',
+        'Total Count': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Machine Name': '',
+        'OEE': '',
+        'Total Count': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Machine Name': '',
+        'OEE': '',
+        'Total Count': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+    ];
+
+    // Add dummy loading rows for operators
+    this.operatorRows = [
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Operator Name': '',
+        'Worked Time': '',
+        'Efficiency': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Operator Name': '',
+        'Worked Time': '',
+        'Efficiency': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Operator Name': '',
+        'Worked Time': '',
+        'Efficiency': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Operator Name': '',
+        'Worked Time': '',
+        'Efficiency': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        'Operator Name': '',
+        'Worked Time': '',
+        'Efficiency': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+    ];
+
+    // Add dummy loading rows for items
+    this.itemRows = [
+      {
+        'Item Name': '',
+        'Total Count': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        'Item Name': '',
+        'Total Count': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        'Item Name': '',
+        'Total Count': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        'Item Name': '',
+        'Total Count': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        'Item Name': '',
+        'Total Count': '',
+        isDummy: true,
+        cssClass: "dummy-row", // CSS class for styling
+      },
+    ];
+  }
 }

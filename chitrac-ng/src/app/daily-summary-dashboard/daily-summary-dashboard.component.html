@@ -1,17 +1,17 @@
 <div class="scroll-wrapper">
   <div class="container" [ngClass]="{ 'dark-mode': isDarkTheme, 'light-mode': !isDarkTheme }">
     <div class="tables-wrapper">
-      <!-- Loading Overlay for both initial load and polling -->
-      <div class="loading-overlay" *ngIf="loading || isPollingLoading">
+      <!-- Loading Overlay for initial load -->
+      <div class="loading-overlay" *ngIf="isLoading">
         <div class="loading-content">
           <div class="loading-spinner"></div>
           <div class="loading-text">
-            {{ isPollingLoading ? 'Fetching live data...' : 'Loading data...' }}
+            Loading data...
           </div>
         </div>
       </div>
 
-      <div class="tables-container" [class.loading]="loading || isPollingLoading">
+      <div class="tables-container" [class.loading]="isLoading">
         <div class="table-section" *ngIf="machineRows.length">
           <h2>Machines</h2>
           <base-table

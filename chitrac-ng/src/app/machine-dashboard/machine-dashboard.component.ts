@@ -29,20 +29,20 @@ import { MachineFaultHistoryComponent } from "../machine-fault-history/machine-f
 import { OperatorPerformanceChartComponent } from "../operator-performance-chart/operator-performance-chart.component";
 
 @Component({
-    selector: "app-machine-dashboard",
-    imports: [
-        CommonModule,
-        HttpClientModule,
-        FormsModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatIconModule,
-        BaseTableComponent,
-        DateTimePickerComponent,
-    ],
-    templateUrl: "./machine-dashboard.component.html",
-    styleUrls: ["./machine-dashboard.component.scss"]
+  selector: "app-machine-dashboard",
+  imports: [
+    CommonModule,
+    HttpClientModule,
+    FormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    BaseTableComponent,
+    DateTimePickerComponent,
+  ],
+  templateUrl: "./machine-dashboard.component.html",
+  styleUrls: ["./machine-dashboard.component.scss"],
 })
 export class MachineDashboardComponent implements OnInit, OnDestroy {
   startTime: string = "";
@@ -52,16 +52,27 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
   rows: any[] = [];
   selectedRow: any | null = null;
   isDarkTheme: boolean = false;
-  isLoading: boolean = false;
   liveMode: boolean = false;
-  isPollingLoading: boolean = false;
+  isLoading: boolean = false;
   responsiveHiddenColumns: { [key: number]: string[] } = {
-    1210: ['Misfeed Count', 'Serial Number'],
-    1024: ['Misfeed Count'],
-    768: ['Misfeed Count', 'Serial Number', 'Downtime', 'Availability', 'Throughput', 'Efficiency'],
-    480: ['Misfeed Count', 'Serial Number', 'Downtime', 'Throughput', 'Efficiency'],
+    1210: ["Misfeed Count", "Serial Number"],
+    1024: ["Misfeed Count"],
+    768: [
+      "Misfeed Count",
+      "Serial Number",
+      "Downtime",
+      "Availability",
+      "Throughput",
+      "Efficiency",
+    ],
+    480: [
+      "Misfeed Count",
+      "Serial Number",
+      "Downtime",
+      "Throughput",
+      "Efficiency",
+    ],
   };
-  
 
   private observer!: MutationObserver;
   private pollingSubscription: any;
@@ -69,8 +80,10 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
 
   chartWidth: number = 1000;
   chartHeight: number = 700;
-  
-  responsiveChartSizes: { [breakpoint: number]: { width: number; height: number } } = {
+
+  responsiveChartSizes: {
+    [breakpoint: number]: { width: number; height: number };
+  } = {
     1600: { width: 800, height: 700 },
     1210: { width: 700, height: 700 },
     1024: { width: 600, height: 600 },
@@ -79,7 +92,7 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
     480: { width: 300, height: 300 },
     0: { width: 300, height: 350 }, // fallback for very small screens
   };
-  
+
   isModal: boolean = true;
 
   private readonly POLLING_INTERVAL = 6000; // 6 seconds
@@ -98,9 +111,11 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
     const wasConfirmed = this.dateTimeService.getConfirmed();
 
     this.updateChartDimensions();
-window.addEventListener('resize', this.updateChartDimensions.bind(this));
+    window.addEventListener("resize", this.updateChartDimensions.bind(this));
 
-  
+    // Add dummy loading row initially
+    this.addDummyLoadingRow();
+
     if (!isLive && wasConfirmed) {
       this.startTime = this.dateTimeService.getStartTime();
       this.endTime = this.dateTimeService.getEndTime();
@@ -115,7 +130,10 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
 
     this.detectTheme();
     this.observer = new MutationObserver(() => this.detectTheme());
-    this.observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    this.observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
 
     // Subscribe to live mode changes
     this.dateTimeService.liveMode$
@@ -124,7 +142,8 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
         this.liveMode = isLive;
 
         if (this.liveMode) {
-          this.isPollingLoading = true;
+          // Add dummy loading row when switching to live mode
+          this.addDummyLoadingRow();
           const start = new Date();
           start.setHours(0, 0, 0, 0);
           this.startTime = this.formatDateForInput(start);
@@ -136,7 +155,8 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
           this.stopPolling();
           this.machineData = [];
           this.rows = [];
-          this.isPollingLoading = false;
+          // Add dummy loading row when stopping live mode
+          this.addDummyLoadingRow();
         }
       });
 
@@ -146,6 +166,9 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
       .subscribe(() => {
         this.liveMode = false; // turn off polling
         this.stopPolling();
+
+        // Add dummy loading row when confirming date/time
+        this.addDummyLoadingRow();
 
         // get times from the shared service
         this.startTime = this.dateTimeService.getStartTime();
@@ -160,79 +183,77 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
     this.stopPolling();
     this.destroy$.next();
     this.destroy$.complete();
-    window.removeEventListener('resize', this.updateChartDimensions.bind(this));
-
+    window.removeEventListener("resize", this.updateChartDimensions.bind(this));
   }
 
   detectTheme(): void {
     const isDark = document.body.classList.contains("dark-theme");
     this.isDarkTheme = isDark;
     const element = this.elRef.nativeElement;
-    this.renderer.setStyle(element, "background-color", isDark ? "#121212" : "#ffffff");
+    this.renderer.setStyle(
+      element,
+      "background-color",
+      isDark ? "#121212" : "#ffffff"
+    );
     this.renderer.setStyle(element, "color", isDark ? "#e0e0e0" : "#000000");
   }
 
   private setupPolling(): void {
     if (this.liveMode) {
-      this.isPollingLoading = true;
-  
-      this.pollingSubscription = this.pollingService.poll(
-        () => {
-          this.endTime = this.pollingService.updateEndTimestampToNow();
-  
-          return this.analyticsService.getMachineSummary(this.startTime, this.endTime).pipe(
-            tap((data: any) => {
-              // Stop loading spinner after first response
-              if (this.isPollingLoading) {
-                this.isPollingLoading = false;
-              }
-  
-              const responses = Array.isArray(data) ? data : [data];
-              this.machineData = responses;
-  
-              const formattedData = responses.map((response) => ({
-                Status: getStatusDotByCode(response.currentStatus?.code),
-                "Machine Name": response.machine.name,
-                "Serial Number": response.machine.serial,
-                Runtime: `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
-                Downtime: `${response.metrics.downtime.formatted.hours}h ${response.metrics.downtime.formatted.minutes}m`,
-                "Total Count": response.metrics.output.totalCount,
-                "Misfeed Count": response.metrics.output.misfeedCount,
-                Availability: `${response.metrics.performance.availability.percentage}%`,
-                Throughput: `${response.metrics.performance.throughput.percentage}%`,
-                Efficiency: `${response.metrics.performance.efficiency.percentage}%`,
-                OEE: `${response.metrics.performance.oee.percentage}%`,
-              }));
-  
-              this.columns = Object.keys(formattedData[0]);
-              this.rows = formattedData;
-            })
-          );
-        },
-        this.POLLING_INTERVAL,
-        this.destroy$,
-        false,
-        false
-      ).subscribe();
+      this.pollingSubscription = this.pollingService
+        .poll(
+          () => {
+            this.endTime = this.pollingService.updateEndTimestampToNow();
+
+            return this.analyticsService
+              .getMachineSummary(this.startTime, this.endTime)
+              .pipe(
+                tap((data: any) => {
+                  const responses = Array.isArray(data) ? data : [data];
+                  this.machineData = responses;
+
+                  const formattedData = responses.map((response) => ({
+                    Status: getStatusDotByCode(response.currentStatus?.code),
+                    "Machine Name": response.machine.name,
+                    "Serial Number": response.machine.serial,
+                    Runtime: `${response.metrics.runtime.formatted.hours}h ${response.metrics.runtime.formatted.minutes}m`,
+                    Downtime: `${response.metrics.downtime.formatted.hours}h ${response.metrics.downtime.formatted.minutes}m`,
+                    "Total Count": response.metrics.output.totalCount,
+                    "Misfeed Count": response.metrics.output.misfeedCount,
+                    Availability: `${response.metrics.performance.availability.percentage}%`,
+                    Throughput: `${response.metrics.performance.throughput.percentage}%`,
+                    Efficiency: `${response.metrics.performance.efficiency.percentage}%`,
+                    OEE: `${response.metrics.performance.oee.percentage}%`,
+                  }));
+
+                  this.columns = Object.keys(formattedData[0]);
+                  this.rows = formattedData;
+                })
+              );
+          },
+          this.POLLING_INTERVAL,
+          this.destroy$,
+          false,
+          false
+        )
+        .subscribe();
     }
   }
-  
 
   private stopPolling(): void {
     if (this.pollingSubscription) {
       this.pollingSubscription.unsubscribe();
       this.pollingSubscription = null;
     }
-    this.isPollingLoading = false;
   }
 
   private updateChartDimensions(): void {
     const width = window.innerWidth;
-  
+
     const breakpoints = Object.keys(this.responsiveChartSizes)
       .map(Number)
       .sort((a, b) => b - a); // sort descending
-  
+
     for (const bp of breakpoints) {
       if (width >= bp) {
         this.chartWidth = this.responsiveChartSizes[bp].width;
@@ -241,59 +262,76 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
       }
     }
   }
-  
 
   fetchAnalyticsData(): void {
     if (!this.startTime || !this.endTime) return;
     this.isLoading = true;
-    this.analyticsService.getMachineSummary(this.startTime, this.endTime).subscribe({
-      next: (data: any) => {
-        const responses = Array.isArray(data) ? data : [data];
+    this.analyticsService
+      .getMachineSummary(this.startTime, this.endTime)
+      .subscribe({
+        next: (data: any) => {
+          const responses = Array.isArray(data) ? data : [data];
 
-        // Guard: if responses is not an array or is empty, set rows to [] and return
-        if (!Array.isArray(responses) || responses.length === 0) {
+          // Guard: if responses is not an array or is empty, set rows to [] and return
+          if (!Array.isArray(responses) || responses.length === 0) {
+            this.rows = [];
+            this.isLoading = false;
+            return;
+          }
+
+          // Filter out undefined/null/invalid responses
+          const validResponses = responses.filter(
+            (response) =>
+              response &&
+              response.metrics &&
+              response.machine &&
+              response.currentStatus
+          );
+          if (validResponses.length === 0) {
+            this.rows = [];
+            this.isLoading = false;
+            return;
+          }
+
+          const formattedData = validResponses.map((response) => ({
+            Status: getStatusDotByCode(response.currentStatus?.code),
+            "Machine Name": response.machine?.name ?? "Unknown",
+            "Serial Number": response.machine?.serial,
+            Runtime: `${response.metrics?.runtime?.formatted?.hours ?? 0}h ${
+              response.metrics?.runtime?.formatted?.minutes ?? 0
+            }m`,
+            Downtime: `${response.metrics?.downtime?.formatted?.hours ?? 0}h ${
+              response.metrics?.downtime?.formatted?.minutes ?? 0
+            }m`,
+            "Total Count": response.metrics?.output?.totalCount ?? 0,
+            "Misfeed Count": response.metrics?.output?.misfeedCount ?? 0,
+            Availability:
+              (response.metrics?.performance?.availability?.percentage ?? "0") +
+              "%",
+            Throughput:
+              (response.metrics?.performance?.throughput?.percentage ?? "0") +
+              "%",
+            Efficiency:
+              (response.metrics?.performance?.efficiency?.percentage ?? "0") +
+              "%",
+            OEE: (response.metrics?.performance?.oee?.percentage ?? "0") + "%",
+          }));
+
+          const allColumns = Object.keys(formattedData[0]);
+          const columnsToHide: string[] = [""];
+          this.columns = allColumns.filter(
+            (col) => !columnsToHide.includes(col)
+          );
+
+          this.rows = formattedData;
+          this.isLoading = false;
+        },
+        error: (err) => {
+          console.error("Error fetching dashboard data:", err);
           this.rows = [];
           this.isLoading = false;
-          return;
-        }
-
-        // Filter out undefined/null/invalid responses
-        const validResponses = responses.filter(
-          response => response && response.metrics && response.machine && response.currentStatus
-        );
-        if (validResponses.length === 0) {
-          this.rows = [];
-          this.isLoading = false;
-          return;
-        }
-
-        const formattedData = validResponses.map((response) => ({
-          Status: getStatusDotByCode(response.currentStatus?.code),
-          "Machine Name": response.machine?.name ?? "Unknown",
-          "Serial Number": response.machine?.serial,
-          Runtime: `${response.metrics?.runtime?.formatted?.hours ?? 0}h ${response.metrics?.runtime?.formatted?.minutes ?? 0}m`,
-          Downtime: `${response.metrics?.downtime?.formatted?.hours ?? 0}h ${response.metrics?.downtime?.formatted?.minutes ?? 0}m`,
-          "Total Count": response.metrics?.output?.totalCount ?? 0,
-          "Misfeed Count": response.metrics?.output?.misfeedCount ?? 0,
-          Availability: (response.metrics?.performance?.availability?.percentage ?? "0") + "%",
-          Throughput: (response.metrics?.performance?.throughput?.percentage ?? "0") + "%",
-          Efficiency: (response.metrics?.performance?.efficiency?.percentage ?? "0") + "%",
-          OEE: (response.metrics?.performance?.oee?.percentage ?? "0") + "%",
-        }));
-
-        const allColumns = Object.keys(formattedData[0]);
-        const columnsToHide: string[] = [""];
-        this.columns = allColumns.filter(col => !columnsToHide.includes(col));
-
-        this.rows = formattedData;
-        this.isLoading = false;
-      },
-      error: (err) => {
-        console.error("Error fetching dashboard data:", err);
-        this.rows = [];
-        this.isLoading = false;
-      },
-    });
+        },
+      });
   }
 
   onRowClick(row: any): void {
@@ -309,119 +347,126 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
     }, 0);
 
     const machineSerial = row["Serial Number"];
-    this.analyticsService.getMachineDetails(this.startTime, this.endTime, machineSerial).subscribe({
-      next: (res: any[]) => {
-        const machineData = res[0];  // <-- FIX HERE
-        console.log("Machine data:", machineData);
-    
-        const itemSummaryData = Object.values(machineData.itemSummary?.machineSummary?.itemSummaries || {});
-        console.log("Item summary data:", itemSummaryData);
-    
-        const faultSummaryData = machineData.faultData?.faultSummaries || [];
-        const faultCycleData = machineData.faultData?.faultCycles || [];
-    
-        const carouselTabs = [
-          {
-            label: "Item Summary",
-            component: MachineItemSummaryTableComponent,
-            componentInputs: {
-              startTime: this.startTime,
-              endTime: this.endTime,
-              selectedMachineSerial: machineSerial,
-              itemSummaryData,
-              isModal: this.isModal,
-            },
-          },
-          {
-            label: "Item Stacked Chart",
-            component: MachineItemStackedBarChartComponent,
-            componentInputs: {
-              startTime: this.startTime,
-              endTime: this.endTime,
-              machineSerial,
-              chartWidth: this.chartWidth,
-              chartHeight: this.chartHeight,
-              isModal: this.isModal,
-              mode: "dashboard",
-              preloadedData: machineData.itemHourlyStack,
-            },
-          },
-          {
-            label: "Fault Summaries",
-            component: MachineFaultHistoryComponent,
-            componentInputs: {
-              viewType: "summary",
-              startTime: this.startTime,
-              endTime: this.endTime,
-              machineSerial,
-              isModal: this.isModal,
-              preloadedData: faultSummaryData,
-            },
-          },
-          {
-            label: "Fault Cycles",
-            component: MachineFaultHistoryComponent,
-            componentInputs: {
-              viewType: "cycles",
-              startTime: this.startTime,
-              endTime: this.endTime,
-              machineSerial,
-              isModal: this.isModal,
-              preloadedData: faultCycleData,
-            },
-          },
-          {
-            label: "Performance Chart",
-            component: OperatorPerformanceChartComponent,
-            componentInputs: {
-              startTime: this.startTime,
-              endTime: this.endTime,
-              machineSerial,
-              chartWidth: this.chartWidth,
-              chartHeight: this.chartHeight,
-              isModal: this.isModal,
-              mode: "dashboard",
-              preloadedData: {
-                machine: {
-                  serial: machineSerial,
-                  name: machineData.machine?.name ?? "Unknown",
-                },
-                timeRange: {
-                  start: this.startTime,
-                  end: this.endTime,
-                },
-                hourlyData: machineData.operatorEfficiency ?? [],
+    this.analyticsService
+      .getMachineDetails(this.startTime, this.endTime, machineSerial)
+      .subscribe({
+        next: (res: any[]) => {
+          const machineData = res[0]; // <-- FIX HERE
+          console.log("Machine data:", machineData);
+
+          const itemSummaryData = Object.values(
+            machineData.itemSummary?.machineSummary?.itemSummaries || {}
+          );
+          console.log("Item summary data:", itemSummaryData);
+
+          const faultSummaryData = machineData.faultData?.faultSummaries || [];
+          const faultCycleData = machineData.faultData?.faultCycles || [];
+
+          const carouselTabs = [
+            {
+              label: "Item Summary",
+              component: MachineItemSummaryTableComponent,
+              componentInputs: {
+                startTime: this.startTime,
+                endTime: this.endTime,
+                selectedMachineSerial: machineSerial,
+                itemSummaryData,
+                isModal: this.isModal,
               },
             },
-          },
-        ];
-    
-        const dialogRef = this.dialog.open(ModalWrapperComponent, {
-          width: '90vw',
-          height: '85vh',
-          maxWidth: '95vw',
-          maxHeight: '90vh',
-          panelClass: 'performance-chart-dialog',
-          data: {
-            component: UseCarouselComponent,
-            componentInputs: {
-              tabData: carouselTabs,
+            {
+              label: "Item Stacked Chart",
+              component: MachineItemStackedBarChartComponent,
+              componentInputs: {
+                startTime: this.startTime,
+                endTime: this.endTime,
+                machineSerial,
+                chartWidth: this.chartWidth,
+                chartHeight: this.chartHeight,
+                isModal: this.isModal,
+                mode: "dashboard",
+                preloadedData: machineData.itemHourlyStack,
+              },
             },
-            machineSerial,
-            startTime: this.startTime,
-            endTime: this.endTime,
-          },
-        });
-    
-        dialogRef.afterClosed().subscribe(() => {
-          if (this.selectedRow === row) this.selectedRow = null;
-        });
-      },
-      error: (err) => {
-        console.error(`Error loading detailed modal data for machine ${machineSerial}:`, err);
-      }
-    });
-}   
+            {
+              label: "Fault Summaries",
+              component: MachineFaultHistoryComponent,
+              componentInputs: {
+                viewType: "summary",
+                startTime: this.startTime,
+                endTime: this.endTime,
+                machineSerial,
+                isModal: this.isModal,
+                preloadedData: faultSummaryData,
+              },
+            },
+            {
+              label: "Fault Cycles",
+              component: MachineFaultHistoryComponent,
+              componentInputs: {
+                viewType: "cycles",
+                startTime: this.startTime,
+                endTime: this.endTime,
+                machineSerial,
+                isModal: this.isModal,
+                preloadedData: faultCycleData,
+              },
+            },
+            {
+              label: "Performance Chart",
+              component: OperatorPerformanceChartComponent,
+              componentInputs: {
+                startTime: this.startTime,
+                endTime: this.endTime,
+                machineSerial,
+                chartWidth: this.chartWidth,
+                chartHeight: this.chartHeight,
+                isModal: this.isModal,
+                mode: "dashboard",
+                preloadedData: {
+                  machine: {
+                    serial: machineSerial,
+                    name: machineData.machine?.name ?? "Unknown",
+                  },
+                  timeRange: {
+                    start: this.startTime,
+                    end: this.endTime,
+                  },
+                  hourlyData: machineData.operatorEfficiency ?? [],
+                },
+              },
+            },
+          ];
+
+          const dialogRef = this.dialog.open(ModalWrapperComponent, {
+            width: "90vw",
+            height: "85vh",
+            maxWidth: "95vw",
+            maxHeight: "90vh",
+            panelClass: "performance-chart-dialog",
+            data: {
+              component: UseCarouselComponent,
+              componentInputs: {
+                tabData: carouselTabs,
+              },
+              machineSerial,
+              startTime: this.startTime,
+              endTime: this.endTime,
+            },
+          });
+
+          dialogRef.afterClosed().subscribe(() => {
+            if (this.selectedRow === row) this.selectedRow = null;
+          });
+        },
+        error: (err) => {
+          console.error(
+            `Error loading detailed modal data for machine ${machineSerial}:`,
+            err
+          );
+        },
+      });
+  }
 
   getEfficiencyClass(value: any): string {
     if (typeof value !== "string" || !value.includes("%")) return "";
@@ -439,5 +484,103 @@ window.addEventListener('resize', this.updateChartDimensions.bind(this));
     const h = String(date.getHours()).padStart(2, "0");
     const min = String(date.getMinutes()).padStart(2, "0");
     return `${y}-${m}-${d}T${h}:${min}`;
+  }
+
+  private addDummyLoadingRow(): void {
+    // Add a dummy row with loading state
+    this.rows = [
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        "Machine Name": "",
+        "Serial Number": "",
+        Runtime: "",
+        Downtime: "",
+        "Total Count": "",
+        "Misfeed Count": "",
+        Availability: "",
+        Throughput: "",
+        Efficiency: "",
+        OEE: "",
+        isDummy: true, // Flag to identify this as a dummy row
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        "Machine Name": "",
+        "Serial Number": "",
+        Runtime: "",
+        Downtime: "",
+        "Total Count": "",
+        "Misfeed Count": "",
+        Availability: "",
+        Throughput: "",
+        Efficiency: "",
+        OEE: "",
+        isDummy: true, // Flag to identify this as a dummy row
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        "Machine Name": "",
+        "Serial Number": "",
+        Runtime: "",
+        Downtime: "",
+        "Total Count": "",
+        "Misfeed Count": "",
+        Availability: "",
+        Throughput: "",
+        Efficiency: "",
+        OEE: "",
+        isDummy: true, // Flag to identify this as a dummy row
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        "Machine Name": "",
+        "Serial Number": "",
+        Runtime: "",
+        Downtime: "",
+        "Total Count": "",
+        "Misfeed Count": "",
+        Availability: "",
+        Throughput: "",
+        Efficiency: "",
+        OEE: "",
+        isDummy: true, // Flag to identify this as a dummy row
+        cssClass: "dummy-row", // CSS class for styling
+      },
+      {
+        Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        "Machine Name": "",
+        "Serial Number": "",
+        Runtime: "",
+        Downtime: "",
+        "Total Count": "",
+        "Misfeed Count": "",
+        Availability: "",
+        Throughput: "",
+        Efficiency: "",
+        OEE: "",
+        isDummy: true, // Flag to identify this as a dummy row
+        cssClass: "dummy-row", // CSS class for styling
+      },
+    ];
+
+    // Set columns if not already set
+    if (this.columns.length === 0) {
+      this.columns = [
+        "Status",
+        "Machine Name",
+        "Serial Number",
+        "Runtime",
+        "Downtime",
+        "Total Count",
+        "Misfeed Count",
+        "Availability",
+        "Throughput",
+        "Efficiency",
+        "OEE",
+      ];
+    }
   }
 }
