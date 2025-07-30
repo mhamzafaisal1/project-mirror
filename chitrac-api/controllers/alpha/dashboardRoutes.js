@@ -3175,10 +3175,37 @@ module.exports = function (server) {
       // Build itemSummary (same as /operator-dashboard-sessions)
       const itemMap = {};
       const runCycles = getCompletedCyclesForOperator(states);
-      const totalRunMsCycles = runCycles.reduce(
-        (sum, c) => sum + (c.duration || 0),
-        0
-      );
+// STEP 1: Group count timestamps by itemId
+const itemTimestampMap = {}; // itemId -> [timestamps]
+for (const count of validCounts) {
+  const itemId = count.item?.id || 'unknown';
+  if (!itemTimestampMap[itemId]) itemTimestampMap[itemId] = [];
+  itemTimestampMap[itemId].push(new Date(count.timestamp));
+}
+
+// STEP 2: For each item, sum run durations where any of its timestamps fall
+const itemRuntimeMap = {}; // itemId -> total run ms
+for (const [itemId, timestamps] of Object.entries(itemTimestampMap)) {
+  itemRuntimeMap[itemId] = 0;
+
+  for (const [itemId, timestamps] of Object.entries(itemTimestampMap)) {
+    const seenCycleIds = new Set(); // to avoid double counting
+    itemRuntimeMap[itemId] = 0;
+  
+    for (const ts of timestamps) {
+      for (let i = 0; i < runCycles.length; i++) {
+        const cycle = runCycles[i];
+        if (ts >= cycle.start && ts <= cycle.end && !seenCycleIds.has(i)) {
+          itemRuntimeMap[itemId] += cycle.duration || 0;
+          seenCycleIds.add(i);
+          break; // move to next timestamp
+        }
+      }
+    }
+  }
+  
+}
+
 
       for (const count of validCounts) {
         const item = count.item || {};
@@ -3207,7 +3234,8 @@ module.exports = function (server) {
         }
 
         itemMap[key].count += 1;
-        itemMap[key].rawRunMs = totalRunMsCycles;
+        itemMap[key].rawRunMs = itemRuntimeMap[itemId] || 0;
+
       }
 
       const itemSummary = Object.values(itemMap).map((row) => {
