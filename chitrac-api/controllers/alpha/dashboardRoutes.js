@@ -2663,7 +2663,7 @@ module.exports = function (server) {
           const currentMachineSerial =
             latestStateTicker[0]?.machine?.serial || null;
           const currentMachineName =
-            latestStateTicker[0]?.machine?.name || "Unknown";
+            latestStateTicker[0]?.machine?.name || null;
 
           for (const session of runSessions) {
             totalRuntimeMs += session.end - session.start;
