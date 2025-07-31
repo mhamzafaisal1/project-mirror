@@ -3484,7 +3484,9 @@ module.exports = function (server) {
           // Fallback: assume still running if no cycles AND recent state shows status.code === 1
           const shouldAssumeRunning =
             runtimeMs === 0 &&
-            ["lastSixMinutes", "lastFifteenMinutes", "lastHour"].includes(label) &&
+            ["lastSixMinutes", "lastFifteenMinutes", "lastHour"].includes(
+              label
+            ) &&
             recentState.status?.code === 1 &&
             operatorStates.some((s) =>
               s.operators?.some(
@@ -3505,9 +3507,18 @@ module.exports = function (server) {
             filteredValid
           );
 
+          const labelDisplayMap = {
+            lastSixMinutes: "Last 6 Minutes",
+            lastFifteenMinutes: "Last 15 Minutes",
+            lastHour: "Last Hour",
+            today: "All Day",
+          };
+
+          const displayLabel = labelDisplayMap[label] || label;
+
           efficiency[label] = {
             value: Math.round(eff * 100),
-            label,
+            label: displayLabel,
             color: eff >= 0.9 ? "#008000" : eff >= 0.7 ? "#F89406" : "#FF0000",
           };
         }

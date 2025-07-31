@@ -1,4 +1,4 @@
-<div class="container" style="padding-right: 0; padding-left: 0; height: 99%;">
+<div class="container" style="padding-right: 0; padding-left: 0; height: 100%;">
     <div class="lane-background" style="background-color: #333;height:84%;">
         <div class="lane" style="padding-top:15px;padding-bottom: 15px;height: 100%;">
             <div id="OperatorBlock" [style.background-color]="lane.efficiency.lastSixMinutes.color" class="row fs-3" style="height: 10%;margin: 0 15px 0 15px;">
@@ -6,7 +6,7 @@
                     <div class="d-flex text-center align-bottom flex-column h-100 pt-3">{{lane.operator}}</div>
                 </div>
             </div>
-            <div id="DataBlock" class="row" style="height: 90%;margin: 0 15px 0 15px;">
+            <div id="DataBlock" class="row" style="height: 100%;margin: 0 15px 0 15px;">
                 <div class="col-12" [style.background-color]="lane.efficiency.lastSixMinutes.color" style="height:30%">
                     <div class="d-flex font-weight-bold text-center justify-content-center flex-column h-100 display-2">{{lane.efficiency.lastSixMinutes.value | number: '1.0-0'}}%</div>
                 </div>
@@ -20,7 +20,7 @@
             </div>
         </div>
     </div>
-    <div id="ItemBlock" class="row w-100 fs-5" style="height:16%; border-top: 0.5em solid #191919; border-bottom: 1em solid #333; background-color: #333;margin:0 0 15px 0">
+    <div id="ItemBlock" class="row w-100 fs-5" style="height:16%; border-top: 0.5em solid #1f1f1f; border-bottom: 1em solid #333; background-color: #333;margin:0 0 15px 0">
         <div class="d-flex text-center justify-content-center flex-column w-100">
             {{lane.machine}}
         </div>
