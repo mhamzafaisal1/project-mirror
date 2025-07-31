@@ -1,0 +1,27 @@
+.top-bar {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    align-items: center;
+  
+    .serial-input {
+      width: 200px;
+      padding: 0.5rem 0.75rem;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.2s ease;
+      
+      &:focus {
+        border-color: #1976d2;
+        box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+      }
+      
+      &::placeholder {
+        color: #999;
+        font-size: 13px;
+      }
+    }
+  }
+  
