@@ -16,11 +16,15 @@ module.exports = function (server) {
     getBookendedOperatorStatesAndTimeRange,
   } = require("../../utils/bookendingBuilder");
 
-  const { extractAllCyclesFromStates } = require("../../utils/state");
+  const {
+    extractAllCyclesFromStates,
+    fetchStatesForMachine,
+  } = require("../../utils/state");
 
   const {
     groupCountsByOperatorAndMachine,
     processCountStatistics,
+    getCountsForMachine,
   } = require("../../utils/count");
 
   const {
@@ -60,6 +64,11 @@ module.exports = function (server) {
     fetchStatesForOperator,
     getCompletedCyclesForOperator,
   } = require("../../utils/state");
+
+  const {
+    getMostRecentStateForMachine,
+    buildInitialFlipperOutputs,
+  } = require("../../utils/demoFlipperBuilder");
 
   //   router.get("/analytics/machine-dashboard-sessions", async (req, res) => {
   //     try {
@@ -3175,37 +3184,39 @@ module.exports = function (server) {
       // Build itemSummary (same as /operator-dashboard-sessions)
       const itemMap = {};
       const runCycles = getCompletedCyclesForOperator(states);
-// STEP 1: Group count timestamps by itemId
-const itemTimestampMap = {}; // itemId -> [timestamps]
-for (const count of validCounts) {
-  const itemId = count.item?.id || 'unknown';
-  if (!itemTimestampMap[itemId]) itemTimestampMap[itemId] = [];
-  itemTimestampMap[itemId].push(new Date(count.timestamp));
-}
+      // STEP 1: Group count timestamps by itemId
+      const itemTimestampMap = {}; // itemId -> [timestamps]
+      for (const count of validCounts) {
+        const itemId = count.item?.id || "unknown";
+        if (!itemTimestampMap[itemId]) itemTimestampMap[itemId] = [];
+        itemTimestampMap[itemId].push(new Date(count.timestamp));
+      }
 
-// STEP 2: For each item, sum run durations where any of its timestamps fall
-const itemRuntimeMap = {}; // itemId -> total run ms
-for (const [itemId, timestamps] of Object.entries(itemTimestampMap)) {
-  itemRuntimeMap[itemId] = 0;
+      // STEP 2: For each item, sum run durations where any of its timestamps fall
+      const itemRuntimeMap = {}; // itemId -> total run ms
+      for (const [itemId, timestamps] of Object.entries(itemTimestampMap)) {
+        itemRuntimeMap[itemId] = 0;
 
-  for (const [itemId, timestamps] of Object.entries(itemTimestampMap)) {
-    const seenCycleIds = new Set(); // to avoid double counting
-    itemRuntimeMap[itemId] = 0;
-  
-    for (const ts of timestamps) {
-      for (let i = 0; i < runCycles.length; i++) {
-        const cycle = runCycles[i];
-        if (ts >= cycle.start && ts <= cycle.end && !seenCycleIds.has(i)) {
-          itemRuntimeMap[itemId] += cycle.duration || 0;
-          seenCycleIds.add(i);
-          break; // move to next timestamp
+        for (const [itemId, timestamps] of Object.entries(itemTimestampMap)) {
+          const seenCycleIds = new Set(); // to avoid double counting
+          itemRuntimeMap[itemId] = 0;
+
+          for (const ts of timestamps) {
+            for (let i = 0; i < runCycles.length; i++) {
+              const cycle = runCycles[i];
+              if (
+                ts >= cycle.start &&
+                ts <= cycle.end &&
+                !seenCycleIds.has(i)
+              ) {
+                itemRuntimeMap[itemId] += cycle.duration || 0;
+                seenCycleIds.add(i);
+                break; // move to next timestamp
+              }
+            }
+          }
         }
       }
-    }
-  }
-  
-}
-
 
       for (const count of validCounts) {
         const item = count.item || {};
@@ -3235,7 +3246,6 @@ for (const [itemId, timestamps] of Object.entries(itemTimestampMap)) {
 
         itemMap[key].count += 1;
         itemMap[key].rawRunMs = itemRuntimeMap[itemId] || 0;
-
       }
 
       const itemSummary = Object.values(itemMap).map((row) => {
@@ -3376,6 +3386,168 @@ for (const [itemId, timestamps] of Object.entries(itemTimestampMap)) {
       res.status(500).json({
         error: `Failed to fetch extended operator info for ${req.url}`,
       });
+    }
+  });
+
+  // Efficiency Screens
+
+  router.get("/analytics/machine-live-summary", async (req, res) => {
+    try {
+      const { serial, date } = req.query;
+      if (!serial || !date) {
+        return res.status(400).json({ error: "Missing serial or date" });
+      }
+
+      const recentState = await getMostRecentStateForMachine(db, serial, date);
+      if (!recentState) {
+        return res.status(404).json({
+          message: "No state found for this machine on the given date.",
+        });
+      }
+
+      const baseFlipperData = buildInitialFlipperOutputs(recentState);
+
+      const now = new Date();
+      const dayStart = new Date(`${date}T00:00:00.000Z`);
+      const currentTime = new Date(
+        `${date}T${now.toISOString().split("T")[1]}`
+      );
+
+      const timeFrames = {
+        today: { start: dayStart, end: currentTime },
+        lastHour: {
+          start: new Date(currentTime.getTime() - 60 * 60 * 1000),
+          end: currentTime,
+        },
+        lastFifteenMinutes: {
+          start: new Date(currentTime.getTime() - 15 * 60 * 1000),
+          end: currentTime,
+        },
+        lastSixMinutes: {
+          start: new Date(currentTime.getTime() - 6 * 60 * 1000),
+          end: currentTime,
+        },
+      };
+
+      const machineStates = await fetchStatesForMachine(
+        db,
+        parseInt(serial),
+        dayStart,
+        now
+      );
+
+      const finalFlipperData = [];
+
+      for (const entry of baseFlipperData) {
+        const allCounts = await getCountsForMachine(
+          db,
+          parseInt(serial),
+          dayStart,
+          now,
+          entry.operatorId
+        );
+        const grouped = groupCountsByOperatorAndMachine(allCounts);
+        const key = `${entry.operatorId}-${serial}`;
+        const all = grouped[key]?.counts || [];
+        const valid = grouped[key]?.validCounts || [];
+
+        const firstValid = valid[0] || {};
+        const operatorName = firstValid?.operator?.name || "Unknown";
+        const itemName = firstValid?.item?.name || "";
+        const itemCode = firstValid?.item?.id || 0;
+
+        const operatorStates = machineStates.filter((s) =>
+          s.operators?.some((op) => Number(op.id) === Number(entry.operatorId))
+        );
+
+        const efficiency = {};
+
+        for (const [label, { start, end }] of Object.entries(timeFrames)) {
+          const filteredValid = valid.filter(
+            (c) =>
+              new Date(c.timestamp) >= start && new Date(c.timestamp) <= end
+          );
+
+          const relevantStates = operatorStates.filter(
+            (s) =>
+              new Date(s.timestamp) >= start && new Date(s.timestamp) <= end
+          );
+
+          const runningCycles = extractAllCyclesFromStates(
+            relevantStates,
+            start,
+            end
+          ).running;
+
+          let runtimeMs = runningCycles.reduce((sum, c) => sum + c.duration, 0);
+
+          // Fallback: assume still running if no cycles AND recent state shows status.code === 1
+          const shouldAssumeRunning =
+            runtimeMs === 0 &&
+            ["lastSixMinutes", "lastFifteenMinutes", "lastHour"].includes(label) &&
+            recentState.status?.code === 1 &&
+            operatorStates.some((s) =>
+              s.operators?.some(
+                (op) => Number(op.id) === Number(entry.operatorId)
+              )
+            );
+
+          if (shouldAssumeRunning) {
+            runtimeMs = end - start;
+            // console.log(
+            //   `[${label}] Fallback: assuming full ${runtimeMs}ms runtime due to recentState.status.code === 1`
+            // );
+          }
+
+          const eff = calculateEfficiency(
+            runtimeMs,
+            filteredValid.length,
+            filteredValid
+          );
+
+          efficiency[label] = {
+            value: Math.round(eff * 100),
+            label,
+            color: eff >= 0.9 ? "#008000" : eff >= 0.7 ? "#F89406" : "#FF0000",
+          };
+        }
+
+        // Get all unique item names from most recent session
+        const uniqueItems = [
+          ...new Set(valid.map((v) => v.item?.name).filter(Boolean)),
+        ];
+        const itemConcat = uniqueItems.join(", ") || "";
+
+        // Fixed batch codes for each lane (4 lanes total)
+        const fixedBatchCodes = [10000001, 10000002, 10000003, 10000004];
+        const batchCode = fixedBatchCodes[finalFlipperData.length] || 10000001;
+
+        finalFlipperData.push({
+          status: entry.status,
+          fault: entry.fault,
+          operator: operatorName,
+          operatorId: entry.operatorId,
+          machine: entry.machine,
+          timers: {
+            on: 0,
+            ready: 0,
+          },
+          displayTimers: {
+            on: "",
+            run: "",
+          },
+          efficiency,
+          batch: {
+            item: itemConcat,
+            code: batchCode,
+          },
+        });
+      }
+
+      return res.json({ flipperData: finalFlipperData });
+    } catch (err) {
+      logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
