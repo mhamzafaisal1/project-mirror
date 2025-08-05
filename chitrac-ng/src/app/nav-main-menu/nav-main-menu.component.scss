@@ -18,6 +18,11 @@
 
 .sidenav-content {
   // margin: 1em;
+  height: 100vh;
+  overflow: hidden;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidenav .mat-icon {

@@ -31,10 +31,13 @@ import { AC360SixLaneComponent } from './ac360-six-lane/ac360-six-lane.component
 import { BlanketBlasterone } from './blanket-blasterone/blanket-blasterone';
 import { BlanketBlastertwo } from './blanket-blastertwo/blanket-blastertwo';
 import { MachineGridComponent } from './machine-grid/machine-grid.component';
+import { EfficiencyScreens } from './efficiency-screens/efficiency-screens.component';
+import { SplEfficiencyScreen } from './efficiency-screens/spl-efficiency-screen/spl-efficiecny-screen.component';
+import { LplEfficiencyScreen } from './efficiency-screens/lpl-efficiency-screen/lpl-efficiecny-screen.component';
 
 export const routes: Routes = [
 	{ path: 'ng/configGridTest', component: ConfigGridTestComponent },
-	{ path: 'ng/settings/operators', component: OperatorGridComponent, },
+	{ path: 'ng/settings/operators', component: OperatorGridComponent },
 	{ path: 'ng/settings/items', component: ItemGridComponent,},
 	{ path: 'ng/settings/machines', component: MachineGridComponent,  },
 	{ path: 'ng/settings/root/users/register', component: UserRegisterComponent, canActivate: [AuthGuard] },
@@ -63,5 +66,9 @@ export const routes: Routes = [
 	{ path: 'ng/ac360-six-lane', component: AC360SixLaneComponent },
 	{ path: 'ng/blanket-blaster-one', component: BlanketBlasterone },
 	{ path: 'ng/blanket-blaster-two', component: BlanketBlastertwo },
+	{ path: 'ng/efficiency-screens', component: EfficiencyScreens },
+	{ path: 'ng/spl-efficiency-screen', component: SplEfficiencyScreen },
+	{ path: 'ng/lpl-efficiency-screen', component: LplEfficiencyScreen },
+	{ path: 'ng/lpl-efficiency-screen/:line', component: LplEfficiencyScreen },
 	{ path: 'ng/*', redirectTo: 'ng/home' }
 	];

@@ -320,7 +320,7 @@ async function getMostRecentStateForMachine(db, serial, dateStr) {
       "machine.serial": parseInt(serial)
     };
   
-    const state = await db.collection("state")
+    const state = await db.collection("stateTicker")
       .find(query)
       .sort({ timestamp: -1 })
       .limit(1)
