@@ -1,5 +1,5 @@
 module.exports = {
-    operators: [
+    operator: [
     	{ "code": 0, "name": "none entered", "active": true },
     	{ "code": 117811, "name": "Shaun White", "active": true },
 		{ "code": 118347, "name": "Hannah Teter", "active": true },
