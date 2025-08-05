@@ -15,6 +15,7 @@ import { LaneFaultComponent } from './lane-fault/lane-fault.component';
 import { LaneRunningComponent } from './lane-running/lane-running.component';
 import { LaneRunningGreyedComponent } from './lane-running-greyed/lane-running-greyed.component';
 import { LaneStopComponent } from './lane-stop/lane-stop.component';
+import { LaneOeeComponent } from './lane-oee/lane-oee.component';
 
 const routes: Routes = [
   { path: '', component: DemoFlipperComponent }
@@ -27,7 +28,8 @@ const routes: Routes = [
     LaneFaultComponent,
     LaneRunningComponent,
     LaneRunningGreyedComponent,
-    LaneStopComponent
+    LaneStopComponent,
+    LaneOeeComponent
   ],
   imports: [
     CommonModule,
@@ -45,7 +47,8 @@ const routes: Routes = [
     LaneRunningComponent,
     LaneRunningGreyedComponent,
     LaneFaultComponent,
-    LaneStopComponent
+    LaneStopComponent,
+    LaneOeeComponent
   ]
 })
 export class BlanketBlasterModule {}

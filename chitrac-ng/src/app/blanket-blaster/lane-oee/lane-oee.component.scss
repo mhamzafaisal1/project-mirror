@@ -1,0 +1,38 @@
+:host {
+    display: block;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  .container {
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  .lane-background {
+    height: 84%;
+    overflow: hidden;
+  }
+  
+  .lane {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  #OperatorBlock {
+    height: 10%;
+    overflow: hidden;
+  }
+  
+  #DataBlock {
+    height: 90%;
+    overflow: hidden;
+  }
+  
+  #ItemBlock {
+    height: 16%;
+    overflow: hidden;
+  }
+  

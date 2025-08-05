@@ -3436,6 +3436,106 @@ module.exports = function (server) {
         now
       );
 
+      // Calculate machine-level OEE first
+      const machineOee = {};
+      
+      // Get all counts for the machine (not per operator)
+      const allMachineCounts = await getCountsForMachine(
+        db,
+        parseInt(serial),
+        dayStart,
+        now
+      );
+      
+      // Group all counts by machine (not by operator)
+      const allGrouped = groupCountsByOperatorAndMachine(allMachineCounts);
+      const allValid = [];
+      const allMisfeed = [];
+      
+      // Collect all valid and misfeed counts across all operators
+      Object.values(allGrouped).forEach(group => {
+        if (group.validCounts) allValid.push(...group.validCounts);
+        if (group.misfeedCounts) allMisfeed.push(...group.misfeedCounts);
+      });
+
+      for (const [label, { start, end }] of Object.entries(timeFrames)) {
+        const filteredValid = allValid.filter(
+          (c) =>
+            new Date(c.timestamp) >= start && new Date(c.timestamp) <= end
+        );
+
+        const filteredMisfeed = allMisfeed.filter(
+          (c) =>
+            new Date(c.timestamp) >= start && new Date(c.timestamp) <= end
+        );
+
+        // Calculate machine-level runtime from all states
+        const relevantStates = machineStates.filter(
+          (s) =>
+            new Date(s.timestamp) >= start && new Date(s.timestamp) <= end
+        );
+
+        const runningCycles = extractAllCyclesFromStates(
+          relevantStates,
+          start,
+          end
+        ).running;
+
+        let runtimeMs = runningCycles.reduce((sum, c) => sum + c.duration, 0);
+
+        // Fallback: assume still running if no cycles AND recent state shows status.code === 1
+        const shouldAssumeRunning =
+          runtimeMs === 0 &&
+          ["lastSixMinutes", "lastFifteenMinutes", "lastHour"].includes(
+            label
+          ) &&
+          recentState.status?.code === 1;
+
+        if (shouldAssumeRunning) {
+          runtimeMs = end - start;
+        }
+
+        const eff = calculateEfficiency(
+          runtimeMs,
+          filteredValid.length,
+          filteredValid
+        );
+
+        const totalQueryMs = end - start;
+        const downtimeMs = totalQueryMs - runtimeMs;
+        
+        const availability = calculateAvailability(
+          runtimeMs,
+          downtimeMs,
+          totalQueryMs
+        );
+        
+        const throughput = calculateThroughput(
+          filteredValid.length,
+          filteredMisfeed.length
+        );
+        
+        const oeeValue = calculateOEE(availability, eff, throughput);
+
+        const labelDisplayMap = {
+          lastSixMinutes: "Last 6 Minutes",
+          lastFifteenMinutes: "Last 15 Minutes",
+          lastHour: "Last Hour",
+          today: "All Day",
+        };
+
+        const displayLabel = labelDisplayMap[label] || label;
+
+        machineOee[label] = {
+          value: Math.round(oeeValue * 100),
+          label: displayLabel,
+          color: oeeValue >= 0.9 ? "#008000" : oeeValue >= 0.7 ? "#F89406" : "#FF0000",
+          availability: Math.round(availability * 100),
+          efficiency: Math.round(eff * 100),
+          throughput: Math.round(throughput * 100)
+        };
+      }
+
       const finalFlipperData = [];
 
       for (const entry of baseFlipperData) {
@@ -3450,6 +3550,7 @@ module.exports = function (server) {
         const key = `${entry.operatorId}-${serial}`;
         const all = grouped[key]?.counts || [];
         const valid = grouped[key]?.validCounts || [];
+        const misfeed = grouped[key]?.misfeedCounts || [];
 
         const firstValid = valid[0] || {};
         const operatorName = firstValid?.operator?.name || "Unknown";
@@ -3496,9 +3597,6 @@ module.exports = function (server) {
 
           if (shouldAssumeRunning) {
             runtimeMs = end - start;
-            // console.log(
-            //   `[${label}] Fallback: assuming full ${runtimeMs}ms runtime due to recentState.status.code === 1`
-            // );
           }
 
           const eff = calculateEfficiency(
@@ -3548,6 +3646,7 @@ module.exports = function (server) {
             run: "",
           },
           efficiency,
+          oee: machineOee, // Use the machine-level OEE for all lanes
           batch: {
             item: itemConcat,
             code: batchCode,

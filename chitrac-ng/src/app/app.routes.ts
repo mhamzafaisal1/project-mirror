@@ -33,6 +33,7 @@ import { BlanketBlastertwo } from './blanket-blastertwo/blanket-blastertwo';
 import { MachineGridComponent } from './machine-grid/machine-grid.component';
 import { EfficiencyScreens } from './efficiency-screens/efficiency-screens.component';
 import { SplEfficiencyScreen } from './efficiency-screens/spl-efficiency-screen/spl-efficiecny-screen.component';
+import { LplEfficiencyScreen } from './efficiency-screens/lpl-efficiency-screen/lpl-efficiecny-screen.component';
 
 export const routes: Routes = [
 	{ path: 'ng/configGridTest', component: ConfigGridTestComponent },
@@ -67,5 +68,7 @@ export const routes: Routes = [
 	{ path: 'ng/blanket-blaster-two', component: BlanketBlastertwo },
 	{ path: 'ng/efficiency-screens', component: EfficiencyScreens },
 	{ path: 'ng/spl-efficiency-screen', component: SplEfficiencyScreen },
+	{ path: 'ng/lpl-efficiency-screen', component: LplEfficiencyScreen },
+	{ path: 'ng/lpl-efficiency-screen/:line', component: LplEfficiencyScreen },
 	{ path: 'ng/*', redirectTo: 'ng/home' }
 	];
