@@ -9,22 +9,12 @@ import { MatIconModule } from '@angular/material/icon';
 
 import { OperatorCountbyitemService } from '../services/operator-countbyitem.service';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
-import { StackedBarChartComponent } from '../components/stacked-bar-chart/stacked-bar-chart.component';
+import { StackedBarChartV2Component, StackedBarChartV2Data } from '../components/stacked-bar-chart-v2/stacked-bar-chart-v2.component';
 
 interface CountByItemData {
   hour: string;
   items: {
     [key: string]: number;
-  };
-}
-
-interface StackedBarChartData {
-  title: string;
-  data: {
-    hours: number[];
-    operators: {
-      [key: string]: number[];
-    };
   };
 }
 
@@ -39,7 +29,7 @@ interface StackedBarChartData {
         MatInputModule,
         MatIconModule,
         DateTimePickerComponent,
-        StackedBarChartComponent
+        StackedBarChartV2Component
     ],
     templateUrl: './operator-countbyitem-chart.component.html',
     styleUrl: './operator-countbyitem-chart.component.scss'
@@ -54,7 +44,7 @@ export class OperatorCountbyitemChartComponent implements OnInit, OnDestroy, OnC
   @Input() mode: 'standalone' | 'dashboard' = 'standalone';
   @Input() dashboardData?: any[];
 
-  chartData: StackedBarChartData | null = null;
+  chartData: StackedBarChartV2Data | null = null;
   loading = false;
   error: string | null = null;
   isDarkTheme = false;
@@ -124,7 +114,7 @@ export class OperatorCountbyitemChartComponent implements OnInit, OnDestroy, OnC
     }
   }
 
-  private transformData(rawData: CountByItemData[]): StackedBarChartData {
+  private transformData(rawData: CountByItemData[]): StackedBarChartV2Data {
     const hours = rawData.map(d => {
       const date = new Date(d.hour);
       return date.getHours();

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { DateTimePickerComponent } from '../components/date-time-picker/date-time-picker.component';
-import { StackedBarChartComponent, StackedBarChartData } from '../components/stacked-bar-chart/stacked-bar-chart.component';
+import { StackedBarChartV2Component, StackedBarChartV2Data } from '../components/stacked-bar-chart-v2/stacked-bar-chart-v2.component';
 import { MachineAnalyticsService } from '../services/machine-analytics.service';
 
 @Component({
@@ -13,7 +13,7 @@ import { MachineAnalyticsService } from '../services/machine-analytics.service';
         FormsModule,
         MatButtonModule,
         DateTimePickerComponent,
-        StackedBarChartComponent
+        StackedBarChartV2Component
     ],
     templateUrl: './machine-item-stacked-bar-chart.component.html',
     styleUrls: ['./machine-item-stacked-bar-chart.component.scss']
@@ -22,13 +22,13 @@ export class MachineItemStackedBarChartComponent implements OnChanges {
   @Input() startTime: string = '';
   @Input() endTime: string = '';
   @Input() machineSerial: number | null = null;
-  @Input() chartWidth!: number;
-  @Input() chartHeight!: number;
+  @Input() chartWidth: number;
+  @Input() chartHeight: number;
   @Input() isModal: boolean = false;
   @Input() mode: 'standalone' | 'dashboard' = 'standalone';
   @Input() preloadedData: any = null;
 
-  chartData: StackedBarChartData | null = null;
+  chartData: StackedBarChartV2Data | null = null;
   loading = false;
   error = '';
   isDarkTheme = false;

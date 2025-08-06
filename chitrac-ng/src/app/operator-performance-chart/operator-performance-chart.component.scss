@@ -9,20 +9,6 @@
 
 // ==================== Layout ====================
 
-.chart-wrapper {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  gap: 16px;
-}
-
-.chart-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 16px;
-}
-
 .chart-container {
   flex: 1 1 auto;
   display: flex;
@@ -30,39 +16,6 @@
   min-height: 0;
 }
 
-// ==================== Typography & UI ====================
-
-.machine-id {
-  font-size: 14px;
-  font-weight: 500;
-  opacity: 0.7;
-}
-
-button {
-  height: 40px;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 0 16px;
-  min-width: 120px;
-}
-
-.loading,
-.placeholder {
-  text-align: center;
-  font-size: 14px;
-  margin-top: 12px;
-  opacity: 0.7;
-}
-
-.error {
-  color: #f44336;
-  background-color: #ffebee;
-  border-radius: 4px;
-  padding: 10px;
-  text-align: center;
-  font-weight: 500;
-  font-size: 14px;
-}
 
 // ==================== Theme Support ====================
 
