@@ -133,9 +133,10 @@ export class StackedBarChartComponent implements AfterViewInit, OnDestroy {
   }
 
   private formatHour(hour: number): string {
-    const days = Math.floor(hour / 24);
-    const remaining = hour % 24;
-    return days > 0 ? `Day ${days + 1}, ${remaining}:00` : `${remaining}:00`;
+    if (hour === 0) return '12am';
+    if (hour === 12) return '12pm';
+    if (hour < 12) return `${hour}am`;
+    return `${hour - 12}pm`;
   }
 
   private createChart(): void {
