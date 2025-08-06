@@ -26,7 +26,7 @@ export class SplEfficiencyScreen implements OnDestroy {
   pollingActive: boolean = false;
   private destroy$ = new Subject<void>();
   private readonly POLL_INTERVAL = 6000;
-  private readonly SERIAL_NUMBER = 67800;
+  private readonly SERIAL_NUMBER = 90011;
 
   constructor(private efficiencyService: EfficiencyScreensService) {
     // Automatically start polling when component is created
