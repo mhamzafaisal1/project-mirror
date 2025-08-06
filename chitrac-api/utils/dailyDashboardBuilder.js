@@ -82,31 +82,30 @@ async function buildDailyItemHourlyStack(db, start, end) {
       {
         $project: {
           itemName: { $ifNull: ["$item.name", "Unknown"] },
-          hourIndex: {
-            $toInt: {
-              $divide: [
-                { $subtract: ["$timestamp", startDate] },
-                1000 * 60 * 60
-              ]
+          hour: {
+            $hour: {
+              date: "$timestamp",
+              timezone: "America/Chicago"
             }
           }
+          
         }
       },
       {
         $group: {
-          _id: { hourIndex: "$hourIndex", itemName: "$itemName" },
+          _id: { hour: "$hour", itemName: "$itemName" },
           count: { $sum: 1 }
         }
       },
       {
-        $sort: { "_id.itemName": 1, "_id.hourIndex": 1 } // Ensure stable order by item
+        $sort: { "_id.itemName": 1, "_id.hour": 1 } // Ensure stable order by item
       },
       {
         $group: {
           _id: "$_id.itemName",
           hourlyCounts: {
             $push: {
-              hourIndex: "$_id.hourIndex",
+              hour: "$_id.hour",
               count: "$count"
             }
           }
@@ -127,12 +126,14 @@ async function buildDailyItemHourlyStack(db, start, end) {
       operators[itemName] = {};
 
       for (const entry of result.hourlyCounts) {
-        hourSet.add(entry.hourIndex);
-        operators[itemName][entry.hourIndex] = entry.count;
+        hourSet.add(entry.hour);
+        operators[itemName][entry.hour] = entry.count;
       }
     }
 
     const hours = Array.from(hourSet).sort((a, b) => a - b);
+
+    
 
     const finalizedOperators = {};
     const sortedItemNames = Object.keys(operators).sort(); // JS-side sorting for extra safety

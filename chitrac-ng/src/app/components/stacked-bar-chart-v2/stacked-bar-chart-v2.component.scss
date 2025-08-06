@@ -1,0 +1,84 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+// ========== Layout and Container ==========
+
+.chart-container {
+  width: 100%;
+  height: 100%;
+  max-width: 1000px;
+  overflow: visible;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  margin-top: 8px
+}
+
+// ========== Theme: Dark ==========
+
+:host-context(.dark-theme) {
+  background-color: #121212;
+  color: #e0e0e0;
+
+  svg {
+    background-color: #121212;
+  }
+
+  text {
+    fill: #e0e0e0;
+  }
+
+  .legend text {
+    fill: #e0e0e0;
+  }
+}
+
+// ========== Theme: Light ==========
+svg text {
+  fill: var(--text-color, #333);
+}
+
+:host-context(.dark-theme) svg text {
+  fill: #e0e0e0;
+}
+
+/* very subtle depth on bars (optional, for visual parity) */
+// .chart-container rect {
+//   filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));
+// }
+
+
+// ========== Reusables and Accessibility ==========
+
+svg {
+  width: 100%;
+  height: auto;
+  font-size: 12px;
+  user-select: none;
+}
+
+.legend {
+  font-size: 10px;
+  pointer-events: none;
+
+  rect {
+    stroke-width: 0.5;
+    stroke: rgba(0, 0, 0, 0.2);
+  }
+}
+
+circle {
+  pointer-events: none;
+  stroke-width: 0.5;
+  stroke: #000;
+  opacity: 0.9;
+}

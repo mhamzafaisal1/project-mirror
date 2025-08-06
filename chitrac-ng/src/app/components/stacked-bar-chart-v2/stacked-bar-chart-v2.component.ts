@@ -9,7 +9,7 @@ import {
 import { CommonModule } from "@angular/common";
 import * as d3 from "d3";
 
-export interface StackedBarChartData {
+export interface StackedBarChartV2Data {
   title: string;
   data: {
     hours: number[];
@@ -18,25 +18,26 @@ export interface StackedBarChartData {
   };
 }
 
-export type StackedBarChartMode = "time" | "machine";
+export type StackedBarChartV2Mode = "time" | "machine";
 
 @Component({
-  selector: "app-stacked-bar-chart",
+  selector: "app-stacked-bar-chart-v2",
   standalone: true,
   imports: [CommonModule],
-  templateUrl: "./stacked-bar-chart.component.html",
-  styleUrl: "./stacked-bar-chart.component.scss",
+  templateUrl: "./stacked-bar-chart-v2.component.html",
+  styleUrl: "./stacked-bar-chart-v2.component.scss",
 })
-export class StackedBarChartComponent implements AfterViewInit, OnDestroy {
+export class StackedBarChartV2Component implements AfterViewInit, OnDestroy {
   @ViewChild("chartContainer", { static: true })
   private chartContainer!: ElementRef;
-  @Input() data: StackedBarChartData | null = null;
-  @Input() mode: StackedBarChartMode = "time";
+  @Input() data: StackedBarChartV2Data | null = null;
+  @Input() mode: StackedBarChartV2Mode = "time";
   // @Input() isDarkTheme: boolean = true;
 
-  private chartWidth = 600;
-  private chartHeight = 450; // Default height for normal mode
-  private margin = { top: 40, right: 60, bottom: 100, left: 60 };
+  private chartWidth = 800;
+  private chartHeight = 600;
+  private initialChartHeight = 600; // Store initial height
+  private margin = { top: 40, right: 150, bottom: 60, left: 60 };
   private observer!: MutationObserver;
   private fullscreenListener!: () => void;
 
@@ -104,7 +105,7 @@ export class StackedBarChartComponent implements AfterViewInit, OnDestroy {
       !!document.fullscreenElement ||
       window.innerHeight === screen.height;
 
-    this.chartHeight = isFullscreen ? 500 : 450;
+    this.chartHeight = isFullscreen ? 500 : this.initialChartHeight;
     
     // Re-render chart with new dimensions
     d3.select(this.chartContainer.nativeElement).selectAll("*").remove();
@@ -114,29 +115,28 @@ export class StackedBarChartComponent implements AfterViewInit, OnDestroy {
   
   private getColorScale(keys: string[]) {
     keys.forEach((key) => {
-      if (!StackedBarChartComponent.colorMapping.has(key)) {
+      if (!StackedBarChartV2Component.colorMapping.has(key)) {
         const color =
-          StackedBarChartComponent.customPalette[
-            StackedBarChartComponent.nextColorIndex
+          StackedBarChartV2Component.customPalette[
+            StackedBarChartV2Component.nextColorIndex
           ];
-        StackedBarChartComponent.colorMapping.set(key, color);
-        StackedBarChartComponent.nextColorIndex =
-          (StackedBarChartComponent.nextColorIndex + 1) %
-          StackedBarChartComponent.customPalette.length;
+        StackedBarChartV2Component.colorMapping.set(key, color);
+        StackedBarChartV2Component.nextColorIndex =
+          (StackedBarChartV2Component.nextColorIndex + 1) %
+          StackedBarChartV2Component.customPalette.length;
       }
     });
 
     return d3
       .scaleOrdinal<string>()
       .domain(keys)
-      .range(keys.map((k) => StackedBarChartComponent.colorMapping.get(k)!));
+      .range(keys.map((k) => StackedBarChartV2Component.colorMapping.get(k)!));
   }
 
   private formatHour(hour: number): string {
-    if (hour === 0) return '12am';
-    if (hour === 12) return '12pm';
-    if (hour < 12) return `${hour}am`;
-    return `${hour - 12}pm`;
+    const days = Math.floor(hour / 24);
+    const remaining = hour % 24;
+    return days > 0 ? `Day ${days + 1}, ${remaining}:00` : `${remaining}:00`;
   }
 
   private createChart(): void {

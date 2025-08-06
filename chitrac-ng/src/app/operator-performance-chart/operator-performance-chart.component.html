@@ -1,34 +1,10 @@
 <div class="chart-container" [class.dark-mode]="isDarkTheme">
-  <div class="controls" *ngIf="!isModal">
-    <app-date-time-picker label="Start Time" [(value)]="startTime"></app-date-time-picker>
-    <app-date-time-picker label="End Time" [(value)]="endTime"></app-date-time-picker>
-    
-    <mat-form-field appearance="outline">
-      <mat-label>Machine Serial</mat-label>
-      <input matInput type="text" [(ngModel)]="machineSerial" placeholder="Enter machine serial">
-    </mat-form-field>
-
-    <div class="button-group">
-      <button mat-flat-button color="primary" (click)="fetchData()" [disabled]="loading || !isValidInput()">
-        <mat-icon>refresh</mat-icon>
-        {{ loading ? 'Loading...' : 'Fetch Data' }}
-      </button>
-    </div>
-  </div>
-
   <div class="chart-content">
     <div *ngIf="loading" class="loading">Loading data...</div>
     <div *ngIf="error" class="error">{{ error }}</div>
-
-    <div *ngIf="!loading && !error && !chartData" class="no-data">
-      No data available for the selected time range
-    </div>
-
-    <div *ngIf="!loading && !error && chartData" class="data-display">
       <app-multiple-line-chart
       [data]="chartData"
       [isDarkTheme]="isDarkTheme">
     </app-multiple-line-chart>
-    </div>
   </div>
 </div>
