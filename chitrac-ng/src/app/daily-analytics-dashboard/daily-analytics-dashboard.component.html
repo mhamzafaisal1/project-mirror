@@ -1,6 +1,32 @@
 <div class="dashboard-container" [class.dark-mode]="isDarkTheme">
   <div class="dashboard-wrapper" [class.loading]="isLoading">
     
+    <!-- Loading Overlay for initial load -->
+    <div class="loading-overlay" *ngIf="isLoading">
+      <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">
+          Loading data...
+        </div>
+      </div>
+    </div>
+
+    <!-- Show dummy charts when no initial data -->
+    <ng-container *ngIf="!hasInitialData">
+      <app-chart-tile
+        *ngFor="let chart of dummyCharts"
+        [title]="chart.title"
+        [icon]="chart.icon"
+        [chartWidth]="chartWidth"
+        [chartHeight]="chartHeight"
+        [class.dummy-chart]="true"
+      >
+        <div class="dummy-chart-content">
+          <div class="loading-spinner dummy-chart">⏳</div>
+        </div>
+      </app-chart-tile>
+    </ng-container>
+
     <!-- Render actual charts when data is available -->
     <ng-container *ngIf="hasInitialData">
       <app-chart-tile
