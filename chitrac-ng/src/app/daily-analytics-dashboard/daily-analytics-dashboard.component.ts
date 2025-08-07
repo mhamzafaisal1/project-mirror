@@ -47,12 +47,12 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
   endTime: string = '';
   isDarkTheme: boolean = false;
   liveMode: boolean = false;
-  loading: boolean = false;
-  isPollingLoading: boolean = false;
+  isLoading: boolean = false;
   private pollingSubscription: any;
 
   fullDashboardData: any = null;
   hasInitialData: boolean = false;
+  dummyCharts: any[] = []; // Store dummy chart data
 
   chartWidth: number = 600;
   chartHeight: number = 450;
@@ -118,6 +118,9 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
     const isLive = this.dateTimeService.getLiveMode();
     const wasConfirmed = this.dateTimeService.getConfirmed();
   
+    // Add dummy loading charts initially
+    this.addDummyLoadingCharts();
+
     if (!isLive && wasConfirmed) {
       this.startTime = this.dateTimeService.getStartTime();
       this.endTime = this.dateTimeService.getEndTime();
@@ -138,7 +141,8 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
         this.liveMode = isLive;
 
         if (this.liveMode) {
-          this.isPollingLoading = true;
+          // Add dummy loading charts when switching to live mode
+          this.addDummyLoadingCharts();
           const start = new Date();
           start.setHours(0, 0, 0, 0);
           this.startTime = this.formatDateForInput(start);
@@ -150,7 +154,8 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
           this.stopPolling();
           this.hasInitialData = false;
           this.fullDashboardData = null;
-          this.isPollingLoading = false;
+          // Add dummy loading charts when stopping live mode
+          this.addDummyLoadingCharts();
         }
       });
 
@@ -160,6 +165,9 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
       .subscribe(() => {
         this.liveMode = false;
         this.stopPolling();
+
+        // Add dummy loading charts when confirming date/time
+        this.addDummyLoadingCharts();
 
         this.startTime = this.dateTimeService.getStartTime();
         this.endTime = this.dateTimeService.getEndTime();
@@ -188,10 +196,6 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
           return this.dashboardService.getFullDailyDashboard(this.startTime, this.endTime)
             .pipe(
               tap(data => {
-                // Stop loading spinner after first response
-                if (this.isPollingLoading) {
-                  this.isPollingLoading = false;
-                }
                 this.fullDashboardData = data;
                 this.hasInitialData = true;
               }),
@@ -211,7 +215,6 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
       this.pollingSubscription.unsubscribe();
       this.pollingSubscription = null;
     }
-    this.isPollingLoading = false;
   }
 
   onDateChange(): void {
@@ -231,8 +234,7 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
       return new Observable();
     }
   
-    // Set loading state for manual data fetching
-    this.loading = true;
+    this.isLoading = true;
   
     return this.dashboardService.getFullDailyDashboard(this.startTime, this.endTime)
       .pipe(
@@ -241,12 +243,12 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
           next: (data) => {
             this.fullDashboardData = data;
             this.hasInitialData = true;
-            this.loading = false;
+            this.isLoading = false;
           },
           error: () => {
             this.fullDashboardData = null;
             this.hasInitialData = false;
-            this.loading = false;
+            this.isLoading = false;
           }
         }),
         delay(0) // Force change detection cycle
@@ -294,5 +296,14 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
     // Set chart dimensions with some padding
     this.chartWidth = Math.floor(tileWidth * 0.95); // 95% of tile width
     this.chartHeight = Math.floor(tileHeight * 0.95); // 95% of tile height
+  }
+
+  private addDummyLoadingCharts(): void {
+    // Create dummy chart data for loading state
+    this.dummyCharts = this.chartComponents.map(chart => ({
+      ...chart,
+      isDummy: true,
+      cssClass: "dummy-chart"
+    }));
   }
 }
