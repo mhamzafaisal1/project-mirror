@@ -140,7 +140,7 @@ body.dark-theme {
   --sg-medium-gray-neutral: #B4B4B4;
 }
 
-.light-theme .errgb(117, 128, 143)log {
+.light-theme .error-dialog {
   --mdc-dialog-container-color: #{mat.get-theme-color($light-theme, error-container)};
 }
 
