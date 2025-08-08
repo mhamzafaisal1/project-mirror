@@ -40,20 +40,51 @@ function calculateThroughput(totalCount, misfeedCount) {
 }
 
 /***  Time Credit Calculation Start */
+// function calculateTimeCreditsByItem(countRecords) {
+//   if (!Array.isArray(countRecords)) return [];
+
+//   const itemMap = {};
+
+//   for (const record of countRecords) {
+//     const item = record.item;
+//     const key = `${item.id}-${item.name}`;
+
+//     if (!itemMap[key]) {
+//       itemMap[key] = {
+//         id: item.id,
+//         name: item.name,
+//         standard: item.standard,
+//         count: 0
+//       };
+//     }
+
+//     itemMap[key].count += 1;
+//   }
+
+//   return Object.values(itemMap).map(item => {
+//     const standardPerHour = item.standard < 60 ? item.standard * 60 : item.standard;
+//     const timeCredit = standardPerHour > 0 ? item.count / (standardPerHour / 3600) : 0;
+//     return {
+//       ...item,
+//       timeCredit: parseFloat(timeCredit.toFixed(2))
+//     };
+//   });
+// }
+
 function calculateTimeCreditsByItem(countRecords) {
   if (!Array.isArray(countRecords)) return [];
 
   const itemMap = {};
 
   for (const record of countRecords) {
-    const item = record.item;
+    const item = record.item || {};
     const key = `${item.id}-${item.name}`;
 
     if (!itemMap[key]) {
       itemMap[key] = {
         id: item.id,
         name: item.name,
-        standard: item.standard,
+        standard: Number(item.standard) || 0,
         count: 0
       };
     }
@@ -62,11 +93,25 @@ function calculateTimeCreditsByItem(countRecords) {
   }
 
   return Object.values(itemMap).map(item => {
-    const standardPerHour = item.standard < 60 ? item.standard * 60 : item.standard;
-    const timeCredit = standardPerHour > 0 ? item.count / (standardPerHour / 3600) : 0;
+    let standardPerHour = item.standard;
+
+    // Only apply the per-minute → per-hour conversion if it’s clearly in minutes
+    if (item.standard > 0 && item.standard < 60) {
+      console.warn(
+        `Standard < 60 detected (${item.standard}) for item ${item.id} (${item.name}) – assuming per-minute, converting to per-hour`
+      );
+      standardPerHour = item.standard * 60;
+    }
+
+    const timeCredit =
+      standardPerHour > 0
+        ? item.count / (standardPerHour / 3600)
+        : 0;
+
     return {
       ...item,
-      timeCredit: parseFloat(timeCredit.toFixed(2))
+      timeCredit: parseFloat(timeCredit.toFixed(2)),
+      standardPerHour // include for debugging
     };
   });
 }
