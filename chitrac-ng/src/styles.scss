@@ -31,15 +31,46 @@ body.dark-theme {
 
 .dark-theme {
   @include create-dark-theme();
+  --sg-color-primary-blue: #00A6E7;
+  --sg-color-bright-blue: #28CEff;
+  --sg-color-dark-blue: #E0EAF4;
+
+  --sg-color-blue-gray-light-100: #5A646E;
+  --sg-color-blue-gray-light-200: #28323C;
+  --sg-color-blue-gray-light-300: #1E2832;
+  --sg-color-blue-gray-light-400: #646E78;
+  --sg-color-blue-gray-light-500: #37414B;
+
+  --sg-color-blue-gray-medium-100: #838D99;
+  --sg-color-blue-gray-medium-200: #505A64;
+  --sg-color-blue-gray-medium-300: #46505A;
+  --sg-color-blue-gray-medium-400: #384E7C;
+  --sg-color-blue-gray-medium-500: #EFF5FC;
+  --sg-color-blue-gray-medium-600: #465567;
+  
+  --sg-color-background: #0A141E;
+
+  --sg-color-green: #39B276;
+  --sg-color-orange: #FB950B;
+  --sg-color-red: #F1310A;
+  --sg-color-light-red: #62312E;
+  --sg-color-yellow: #FFCE0A;
+
+  --sg-color-white: #FFFFFF;
+  --sg-color-black: #F5F5F5;
+  --sg-color-medium-gray-neutral: #525252;
+
+
   --mat-sidenav-container-shape: 0px; //unround the sidenav corners
   --mat-list-active-indicator-shape: 0px; //unround sidenav hover corners
-  //--theme-color-primary: #{mat.get-theme-color($dark-theme, primary)};
+
   --theme-color-primary-lightest: #{mat.get-theme-color($dark-theme, primary, 60)};
   --theme-color-primary-middle: #{mat.get-theme-color($dark-theme, primary, 40)};
   --theme-color-primary-darkest: #{mat.get-theme-color($dark-theme, primary, 20)};
-  --theme-color-primary: #00A6E7;
-  --theme-color-background: #0C141E;
-  --theme-color-blue-gray-light-300: #1F2832;
+
+  --theme-color-primary: var(--sg-color-primary-blue);
+  --theme-color-background: var(--sg-color-background);
+
   --theme-color-on-primary: #{mat.get-theme-color($dark-theme, on-primary)};
   --theme-color-secondary-middle: #{mat.get-theme-color($dark-theme, secondary, 40)};
   --theme-color-secondary-container: #{mat.get-theme-color($dark-theme, secondary-container)};
@@ -54,34 +85,7 @@ body.dark-theme {
 
   /*--mat-dialog-container-min-width: 350px;*/
 
-  --sg-primary-blue: #00A6E7;
-  --sg-bright-blue: #28CEff;
-  --sg-dark-blue: #E0EAF4;
-
-  --sg-blue-gray-light-100: #5A646E;
-  --sg-blue-gray-light-200: #28323C;
-  --sg-blue-gray-light-300: #1E2832;
-  --sg-blue-gray-light-400: #646E78;
-  --sg-blue-gray-light-500: #37414B;
-
-  --sg-blue-gray-medium-100: #838D99;
-  --sg-blue-gray-medium-200: #505A64;
-  --sg-blue-gray-medium-300: #46505A;
-  --sg-blue-gray-medium-400: #384E7C;
-  --sg-blue-gray-medium-500: #EFF5FC;
-  --sg-blue-gray-medium-600: #465567;
   
-  --sg-background: #0A141E;
-
-  --sg-green: #39B276;
-  --sg-orange: #FB950B;
-  --sg-red: #F1310A;
-  --sg-light-red: #62312E;
-  --sg-yellow: #FFCE0A;
-
-  --sg-white: #FFFFFF;
-  --sg-black: #F5F5F5;
-  --sg-medium-gray-neutral: #525252;
 
 }
 
@@ -92,12 +96,45 @@ body.dark-theme {
 
 .light-theme {
   @include create-light-theme();
+  --sg-color-primary-blue: #253D6F;
+  --sg-color-bright-blue: #00A4E6;
+  --sg-color-dark-blue: #223042;
+
+  --sg-color-blue-gray-light-100: #F7F8FC;
+  --sg-color-blue-gray-light-200: #F0F2FA;
+  --sg-color-blue-gray-light-300: #EEF0F9;
+  --sg-color-blue-gray-light-400: #E3E7F5;
+  --sg-color-blue-gray-light-500: #E9EBF0;
+
+  --sg-color-blue-gray-medium-100: #5D6774;
+  --sg-color-blue-gray-medium-200: #C7CEEB;
+  --sg-color-blue-gray-medium-300: #9DA9DC;
+  --sg-color-blue-gray-medium-400: #949DB7;
+  --sg-color-blue-gray-medium-500: #7D8590;
+  --sg-color-blue-gray-medium-600: #BABEC4;
+  
+  --sg-color-background: #0A141E;
+
+  --sg-color-green: #3FAB6C;
+  --sg-color-orange: #EA8B1B;
+  --sg-color-red: #DF1516;
+  --sg-color-light-red: #FCE5E7;
+  --sg-color-yellow: #F2BD00;
+
+  --sg-color-white: #FFFFFF;
+  --sg-color-black: #000000;
+  --sg-color-medium-gray-neutral: #B4B4B4;
+
   --mat-sidenav-container-shape: 0px; //unround the sidenav corners
   --mat-list-active-indicator-shape: 0px; //unround sidenav hover corners
-  --theme-color-primary: #{mat.get-theme-color($light-theme, primary)};
+
+  --theme-color-primary: var(--sg-color-primary-blue);
+  --theme-color-background: var(--sg-color-background);
+
   --theme-color-primary-lightest: #{mat.get-theme-color($light-theme, primary, 80)};
   --theme-color-primary-middle: #{mat.get-theme-color($light-theme, primary, 60)};
   --theme-color-primary-darkest: #{mat.get-theme-color($light-theme, primary, 40)};
+
   --theme-color-on-primary: #{mat.get-theme-color($light-theme, on-primary)};
   --theme-color-secondary-middle: #{mat.get-theme-color($light-theme, secondary, 70)};
   --theme-color-secondary-container: #{mat.get-theme-color($light-theme, secondary-container)};
@@ -110,34 +147,7 @@ body.dark-theme {
   /* Direct theme color overrides*/
   --mat-sort-arrow-color: #{mat.get-theme-color($light-theme, on-primary)};
 
-  --sg-primary-blue: #253D6F;
-  --sg-bright-blue: #00A4E6;
-  --sg-dark-blue: #223042;
-
-  --sg-blue-gray-light-100: #F7F8FC;
-  --sg-blue-gray-light-200: #F0F2FA;
-  --sg-blue-gray-light-300: #EEF0F9;
-  --sg-blue-gray-light-400: #E3E7F5;
-  --sg-blue-gray-light-500: #E9EBF0;
-
-  --sg-blue-gray-medium-100: #5D6774;
-  --sg-blue-gray-medium-200: #C7CEEB;
-  --sg-blue-gray-medium-300: #9DA9DC;
-  --sg-blue-gray-medium-400: #949DB7;
-  --sg-blue-gray-medium-500: #7D8590;
-  --sg-blue-gray-medium-600: #BABEC4;
   
-  --sg-background: #0A141E;
-
-  --sg-green: #3FAB6C;
-  --sg-orange: #EA8B1B;
-  --sg-red: #DF1516;
-  --sg-light-red: #FCE5E7;
-  --sg-yellow: #F2BD00;
-
-  --sg-white: #FFFFFF;
-  --sg-black: #000000;
-  --sg-medium-gray-neutral: #B4B4B4;
 }
 
 .light-theme .error-dialog {

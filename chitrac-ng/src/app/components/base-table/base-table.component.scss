@@ -11,9 +11,6 @@
     --selected-bg: var(--theme-color-primary-middle);
     --selected-hover: var(--theme-color-primary);
     --border-left: var(--theme-color-primary);
-    --efficiency-green: #81c784;
-    --efficiency-yellow: #ffb74d;
-    --efficiency-red: #e57373;
   }
 
   &.light {
@@ -24,30 +21,25 @@
     --selected-bg: var(--theme-color-primary-lightest);
     --selected-hover: var(--theme-color-primary-middle);
     --border-left: var(--theme-color-primary);
-    --efficiency-green: #4caf50;
-    --efficiency-yellow: #ff9800;
-    --efficiency-red: #f44336;
   }
 }
 
 mat-table {
   width: 100%;
-  background: transparent;
   box-shadow: none;
   font-size: 0.875rem;
   border-collapse: separate;
   border-spacing: 0;
+  background-color: var(--sg-color-blue-gray-light-100);
 }
 
 mat-header-cell,
 mat-cell {
   padding: 0.75rem 1rem;
   word-break: break-word;
-  background: transparent;
 }
 
-mat-header-row {
-  background: transparent;
+/*mat-header-row {
   font-weight: 700;
   font-size: 1rem;
   letter-spacing: 1px;
@@ -64,11 +56,10 @@ mat-header-row {
   &::after {
     display: none;
   }
-}
+}*/
 
 
-mat-header-cell {
-  color: white;
+/*mat-header-cell {
   font-size: 0.95rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -89,14 +80,13 @@ mat-header-cell {
     align-items: center;
     gap: 0.4rem;
   }
-}
+}*/
 
 
 mat-row {
-  cursor: pointer;
   transition: all 0.3s ease;
   border-left: 4px solid transparent;
-  background: transparent;
+  color: (--sg-color-white);
 
   &:hover {
     background-color: var(--hover-bg);
@@ -121,24 +111,85 @@ mat-row {
 
 /* Efficiency color coding */
 .green {
-  color: var(--efficiency-green);
+  color: var(--sg-color-green);
   font-weight: 600;
 }
 .yellow {
-  color: var(--efficiency-yellow);
+  color: var(--sg-color-yellow);
   font-weight: 600;
 }
 .red {
-  color: var(--efficiency-red);
+  color: var(--sg-color-red);
+  font-weight: 600;
+}
+.white {
+  color: var(--sg-color-white);
   font-weight: 600;
 }
 
+:host ::ng-deep {
+  .mat-mdc-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 
-::ng-deep table.mat-table {
-  background-color: transparent !important;
+    &:hover {
+      background-color: var(--hover-color, rgba(0, 0, 0, 0.04));
+    }
+
+    &.selected {
+      background-color: var(--selected-color, rgba(0, 0, 0, 0.08));
+    }
+
+    // Make dummy row text transparent
+    &.dummy-row {
+      .mat-mdc-cell {
+        color: transparent !important;
+        
+        // Keep the loading spinner visible
+        .loading-spinner.dummy-row {
+          color: #3f51b5 !important;
+        }
+      }
+    }
+  }
+
+  .performance-chart-dialog {
+    .mat-mdc-dialog-container {
+      padding: 0;
+    }
+
+    .mat-mdc-dialog-surface {
+      border-radius: 8px;
+      overflow: hidden;
+    }
+  }
 }
 
-::ng-deep .mat-header-cell,
-::ng-deep .mat-cell {
-  background-color: transparent !important;
+:host-context(.dark-theme) {
+
+  .table-container {
+    background-color: var(--surface-color, #1e1e1e);
+
+    &.loading::after {
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+  }
+
+  :host ::ng-deep {
+    .mat-mdc-row {
+      &:hover {
+        background-color: var(--hover-color, rgba(255, 255, 255, 0.04));
+      }
+
+      &.selected {
+        background-color: var(--selected-color, rgba(255, 255, 255, 0.08));
+      }
+    }
+
+    .performance-chart-dialog {
+      .mat-mdc-dialog-surface {
+        background-color: #1e1e1e;
+      }
+    }
+  }
 }

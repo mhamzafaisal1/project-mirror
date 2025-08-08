@@ -4,29 +4,29 @@
 .sidenav {
   width: 15em;
   overflow: hidden;
-  background-color: var(--theme-color-background);
+  background-color: var(--sg-color-blue-gray-light-200);
 }
 
 .sidenav-container {
   height: 100%;
-  background-color: var(--theme-color-surface-container);
+  background-color: var(--sg-color-blue-gray-light-300);
 }
 
 .sidenav-container .mat-toolbar {
-  background-color: var(--theme-color-background);
-  color: var(--theme-color-primary)
+  background-color: var(--sg-color-background);
+  color: var(--sg-color-primary-blue)
 }
 
 .sidenav-container .mat-icon {
-   color: white
+   color: var(--sg-color-white)
 }
 
 .menu-button {
-  background-color: var(--theme-color-primary);
+  background-color: var(--sg-color-primary-blue);
 }
 
 .menu-shown.menu-button {
-  background-color: var(--theme-color-background);
+  background-color: var(--sg-color-background);
 }
 
 .sidenav-content {

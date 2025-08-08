@@ -12,11 +12,12 @@ import {
 import { CommonModule } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'base-table',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatSortModule],
+  imports: [CommonModule, MatTableModule, MatSortModule, MatIconModule],
   templateUrl: './base-table.component.html',
   styleUrls: ['./base-table.component.scss'],
 })
@@ -115,5 +116,9 @@ export class BaseTableComponent implements OnInit, OnChanges, AfterViewInit, OnD
 
   getCellClassForColumn(value: any, column: string): string {
     return this.getCellClass ? this.getCellClass(value, column) : '';
+  }
+
+  trackByIndex(index: number): number {
+    return index;
   }
 }

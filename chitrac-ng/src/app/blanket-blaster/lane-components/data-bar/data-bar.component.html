@@ -1,7 +1,7 @@
 <div class="h-100" [style.margin]="margin">
   <div class="position-relative" style="height: 87%; overflow: hidden;">
     <div class="justify-content-center" [style.height.%]="efficiency.value" 
-    [style.background-color]="efficiency.color" style="bottom: 0; width: 100%; position:absolute; overflow: hidden;">
+     [ngClass]="{'red': efficiency.color == 'red', 'green': efficiency.color == 'green', 'yellow': efficiency.color == 'yellow'}" style="bottom: 0; width: 100%; position:absolute; overflow: hidden;">
       <div class="d-flex text-center justify-content-center flex-column w-100 fs-4" style="bottom: 0; position:absolute;">{{efficiency.value | number: '1.0-0'}}%</div>
     </div>
   </div>
