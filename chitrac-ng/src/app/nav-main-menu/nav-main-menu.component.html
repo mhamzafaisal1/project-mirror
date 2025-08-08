@@ -1,20 +1,10 @@
 <mat-sidenav-container class="sidenav-container">
-  <mat-sidenav
-    #drawer
-    class="sidenav"
-    fixedInViewport
-    [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
+  <mat-sidenav #drawer class="sidenav" fixedInViewport [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
     [mode]="(isHandset$ | async) ? 'over' : 'side'"
-    [opened]="((isHandset$ | async) === false && shownMenu != '') || shownMenu != ''"
-    (closedStart)="closeMenu()"
-  >
-    <mat-toolbar>
+    [opened]="((isHandset$ | async) === false && shownMenu != '') || shownMenu != ''" (closedStart)="closeMenu()">
+    <mat-toolbar style="background-color: var(--theme-color-primary); color:white">
       <span>
-        <button
-          *ngIf="(isHandset$ | async) == true"
-          (click)="toggleMenu()"
-          mat-icon-button
-        >
+        <button *ngIf="(isHandset$ | async) == true" (click)="toggleMenu()" mat-icon-button>
           <mat-icon>chevron_left</mat-icon>
         </button>
         <span>Main Menu</span>
@@ -24,87 +14,87 @@
     <!-- Main Menu -->
     <mat-nav-list *ngIf="shownMenu == 'main'" [@menuSwap]>
       <a mat-list-item *ngIf="user.username" routerLink="/">
-        <mat-icon>home</mat-icon><span>Home</span>
+        <mat-icon>home</mat-icon><span class="menu-item">Home</span>
       </a>
       <a mat-list-item *ngIf="user.username && false" href="#">
-        <mat-icon>local_laundry_service</mat-icon><span>Machines</span>
+        <mat-icon>local_laundry_service</mat-icon><span class="menu-item">Machines</span>
       </a>
       <a mat-list-item *ngIf="user.username && false" href="#">
-        <mat-icon>person</mat-icon><span>Operators</span>
+        <mat-icon>person</mat-icon><span class="menu-item">Operators</span>
       </a>
       <a mat-list-item *ngIf="user.username" (click)="openMenu('settings')">
-        <mat-icon>settings</mat-icon><span>Settings</span>
+        <mat-icon>settings</mat-icon><span class="menu-item">Settings</span>
       </a>
       <a mat-list-item (click)="openMenu('dashboards')">
-        <mat-icon>dashboard</mat-icon><span>Dashboards</span>
+        <mat-icon>dashboard</mat-icon><span class="menu-item">Dashboards</span>
       </a>
       <a mat-list-item (click)="openMenu('reports')">
-        <mat-icon>bar_chart</mat-icon><span>Reports</span>
+        <mat-icon>bar_chart</mat-icon><span class="menu-item">Reports</span>
       </a>
       <a mat-list-item *ngIf="!user.username" routerLink="/ng/login">
-        <mat-icon>login</mat-icon><span>Log In</span>
+        <mat-icon>login</mat-icon><span class="menu-item">Log In</span>
       </a>
       <a mat-list-item *ngIf="user.username" (click)="logout()">
-        <mat-icon>logout</mat-icon><span>Log Out as {{ user.username }}</span>
+        <mat-icon>logout</mat-icon><span class="menu-item">Log Out as {{ user.username }}</span>
       </a>
     </mat-nav-list>
 
-   <!-- Dashboards Submenu -->
-<mat-nav-list *ngIf="shownMenu == 'dashboards'" [@menuSwap]>
-  <a mat-list-item (click)="prevMenu()">
-    <mat-icon style="margin-right: 0.5em;">arrow_back</mat-icon><span>Back</span>
-  </a>
-  <a mat-list-item routerLink="/ng/daily-analytics" (click)="closeMenu()">
-    <mat-icon style="margin-right: 0.5em;">slow_motion_video</mat-icon><span>Daily</span>
-  </a>
-  <a mat-list-item routerLink="/ng/analytics/machine-dashboard" (click)="closeMenu()">
-    <mat-icon style="margin-right: 0.5em;">local_laundry_service</mat-icon><span>Machine</span>
-  </a>
-  <a mat-list-item routerLink="/ng/operatorAnalytics" (click)="closeMenu()">
-      <mat-icon style="margin-right: 0.5em;">person</mat-icon><span>Operator</span>
-  </a>
-  <a mat-list-item routerLink="/ng/itemAnalytics" (click)="closeMenu()">
-    <mat-icon style="margin-right: 0.5em;">dry_cleaning</mat-icon><span>Item</span>
-  </a>
-  <a mat-list-item routerLink="/ng/daily-summary" (click)="closeMenu()">
-    <mat-icon style="margin-right: 0.5em;">view_column</mat-icon><span>Summary</span>
-  </a>
+    <!-- Dashboards Submenu -->
+    <mat-nav-list *ngIf="shownMenu == 'dashboards'" [@menuSwap]>
+      <a mat-list-item (click)="prevMenu()">
+        <mat-icon style="margin-right: 0.5em;">arrow_back</mat-icon><span>Back</span>
+      </a>
+      <a mat-list-item routerLink="/ng/daily-analytics" (click)="closeMenu()">
+        <mat-icon style="margin-right: 0.5em;">slow_motion_video</mat-icon><span>Daily</span>
+      </a>
+      <a mat-list-item routerLink="/ng/analytics/machine-dashboard" (click)="closeMenu()">
+        <mat-icon style="margin-right: 0.5em;">local_laundry_service</mat-icon><span>Machine</span>
+      </a>
+      <a mat-list-item routerLink="/ng/operatorAnalytics" (click)="closeMenu()">
+        <mat-icon style="margin-right: 0.5em;">person</mat-icon><span>Operator</span>
+      </a>
+      <a mat-list-item routerLink="/ng/itemAnalytics" (click)="closeMenu()">
+        <mat-icon style="margin-right: 0.5em;">dry_cleaning</mat-icon><span>Item</span>
+      </a>
+      <a mat-list-item routerLink="/ng/daily-summary" (click)="closeMenu()">
+        <mat-icon style="margin-right: 0.5em;">view_column</mat-icon><span>Summary</span>
+      </a>
 
-  <!-- ➕ Efficiency Screens top link -->
-  <a mat-list-item routerLink="/ng/efficiency-screens" (click)="closeMenu()">
-    <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Efficiency Screens</span>
-  </a>
+      <!-- ➕ Efficiency Screens top link -->
+      <a mat-list-item routerLink="/ng/efficiency-screens" (click)="closeMenu()">
+        <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Efficiency Screens</span>
+      </a>
 
-  <!-- ➕ Open submenu for Efficiency Screens -->
-  <a mat-list-item (click)="openMenu('efficiencyScreens')">
-    <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>More Screens</span>
-  </a>
-</mat-nav-list>
+      <!-- ➕ Open submenu for Efficiency Screens -->
+      <a mat-list-item (click)="openMenu('efficiencyScreens')">
+        <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>More Screens</span>
+      </a>
+    </mat-nav-list>
 
-<!-- Efficiency Screens Submenu -->
-<mat-nav-list *ngIf="shownMenu == 'efficiencyScreens'" [@menuSwap]>
-  <a mat-list-item (click)="prevMenu()">
-    <mat-icon>arrow_back</mat-icon><span>Back</span>
-  </a>
-  <a mat-list-item routerLink="ng/lpl-efficiency-screen/lpl1" (click)="closeMenu()">
-    <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Large Piece Line 1</span>
-  </a>
-  <a mat-list-item routerLink="ng/lpl-efficiency-screen/lpl2" (click)="closeMenu()">
-    <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Large Piece Line 2</span>
-  </a>
-  <a mat-list-item routerLink="/ng/blanket-blaster-one" (click)="closeMenu()">
-    <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Blanket Blaster 1</span>
-  </a>
-  <a mat-list-item routerLink="/ng/blanket-blaster-two" (click)="closeMenu()">
-    <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Blanket Blaster 2</span>
-  </a>
-  <a mat-list-item routerLink="/ng/spl-efficiency-screen" (click)="closeMenu()">
-    <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Small Piece Line 1</span>
-  </a>
-</mat-nav-list>
+    <!-- Efficiency Screens Submenu -->
+    <mat-nav-list *ngIf="shownMenu == 'efficiencyScreens'" [@menuSwap]>
+      <a mat-list-item (click)="prevMenu()">
+        <mat-icon>arrow_back</mat-icon><span>Back</span>
+      </a>
+      <a mat-list-item routerLink="ng/lpl-efficiency-screen/lpl1" (click)="closeMenu()">
+        <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Large Piece Line 1</span>
+      </a>
+      <a mat-list-item routerLink="ng/lpl-efficiency-screen/lpl2" (click)="closeMenu()">
+        <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Large Piece Line 2</span>
+      </a>
+      <a mat-list-item routerLink="/ng/blanket-blaster-one" (click)="closeMenu()">
+        <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Blanket Blaster 1</span>
+      </a>
+      <a mat-list-item routerLink="/ng/blanket-blaster-two" (click)="closeMenu()">
+        <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Blanket Blaster 2</span>
+      </a>
+      <a mat-list-item routerLink="/ng/spl-efficiency-screen" (click)="closeMenu()">
+        <mat-icon style="margin-right: 0.5em;">live_tv</mat-icon><span>Small Piece Line 1</span>
+      </a>
+    </mat-nav-list>
 
 
-    
+
 
     <!-- Reports Submenu -->
     <mat-nav-list *ngIf="shownMenu == 'reports'" [@menuSwap]>
@@ -154,56 +144,41 @@
   <mat-sidenav-content>
     <mat-toolbar>
       <!-- Left: menu toggle and title -->
-      <!-- Left: menu toggle and title -->
-      <button (click)="toggleMenu()" mat-icon-button>
-        <mat-icon *ngIf="shownMenu == ''">chevron_right</mat-icon>
-        <mat-icon *ngIf="shownMenu != ''">chevron_left</mat-icon>
-      </button>
-      <span><a href="/">ChiTrac V2</a></span>
-    
+      <div class="menu-button" [ngClass]="{'menu-shown' : shownMenu != ''}" style="height: 100%; width:64px;">
+        <button style="margin: 12px;" (click)="toggleMenu()" mat-icon-button>
+          <mat-icon *ngIf="shownMenu == ''">apps</mat-icon>
+          <mat-icon *ngIf="shownMenu != ''">chevron_left</mat-icon>
+        </button>
+      </div>
+      <span style="margin-left: 12px"><b><a href="/">ChiTrac — CLEAN Show</a></b></span>
+
       <!-- Spacer -->
-    
+
       <!-- Spacer -->
       <span class="spacer"></span>
-    
+
       <!-- Right: calendar + dark mode controls -->
       <span class="toolbar-actions">
-        <button
-        #dateMenuTrigger="matMenuTrigger"
-        mat-icon-button
-        class="calendar-btn"
-        [matMenuTriggerFor]="dateMenu"
-      >
-        <mat-icon class="calendar-icon">calendar_today</mat-icon>
-      </button>
-      
-    
-        <mat-menu
-        #dateMenu="matMenu"
-        class="date-menu-wrapper"
-        [overlapTrigger]="false"
-        xPosition="after"
-        yPosition="below"
-        [hasBackdrop]="true"
-        (closed)="shownMenu = ''"
-      >
-        <div (click)="$event.stopPropagation()">
-          <app-date-time-modal (closeModal)="onDateTimeModalClose()" />
-        </div>
-      </mat-menu>
-      
-    
+        <button #dateMenuTrigger="matMenuTrigger" mat-icon-button class="calendar-btn" [matMenuTriggerFor]="dateMenu">
+          <mat-icon class="calendar-icon">calendar_today</mat-icon>
+        </button>
+
+
+        <mat-menu #dateMenu="matMenu" class="date-menu-wrapper" [overlapTrigger]="false" xPosition="after"
+          yPosition="below" [hasBackdrop]="true" (closed)="shownMenu = ''">
+          <div (click)="$event.stopPropagation()">
+            <app-date-time-modal (closeModal)="onDateTimeModalClose()" />
+          </div>
+        </mat-menu>
+
+
         <mat-icon class="light-icon">light_mode</mat-icon>
-        <mat-slide-toggle
-          class="dark-toggle"
-          (click)="darkModeToggle()"
-          [checked]="isDarkMode"
-        ></mat-slide-toggle>
+        <mat-slide-toggle class="dark-toggle" (click)="darkModeToggle()" [checked]="isDarkMode"></mat-slide-toggle>
         <mat-icon class="dark-icon">dark_mode</mat-icon>
       </span>
     </mat-toolbar>
-    
-    
+
+
     <div class="sidenav-content">
       <router-outlet />
     </div>
