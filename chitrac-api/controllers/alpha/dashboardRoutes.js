@@ -3732,7 +3732,7 @@ module.exports = function (server) {
         machineOee[label] = {
           value: Math.round(oeeValue * 100),
           label: displayLabel,
-          color: oeeValue >= 0.9 ? "#008000" : oeeValue >= 0.7 ? "yellow" : "red",
+          color: oeeValue >= 0.9 ? "green" : oeeValue >= 0.7 ? "yellow" : "red",
           availability: Math.round(availability * 100),
           efficiency: Math.round(eff * 100),
           throughput: Math.round(throughput * 100)
@@ -3820,7 +3820,7 @@ module.exports = function (server) {
           efficiency[label] = {
             value: Math.round(eff * 100),
             label: displayLabel,
-            color: eff >= 0.9 ? "#008000" : eff >= 0.7 ? "yellow" : "red",
+            color: eff >= 0.9 ? "green" : eff >= 0.7 ? "yellow" : "red",
           };
         }
 
