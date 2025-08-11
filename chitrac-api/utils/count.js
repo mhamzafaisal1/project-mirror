@@ -1,5 +1,8 @@
+const { getCountCollectionName } = require('./time');
+
 async function getCountRecords(db, serial, start, end) {
-    return db.collection('count')
+    const countCollection = getCountCollectionName(start);
+    return db.collection(countCollection)
       .find({
         'machine.serial': serial,
         timestamp: { $gte: new Date(start), $lte: new Date(end) },
@@ -19,7 +22,8 @@ async function getCountRecords(db, serial, start, end) {
       query['machine.serial'] = serial;
     }
   
-    return db.collection('count')
+    const countCollection = getCountCollectionName(start);
+    return db.collection(countCollection)
       .find(query)
       .sort({ timestamp: 1 })
       .toArray();
@@ -27,7 +31,8 @@ async function getCountRecords(db, serial, start, end) {
   
   
   async function getMisfeedCounts(db, serial, start, end) {
-    return db.collection('count')
+    const countCollection = getCountCollectionName(start);
+    return db.collection(countCollection)
       .find({
         'machine.serial': serial,
         timestamp: { $gte: new Date(start), $lte: new Date(end) },
@@ -80,7 +85,8 @@ async function getCountRecords(db, serial, start, end) {
 
   // Operator-specific count functions
   async function getValidCountsForOperator(db, operatorId, start, end) {
-    return db.collection('count')
+    const countCollection = getCountCollectionName(start);
+    return db.collection(countCollection)
       .find({
         'operator.id': operatorId,
         timestamp: { $gte: new Date(start), $lte: new Date(end) },
@@ -91,7 +97,8 @@ async function getCountRecords(db, serial, start, end) {
   }
 
   async function getMisfeedCountsForOperator(db, operatorId, start, end) {
-    return db.collection('count')
+    const countCollection = getCountCollectionName(start);
+    return db.collection(countCollection)
       .find({
         'operator.id': operatorId,
         timestamp: { $gte: new Date(start), $lte: new Date(end) },
@@ -114,6 +121,8 @@ async function getCountRecords(db, serial, start, end) {
       // Convert operatorId to number if it's a string
       const numericOperatorId = typeof operatorId === 'string' ? parseInt(operatorId, 10) : operatorId;
       
+      // For this function, we need to use a default collection since we don't have a start time
+      // We'll use the base collection for now
       const count = await db.collection('count')
         .findOne(
           { 'operator.id': numericOperatorId },
@@ -133,7 +142,8 @@ async function getCountRecords(db, serial, start, end) {
   }
 
   async function getCountsForOperator(db, operatorId, start, end) {
-    return db.collection('count')
+    const countCollection = getCountCollectionName(start);
+    return db.collection(countCollection)
       .find({
         'operator.id': operatorId,
         timestamp: { $gte: new Date(start), $lte: new Date(end) }
@@ -174,7 +184,8 @@ async function getCountRecords(db, serial, start, end) {
       timestamp: { $gte: new Date(start), $lte: new Date(end) }
     };
 
-    return db.collection('count')
+    const countCollection = getCountCollectionName(start);
+    return db.collection(countCollection)
       .find(query)
       .sort({ timestamp: 1 })
       .toArray();
@@ -190,7 +201,8 @@ async function getCountRecords(db, serial, start, end) {
       timestamp: { $gte: new Date(start), $lte: new Date(end) }
     };
   
-    return db.collection('count')
+    const countCollection = getCountCollectionName(start);
+    return db.collection(countCollection)
       .find(query)
       .sort({ timestamp: 1 })
       .toArray();
@@ -217,7 +229,8 @@ async function getCountRecords(db, serial, start, end) {
       query['operator.id'] = operatorId;
     }
 
-    return db.collection('count')
+    const countCollection = getCountCollectionName(start);
+    return db.collection(countCollection)
       .find(query)
       .sort({ timestamp: 1 })
       .toArray();

@@ -1,3 +1,5 @@
+const { getStateCollectionName, getCountCollectionName } = require('./time');
+
 /**
  * Fetches and groups state + count data by machine or operator for a given time range.
  *
@@ -142,7 +144,8 @@ async function fetchGroupedAnalyticsData(db, start, end, groupBy = 'machine', op
 
     // Fetch counts first if grouping by operator, then fetch only relevant states
     let states = [];
-    let counts = await db.collection("count")
+    const countCollection = getCountCollectionName(start);
+    let counts = await db.collection(countCollection)
         .find(countQuery)
         .project({
             timestamp: 1,
@@ -166,7 +169,8 @@ async function fetchGroupedAnalyticsData(db, start, end, groupBy = 'machine', op
             timestamp: { $gte: start, $lte: end },
             "machine.serial": { $in: machineSerialsUsed }
         };
-        states = await db.collection("state")
+        const stateCollection = getStateCollectionName(start);
+        states = await db.collection(stateCollection)
             .find(stateQuery)
             .project({
                 timestamp: 1,
@@ -187,7 +191,8 @@ async function fetchGroupedAnalyticsData(db, start, end, groupBy = 'machine', op
         if (groupBy === 'machine' && targetSerials.length > 0) {
             stateQuery["machine.serial"] = { $in: targetSerials };
         }
-        states = await db.collection("state")
+        const stateCollection = getStateCollectionName(start);
+        states = await db.collection(stateCollection)
             .find(stateQuery)
             .project({
                 timestamp: 1,
