@@ -491,6 +491,7 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
     this.rows = [
       {
         Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        //Status: "",
         "Machine Name": "",
         "Serial Number": "",
         Runtime: "",
@@ -506,6 +507,7 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
       },
       {
         Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        //Status: "",
         "Machine Name": "",
         "Serial Number": "",
         Runtime: "",
@@ -521,6 +523,7 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
       },
       {
         Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        //Status: "",
         "Machine Name": "",
         "Serial Number": "",
         Runtime: "",
@@ -536,6 +539,7 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
       },
       {
         Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        //Status: "",
         "Machine Name": "",
         "Serial Number": "",
         Runtime: "",
@@ -551,6 +555,7 @@ export class MachineDashboardComponent implements OnInit, OnDestroy {
       },
       {
         Status: '<div class="loading-spinner dummy-row">⏳</div>',
+        //Status: "",
         "Machine Name": "",
         "Serial Number": "",
         Runtime: "",

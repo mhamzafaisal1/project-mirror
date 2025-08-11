@@ -1,18 +1,13 @@
 @use '@angular/material' as mat;
-@use './themes/chitrac';
+@use './themes/chitrac-styleguide-dark';
 @use './app/blanket-blaster/lane-common.scss';
-@import 'bootstrap/dist/css/bootstrap.min.css';
 
 @include mat.core();
 // mat.$theme-ignore-duplication-warnings: true;
 $theme-ignore-duplication-warnings: true;
-
-
-//$theme: chitrac.$light-theme;
-//$darkest: 60;
 $darkest-dark-theme: 20;
-$dark-theme:  chitrac.$dark-theme;
-$light-theme: chitrac.$light-theme;
+$dark-theme:  chitrac-styleguide-dark.$dark-theme;
+$light-theme: chitrac-styleguide-dark.$light-theme;
 
 $testcolor2: mat.get-theme-color($light-theme, primary, 60);
 
@@ -22,7 +17,7 @@ $testcolor2: mat.get-theme-color($light-theme, primary, 60);
 }
 
 @mixin create-light-theme() {
-  @include mat.all-component-themes(chitrac.$light-theme);
+  @include mat.all-component-themes(chitrac-styleguide-dark.$light-theme);
 }
 
 :root {
@@ -36,12 +31,46 @@ body.dark-theme {
 
 .dark-theme {
   @include create-dark-theme();
+  --sg-color-primary-blue: #00A6E7;
+  --sg-color-bright-blue: #28CEff;
+  --sg-color-dark-blue: #E0EAF4;
+
+  --sg-color-blue-gray-light-100: #5A646E;
+  --sg-color-blue-gray-light-200: #28323C;
+  --sg-color-blue-gray-light-300: #1E2832;
+  --sg-color-blue-gray-light-400: #646E78;
+  --sg-color-blue-gray-light-500: #37414B;
+
+  --sg-color-blue-gray-medium-100: #838D99;
+  --sg-color-blue-gray-medium-200: #505A64;
+  --sg-color-blue-gray-medium-300: #46505A;
+  --sg-color-blue-gray-medium-400: #384E7C;
+  --sg-color-blue-gray-medium-500: #EFF5FC;
+  --sg-color-blue-gray-medium-600: #465567;
+  
+  --sg-color-background: #0A141E;
+
+  --sg-color-green: #39B276;
+  --sg-color-orange: #FB950B;
+  --sg-color-red: #F1310A;
+  --sg-color-light-red: #62312E;
+  --sg-color-yellow: #FFCE0A;
+
+  --sg-color-white: #FFFFFF;
+  --sg-color-black: #F5F5F5;
+  --sg-color-medium-gray-neutral: #525252;
+
+
   --mat-sidenav-container-shape: 0px; //unround the sidenav corners
   --mat-list-active-indicator-shape: 0px; //unround sidenav hover corners
-  --theme-color-primary: #{mat.get-theme-color($dark-theme, primary)};
+
   --theme-color-primary-lightest: #{mat.get-theme-color($dark-theme, primary, 60)};
   --theme-color-primary-middle: #{mat.get-theme-color($dark-theme, primary, 40)};
   --theme-color-primary-darkest: #{mat.get-theme-color($dark-theme, primary, 20)};
+
+  --theme-color-primary: var(--sg-color-primary-blue);
+  --theme-color-background: var(--sg-color-background);
+
   --theme-color-on-primary: #{mat.get-theme-color($dark-theme, on-primary)};
   --theme-color-secondary-middle: #{mat.get-theme-color($dark-theme, secondary, 40)};
   --theme-color-secondary-container: #{mat.get-theme-color($dark-theme, secondary-container)};
@@ -55,6 +84,9 @@ body.dark-theme {
   --mat-sort-arrow-color: #{mat.get-theme-color($dark-theme, on-primary)};
 
   /*--mat-dialog-container-min-width: 350px;*/
+
+  
+
 }
 
 .dark-theme .error-dialog {
@@ -64,12 +96,45 @@ body.dark-theme {
 
 .light-theme {
   @include create-light-theme();
+  --sg-color-primary-blue: #253D6F;
+  --sg-color-bright-blue: #00A4E6;
+  --sg-color-dark-blue: #223042;
+
+  --sg-color-blue-gray-light-100: #F7F8FC;
+  --sg-color-blue-gray-light-200: #F0F2FA;
+  --sg-color-blue-gray-light-300: #EEF0F9;
+  --sg-color-blue-gray-light-400: #E3E7F5;
+  --sg-color-blue-gray-light-500: #E9EBF0;
+
+  --sg-color-blue-gray-medium-100: #5D6774;
+  --sg-color-blue-gray-medium-200: #C7CEEB;
+  --sg-color-blue-gray-medium-300: #9DA9DC;
+  --sg-color-blue-gray-medium-400: #949DB7;
+  --sg-color-blue-gray-medium-500: #7D8590;
+  --sg-color-blue-gray-medium-600: #BABEC4;
+  
+  --sg-color-background: #0A141E;
+
+  --sg-color-green: #3FAB6C;
+  --sg-color-orange: #EA8B1B;
+  --sg-color-red: #DF1516;
+  --sg-color-light-red: #FCE5E7;
+  --sg-color-yellow: #F2BD00;
+
+  --sg-color-white: #FFFFFF;
+  --sg-color-black: #000000;
+  --sg-color-medium-gray-neutral: #B4B4B4;
+
   --mat-sidenav-container-shape: 0px; //unround the sidenav corners
   --mat-list-active-indicator-shape: 0px; //unround sidenav hover corners
-  --theme-color-primary: #{mat.get-theme-color($light-theme, primary)};
+
+  --theme-color-primary: var(--sg-color-primary-blue);
+  --theme-color-background: var(--sg-color-background);
+
   --theme-color-primary-lightest: #{mat.get-theme-color($light-theme, primary, 80)};
   --theme-color-primary-middle: #{mat.get-theme-color($light-theme, primary, 60)};
   --theme-color-primary-darkest: #{mat.get-theme-color($light-theme, primary, 40)};
+
   --theme-color-on-primary: #{mat.get-theme-color($light-theme, on-primary)};
   --theme-color-secondary-middle: #{mat.get-theme-color($light-theme, secondary, 70)};
   --theme-color-secondary-container: #{mat.get-theme-color($light-theme, secondary-container)};
@@ -82,6 +147,7 @@ body.dark-theme {
   /* Direct theme color overrides*/
   --mat-sort-arrow-color: #{mat.get-theme-color($light-theme, on-primary)};
 
+  
 }
 
 .light-theme .error-dialog {
@@ -90,7 +156,7 @@ body.dark-theme {
 
 
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif;}
+body { margin: 0;}
 a {text-decoration: none; color:inherit;}
 
 #OperatorConfigDialog {

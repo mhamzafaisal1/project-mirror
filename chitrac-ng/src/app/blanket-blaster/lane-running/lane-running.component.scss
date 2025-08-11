@@ -1,38 +1,62 @@
 :host {
-    display: block;
-    height: 100%;
-    overflow: hidden;
-  }
-  
-  .container {
-    height: 100%;
-    overflow: hidden;
-  }
-  
-  .lane-background {
-    height: 84%;
-    overflow: hidden;
-  }
-  
-  .lane {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  
-  #OperatorBlock {
-    height: 10%;
-    overflow: hidden;
-  }
-  
-  #DataBlock {
-    height: 90%;
-    overflow: hidden;
-  }
-  
-  #ItemBlock {
-    height: 16%;
-    overflow: hidden;
-  }
-  
+  display: block;
+  height: 100%;
+  overflow: hidden;
+}
+
+.container {
+  height: 100%;
+  overflow: hidden;
+}
+
+.lane-background {
+  height: 84%;
+  overflow: hidden;
+  background-color: var(--sg-color-blue-gray-light-200);
+}
+
+.item-block-background {
+  background-color: var(--sg-color-blue-gray-light-200);
+}
+
+.green {
+  color: var(--sg-color-background);
+  background-color: var(--sg-color-green);
+}
+
+.yellow {
+  background-color: var(--sg-color-yellow);
+  color: var(--sg-color-background);
+}
+
+.red {
+  background-color: var(--sg-color-red);
+
+}
+
+.white {
+  background-color: var(--sg-color-white);
+
+}
+
+.lane {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#OperatorBlock {
+  height: 10%;
+  overflow: hidden;
+}
+
+#DataBlock {
+  height: 90%;
+  overflow: hidden;
+}
+
+#ItemBlock {
+  height: 16%;
+  overflow: hidden;
+}

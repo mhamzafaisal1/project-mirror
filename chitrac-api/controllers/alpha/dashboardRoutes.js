@@ -3725,8 +3725,8 @@ module.exports = function (server) {
         const oeeValue = calculateOEE(availability, eff, throughput);
 
         const labelDisplayMap = {
-          lastSixMinutes: "Last 6 Minutes",
-          lastFifteenMinutes: "Last 15 Minutes",
+          lastSixMinutes: "Last 6 Mins",
+          lastFifteenMinutes: "Last 15 Mins",
           lastHour: "Last Hour",
           today: "All Day",
         };
@@ -3736,7 +3736,7 @@ module.exports = function (server) {
         machineOee[label] = {
           value: Math.round(oeeValue * 100),
           label: displayLabel,
-          color: oeeValue >= 0.9 ? "#008000" : oeeValue >= 0.7 ? "#F89406" : "#FF0000",
+          color: oeeValue >= 0.9 ? "green" : oeeValue >= 0.7 ? "yellow" : "red",
           availability: Math.round(availability * 100),
           efficiency: Math.round(eff * 100),
           throughput: Math.round(throughput * 100)
@@ -3813,8 +3813,8 @@ module.exports = function (server) {
           );
 
           const labelDisplayMap = {
-            lastSixMinutes: "Last 6 Minutes",
-            lastFifteenMinutes: "Last 15 Minutes",
+            lastSixMinutes: "Last 6 Mins",
+            lastFifteenMinutes: "Last 15 Mins",
             lastHour: "Last Hour",
             today: "All Day",
           };
@@ -3824,7 +3824,7 @@ module.exports = function (server) {
           efficiency[label] = {
             value: Math.round(eff * 100),
             label: displayLabel,
-            color: eff >= 0.9 ? "#008000" : eff >= 0.7 ? "#F89406" : "#FF0000",
+            color: eff >= 0.9 ? "green" : eff >= 0.7 ? "yellow" : "red",
           };
         }
 
