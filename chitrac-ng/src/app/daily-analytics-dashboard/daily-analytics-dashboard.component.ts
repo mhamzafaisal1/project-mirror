@@ -195,18 +195,34 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
           this.endTime = this.pollingService.updateEndTimestampToNow();
           return this.dashboardService.getFullDailyDashboard(this.startTime, this.endTime)
             .pipe(
-              tap(data => {
-                this.fullDashboardData = data;
-                this.hasInitialData = true;
-              }),
-              delay(0) // Force change detection cycle
+              tap({
+                next: (data) => {
+                  this.fullDashboardData = data;
+                  this.hasInitialData = true;
+                  this.isLoading = false;
+                },
+                error: (error) => {
+                  console.error('Polling error:', error);
+                  this.fullDashboardData = null;
+                  this.hasInitialData = false;
+                  this.isLoading = false;
+                }
+              })
             );
         },
         this.POLLING_INTERVAL,
         this.destroy$,
         false, // isModal
         false  // 👈 don't run immediately
-      ).subscribe();
+      ).subscribe({
+        next: (data) => {
+          // Data is handled in the tap operator above
+        },
+        error: (error) => {
+          console.error('Polling subscription error:', error);
+          this.stopPolling();
+        }
+      });
     }
   }
 
