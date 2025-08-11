@@ -3,11 +3,13 @@
     parseAndValidateQueryParams,
     createPaddedTimeRange,
     formatDuration,
+    getStateCollectionName,
   } = require("./time");
 
 
 async function getActiveMachineSerials(db, start, end) {
-    const serials = await db.collection("state").distinct("machine.serial", {
+    const stateCollection = getStateCollectionName(start);
+    const serials = await db.collection(stateCollection).distinct("machine.serial", {
       timestamp: { $gte: new Date(start), $lte: new Date(end) }
     });
     return serials;

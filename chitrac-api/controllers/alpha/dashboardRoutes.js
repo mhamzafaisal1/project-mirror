@@ -9,6 +9,7 @@ module.exports = function (server) {
   const {
     parseAndValidateQueryParams,
     formatDuration,
+    getCountCollectionName,
   } = require("../../utils/time");
 
   const {
@@ -1353,7 +1354,8 @@ module.exports = function (server) {
             totalRuntimeMs += sessionRuntimeMs;
   
             // Aggregation to get counts and active station count
-            const [countAgg] = await db.collection("count").aggregate([
+            const countCollection = getCountCollectionName(session.start);
+            const [countAgg] = await db.collection(countCollection).aggregate([
               {
                 $match: {
                   "machine.serial": serial,
@@ -2880,8 +2882,9 @@ module.exports = function (server) {
           for (const session of runSessions) {
             totalRuntimeMs += session.end - session.start;
 
+            const countCollection = getCountCollectionName(session.start);
             const [countAgg] = await db
-              .collection("count")
+              .collection(countCollection)
               .aggregate([
                 {
                   $match: {
@@ -3367,8 +3370,9 @@ module.exports = function (server) {
       }));
 
       // Fetch all counts for this operator within session windows
+      const countCollection = getCountCollectionName(start);
       const counts = await db
-        .collection("count")
+        .collection(countCollection)
         .find({
           "operator.id": numericOperatorId,
           $or: sessionWindows,

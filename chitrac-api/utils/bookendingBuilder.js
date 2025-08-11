@@ -72,6 +72,7 @@
 //   }
 
 const { extractAllCyclesFromStates } = require('./state');
+const { getStateCollectionName } = require('./time');
 
 /**
  * Returns bookended state data and true session start/end times per machine
@@ -131,15 +132,17 @@ async function getBookendedStatesAndTimeRange(db, serial, start, end) {
   // Clamp future end date to current time
   if (endDate > now) endDate = now;
 
-  // Prepare queries
-  const inRangeStatesQ = db.collection("state")
+  // Prepare queries - use appropriate state collection based on time range
+  const stateCollection = getStateCollectionName(startDate);
+  
+  const inRangeStatesQ = db.collection(stateCollection)
     .find({
       "machine.serial": serialNum,
       timestamp: { $gte: startDate, $lte: endDate }
     })
     .sort({ timestamp: 1 });
 
-  const beforeStartQ = db.collection("state")
+  const beforeStartQ = db.collection(stateCollection)
     .find({
       "machine.serial": serialNum,
       timestamp: { $lt: startDate }
@@ -147,7 +150,7 @@ async function getBookendedStatesAndTimeRange(db, serial, start, end) {
     .sort({ timestamp: -1 })
     .limit(1);
 
-  const afterEndQ = db.collection("state")
+  const afterEndQ = db.collection(stateCollection)
     .find({
       "machine.serial": serialNum,
       timestamp: { $gt: endDate }
@@ -231,15 +234,17 @@ async function getBookendedOperatorStatesAndTimeRange(db, operatorId, start, end
   let endDate = new Date(end);
   if (endDate > now) endDate = now;
 
-  // Fetch in-range, pre-start, and post-end states
-  const inRangeStatesQ = db.collection('state')
+  // Fetch in-range, pre-start, and post-end states - use appropriate state collection
+  const stateCollection = getStateCollectionName(startDate);
+  
+  const inRangeStatesQ = db.collection(stateCollection)
     .find({
       'operators.id': operatorId,
       timestamp: { $gte: startDate, $lte: endDate }
     })
     .sort({ timestamp: 1 });
 
-  const beforeStartQ = db.collection('state')
+  const beforeStartQ = db.collection(stateCollection)
     .find({
       'operators.id': operatorId,
       timestamp: { $lt: startDate }
@@ -247,7 +252,7 @@ async function getBookendedOperatorStatesAndTimeRange(db, operatorId, start, end
     .sort({ timestamp: -1 })
     .limit(1);
 
-  const afterEndQ = db.collection('state')
+  const afterEndQ = db.collection(stateCollection)
     .find({
       'operators.id': operatorId,
       timestamp: { $gt: endDate }

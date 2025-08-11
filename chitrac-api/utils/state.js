@@ -1,3 +1,5 @@
+const { getStateCollectionName } = require('./time');
+
 async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
     const query = {
       timestamp: { $gte: paddedStart, $lte: paddedEnd }
@@ -5,7 +7,8 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
   
     if (serial) query['machine.serial'] = serial;
   
-    return db.collection('state')
+    const stateCollection = getStateCollectionName(paddedStart);
+    return db.collection(stateCollection)
       .find(query)
       .sort({ timestamp: 1 })
       .project({
@@ -298,30 +301,32 @@ async function fetchStatesForMachine(db, serial, paddedStart, paddedEnd) {
   // State functions for Operator
 
   async function fetchStatesForOperator(db, operatorId, paddedStart, paddedEnd, collectionName = 'state') {
-    const query = {
-      timestamp: { $gte: paddedStart, $lte: paddedEnd },
-      operators: { $exists: true, $ne: [] }
-    };
-  
-    if (operatorId) {
-      query['operators.id'] = operatorId;
-    }
-  
-    return db.collection(collectionName)
-      .find(query)
-      .sort({ timestamp: 1 })
-      .project({
-        _id:0, //RTI II: ADDED 06/10/25 to omit _ids from the API returns as those are extraneous outside of UPDATE or DELETE actions
-        timestamp: 1,
-        'machine.serial': 1,
-        'machine.name': 1,
-        'program.mode': 1,
-        'status.code': 1,
-        'status.name': 1,
-        operators: 1
-      })
-      .toArray();
+  const query = {
+    timestamp: { $gte: paddedStart, $lte: paddedEnd },
+    operators: { $exists: true, $ne: [] }
+  };
+
+  if (operatorId) {
+    query['operators.id'] = operatorId;
   }
+
+  // Use dynamic collection selection based on start date
+  const stateCollection = getStateCollectionName(paddedStart);
+  return db.collection(stateCollection)
+    .find(query)
+    .sort({ timestamp: 1 })
+    .project({
+      _id:0, //RTI II: ADDED 06/10/25 to omit _ids from the API returns as those are extraneous outside of UPDATE or DELETE actions
+      timestamp: 1,
+      'machine.serial': 1,
+      'machine.name': 1,
+      'program.mode': 1,
+      'status.code': 1,
+      'status.name': 1,
+      operators: 1
+    })
+    .toArray();
+}
   
   
   // function groupStatesByOperator(states) {

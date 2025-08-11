@@ -2,12 +2,14 @@ const {
     extractAllCyclesFromStates,
     extractFaultCycles
   } = require("./state");
+const { getStateCollectionName, getCountCollectionName } = require("./time");
 
 
 
 
 async function getActiveOperatorIds(db, start, end) {
-    return await db.collection("state").distinct("operators.id", {
+    const stateCollection = getStateCollectionName(start);
+    return await db.collection(stateCollection).distinct("operators.id", {
       timestamp: { $gte: new Date(start), $lte: new Date(end) },
       "operators.id": { $ne: -1 },
     });
@@ -18,7 +20,10 @@ async function getActiveOperatorIds(db, start, end) {
       timestamp: { $gte: new Date(s.start), $lte: new Date(s.end) }
     }));
   
-    return await db.collection("count")
+    // Use the start time of the first session to determine collection
+    const countCollection = getCountCollectionName(sessions[0]?.start || new Date());
+    
+    return await db.collection(countCollection)
       .find({
         $or: orConditions,
         "operator.id": operatorId,
