@@ -1,4 +1,5 @@
 const express = require("express");
+const { DateTime } = require("luxon");
 
 module.exports = function (server) {
   const router = express.Router();
@@ -3615,23 +3616,21 @@ module.exports = function (server) {
       const baseFlipperData = buildInitialFlipperOutputs(recentState);
 
       const now = new Date();
-      const dayStart = new Date(`${date}T00:00:00.000Z`);
-      const currentTime = new Date(
-        `${date}T${now.toISOString().split("T")[1]}`
-      );
+      const dayStart = new Date(DateTime.now().startOf('day').toISO());
+      const currentTime = new Date();
 
       const timeFrames = {
         today: { start: dayStart, end: currentTime },
         lastHour: {
-          start: new Date(currentTime.getTime() - 60 * 60 * 1000),
+          start: new Date(DateTime.now().minus({hours:1}).toISO()),
           end: currentTime,
         },
         lastFifteenMinutes: {
-          start: new Date(currentTime.getTime() - 15 * 60 * 1000),
+          start: new Date(DateTime.now().minus({minutes:15}).toISO()),
           end: currentTime,
         },
         lastSixMinutes: {
-          start: new Date(currentTime.getTime() - 6 * 60 * 1000),
+          start: new Date(DateTime.now().minus({minutes:6}).toISO()),
           end: currentTime,
         },
       };
