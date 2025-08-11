@@ -116,13 +116,6 @@ function isoHour(d) {
   return new Date(d).toISOString().slice(0, 13) + ':00:00.000Z';
 }
 
-function formatDuration(ms) {
-  if (!ms || ms < 0) return '0m';
-  const h = Math.floor(ms / 3_600_000);
-  const m = Math.floor((ms % 3_600_000) / 60_000);
-  return (h ? `${h}h ` : '') + `${m}m`;
-}
-
 // Default efficiency if you don't inject your own.
 // Replace with your real formula if you have item standards etc.
 function defaultCalcEfficiency(runtimeMs, validCount) {
