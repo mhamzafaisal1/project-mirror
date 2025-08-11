@@ -3615,9 +3615,9 @@ module.exports = function (server) {
 
       const baseFlipperData = buildInitialFlipperOutputs(recentState);
 
-      const now = new Date();
+      const now = new Date(DateTime.now().toISO());
       const dayStart = new Date(DateTime.now().startOf('day').toISO());
-      const currentTime = new Date();
+      const currentTime = new Date(DateTime.now().toISO());
 
       const timeFrames = {
         today: { start: dayStart, end: currentTime },
@@ -3834,7 +3834,7 @@ module.exports = function (server) {
         const itemConcat = uniqueItems.join(", ") || "";
 
         // Fixed batch codes for each lane (4 lanes total)
-        const fixedBatchCodes = [10000001, 10000002, 10000003, 10000004];
+        const fixedBatchCodes = [10000001, 10000001, 10000001, 10000001];
         const batchCode = fixedBatchCodes[finalFlipperData.length] || 10000001;
 
         finalFlipperData.push({
