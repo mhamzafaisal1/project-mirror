@@ -11,13 +11,13 @@
   height: 100%;
   width: 100%;
   margin: 0 auto;
-  border-radius: 1rem;
+  border-radius: 4px;
   padding: 1.5rem;
   box-sizing: border-box;
   overflow: hidden;
   position: relative;
 
-  &.dark {
+  /*&.dark {
     background-color: #121212;
     color: #e0e0e0;
     border: 2px solid rgba(255, 255, 255, 0.15);
@@ -29,7 +29,7 @@
     color: #000000;
     border: 2px solid rgba(0, 0, 0, 0.15);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  }
+  }*/
 }
 
 .modal-content {

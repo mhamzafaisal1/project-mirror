@@ -23,39 +23,6 @@
   margin-top: 8px
 }
 
-// ========== Theme: Dark ==========
-
-:host-context(.dark-theme) {
-  background-color: #121212;
-  color: #e0e0e0;
-
-  svg {
-    background-color: #121212;
-  }
-
-  text {
-    fill: #e0e0e0;
-  }
-
-  .legend text {
-    fill: #e0e0e0;
-  }
-}
-
-// ========== Theme: Light ==========
-svg text {
-  fill: var(--text-color, #333);
-}
-
-:host-context(.dark-theme) svg text {
-  fill: #e0e0e0;
-}
-
-/* very subtle depth on bars (optional, for visual parity) */
-// .chart-container rect {
-//   filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));
-// }
-
 
 // ========== Reusables and Accessibility ==========
 

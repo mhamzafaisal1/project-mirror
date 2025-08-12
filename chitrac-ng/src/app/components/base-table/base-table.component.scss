@@ -24,13 +24,17 @@
   }
 }
 
-mat-table {
+.mat-mdc-table {
   width: 100%;
   box-shadow: none;
   font-size: 0.875rem;
   border-collapse: separate;
   border-spacing: 0;
-  background-color: var(--sg-color-blue-gray-light-100);
+  background-color: var(--sg-color-blue-gray-light-500);
+}
+
+.mat-mdc-header-row {
+  background-color: var(--theme-color-table-header);
 }
 
 mat-header-cell,

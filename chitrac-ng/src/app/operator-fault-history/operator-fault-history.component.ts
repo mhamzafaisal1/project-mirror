@@ -90,8 +90,6 @@ export class OperatorFaultHistoryComponent implements OnInit, OnDestroy, OnChang
     const isDark = document.body.classList.contains('dark-theme');
     this.isDarkTheme = isDark;
     const el = this.elRef.nativeElement;
-    this.renderer.setStyle(el, 'background-color', isDark ? '#121212' : '#ffffff');
-    this.renderer.setStyle(el, 'color', isDark ? '#e0e0e0' : '#000000');
   }
 
   private isValidInput(): boolean {

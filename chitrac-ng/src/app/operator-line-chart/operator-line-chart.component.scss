@@ -107,6 +107,7 @@
 }
 
 :host-context(.dark-theme) {
+  color: var(--sg-color-white);
   .chart-container {
     .controls {
       background-color: rgba(255, 255, 255, 0.05);

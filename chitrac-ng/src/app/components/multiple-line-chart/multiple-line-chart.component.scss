@@ -23,44 +23,6 @@
   margin-top: -1rem
 }
 
-// ========== Theme: Dark ==========
-
-:host-context(.dark-theme) {
-  background-color: #121212;
-  color: #e0e0e0;
-
-  svg {
-    background-color: #121212;
-  }
-
-  text {
-    fill: #e0e0e0;
-  }
-
-  .legend text {
-    fill: #e0e0e0;
-  }
-}
-
-// ========== Theme: Light ==========
-
-:host-context(.light-theme) {
-  background-color: #ffffff;
-  color: #000000;
-
-  svg {
-    background-color: #ffffff;
-  }
-
-  text {
-    fill: #000000;
-  }
-
-  .legend text {
-    fill: #000000;
-  }
-}
-
 // ========== Reusables and Accessibility ==========
 
 svg {

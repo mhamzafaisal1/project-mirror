@@ -108,8 +108,6 @@ export class MachineAnalyticsDashboardComponent implements OnInit, OnDestroy {
     this.isDarkTheme = isDark;
 
     const element = this.elRef.nativeElement;
-    this.renderer.setStyle(element, 'background-color', isDark ? '#121212' : '#ffffff');
-    this.renderer.setStyle(element, 'color', isDark ? '#e0e0e0' : '#000000');
   }
 
   fetchAnalyticsData(): void {
