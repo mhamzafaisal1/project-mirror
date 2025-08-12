@@ -2581,8 +2581,10 @@ module.exports = function (server) {
   //                       misfeed: 1,
   //                       standard: 1,
   //                       pph: { $round: ["$pph", 2] },
-  //                       efficiency: { $round: [{ $multiply: ["$efficiency", 100] }, 2] }
-  //                     }
+  //                       efficiency: {
+  //                         $round: [{ $multiply: ["$efficiency", 100] }, 2],
+  //                       },
+  //                     },
   //                   },
   //                   { $sort: { itemName: 1 } }
   //                 ],
@@ -3599,6 +3601,8 @@ module.exports = function (server) {
 
   // Efficiency Screens
 
+
+
   router.get("/analytics/machine-live-summary", async (req, res) => {
     try {
       const { serial, date } = req.query;
@@ -3866,6 +3870,226 @@ module.exports = function (server) {
       return res.status(500).json({ error: "Internal server error" });
     }
   });
+
+
+
+  //Updated Efficiency Screen
+
+  // router.get("/analytics/machine-live-summary", async (req, res) => {
+  //   try {
+  //     const { serial, date } = req.query;
+  //     if (!serial || !date) {
+  //       return res.status(400).json({ error: "Missing serial or date" });
+  //     }
+
+  //     const recentState = await getMostRecentStateForMachine(db, serial, date);
+  //     if (!recentState) {
+  //       return res.status(404).json({
+  //         message: "No state found for this machine on the given date.",
+  //       });
+  //     }
+
+  //     const baseFlipperData = buildInitialFlipperOutputs(recentState);
+
+  //     // 1) Single time anchor + frames
+  //     const now = new Date();
+  //     const dayStart = new Date(now); 
+  //     dayStart.setHours(0, 0, 0, 0);
+
+  //     const timeFrames = {
+  //       today: { start: dayStart, end: now, label: "All Day" },
+  //       lastHour: { start: new Date(now - 60 * 60 * 1000), end: now, label: "Last Hour" },
+  //       lastFifteenMinutes: { start: new Date(now - 15 * 60 * 1000), end: now, label: "Last 15 Mins" },
+  //       lastSixMinutes: { start: new Date(now - 6 * 60 * 1000), end: now, label: "Last 6 Mins" },
+  //     };
+  //     const frameKeys = Object.keys(timeFrames);
+
+  //     // Helper function to check if timestamp is within a frame
+  //     function inFrame(ts, f) { 
+  //       const t = +new Date(ts); 
+  //       return t >= +f.start && t <= +f.end; 
+  //     }
+
+  //     // 2) Fetch once - no more duplicate database calls
+  //     const statesToday = await fetchStatesForMachine(db, parseInt(serial), dayStart, now);
+  //     const countsToday = await getCountsForMachine(db, parseInt(serial), dayStart, now);
+
+  //     // 3) Pre-index counts (one pass)
+  //     function indexCounts(counts) {
+  //       const globalByFrame = {};
+  //       const byOperator = new Map(); // opId -> { validByFrame: {k:[]}, misfeedByFrame:{k:[]}, firstValid: obj }
+
+  //       for (const k of frameKeys) {
+  //         globalByFrame[k] = { valid: [], misfeed: [] };
+  //       }
+
+  //       for (const c of counts) {
+  //         const opId = c?.operator?.id;
+  //         for (const k of frameKeys) {
+  //           if (!inFrame(c.timestamp, timeFrames[k])) continue;
+  //           if (c.misfeed) globalByFrame[k].misfeed.push(c);
+  //           else globalByFrame[k].valid.push(c);
+
+  //           if (opId != null && opId !== -1) {
+  //             let entry = byOperator.get(opId);
+  //             if (!entry) {
+  //               entry = { validByFrame: {}, misfeedByFrame: {}, firstValid: null };
+  //               for (const kk of frameKeys) {
+  //                 entry.validByFrame[kk] = [];
+  //                 entry.misfeedByFrame[kk] = [];
+  //               }
+  //               byOperator.set(opId, entry);
+  //             }
+  //             if (c.misfeed) entry.misfeedByFrame[k].push(c);
+  //             else {
+  //               entry.validByFrame[k].push(c);
+  //               if (!entry.firstValid) entry.firstValid = c;
+  //             }
+  //           }
+  //         }
+  //       }
+
+  //       return { globalByFrame, byOperator };
+  //     }
+
+  //     // 4) Precompute running intervals once (machine + per-operator)
+  //     //    Then per timeframe we only sum overlaps (no re-filtering).
+  //     function runningIntervals(states) {
+  //       const res = [];
+  //       let start = null;
+  //       for (const s of states) {
+  //         const code = s.status?.code;
+  //         const t = new Date(s.timestamp);
+  //         if (code === 1 && start == null) start = t;
+  //         if (code !== 1 && start != null) { 
+  //           res.push({ s: start, e: t }); 
+  //           start = null; 
+  //         }
+  //       }
+  //       if (start != null) res.push({ s: start, e: now }); // open run → clip to 'now'
+  //       return res;
+  //     }
+
+  //     function sumOverlapMs(intervals, start, end) {
+  //       const S = +start, E = +end;
+  //       let total = 0;
+  //       for (const it of intervals) {
+  //         const s = Math.max(+it.s, S);
+  //         const e = Math.min(+it.e, E);
+  //         if (s < e) total += (e - s);
+  //       }
+  //       return total;
+  //     }
+
+  //     // Build operator -> states map once
+  //     const statesByOperator = new Map();
+  //     for (const st of statesToday) {
+  //       const ops = st.operators || [];
+  //       for (const op of ops) {
+  //         const opId = op?.id;
+  //         if (opId == null || opId === -1) continue;
+  //         if (!statesByOperator.has(opId)) statesByOperator.set(opId, []);
+  //         statesByOperator.get(opId).push(st);
+  //       }
+  //     }
+
+  //     // Precompute intervals
+  //     const machineRunIntervals = runningIntervals(statesToday);
+  //     const opRunIntervals = new Map();
+  //     for (const [opId, opStates] of statesByOperator.entries()) {
+  //       opRunIntervals.set(opId, runningIntervals(opStates));
+  //     }
+
+  //     // 5) Index counts now
+  //     const { globalByFrame, byOperator } = indexCounts(countsToday);
+
+  //     // 6) Machine OEE using pre-indexed counts + precomputed intervals
+  //     const machineOee = {};
+  //     for (const k of frameKeys) {
+  //       const tf = timeFrames[k];
+  //       const valid = globalByFrame[k].valid;
+  //       const mis = globalByFrame[k].misfeed;
+
+  //       let runtimeMs = sumOverlapMs(machineRunIntervals, tf.start, tf.end);
+  //       if (!runtimeMs &&
+  //           (k === 'lastSixMinutes' || k === 'lastFifteenMinutes' || k === 'lastHour') &&
+  //           recentState.status?.code === 1) {
+  //         runtimeMs = (+tf.end) - (+tf.start);
+  //       }
+
+  //       const eff = calculateEfficiency(runtimeMs, valid.length, valid);
+  //       const total = (+tf.end) - (+tf.start);
+  //       const avail = calculateAvailability(runtimeMs, total - runtimeMs, total);
+  //       const thr = calculateThroughput(valid.length, mis.length);
+  //       const oee = calculateOEE(avail, eff, thr);
+
+  //       machineOee[k] = {
+  //         value: Math.round(oee * 100),
+  //         label: tf.label,
+  //         color: oee >= 0.9 ? "green" : oee >= 0.7 ? "yellow" : "red",
+  //         availability: Math.round(avail * 100),
+  //         efficiency: Math.round(eff * 100),
+  //         throughput: Math.round(thr * 100),
+  //       };
+  //     }
+
+  //     // 7) Operator loop (no new DB calls, no re-filtering)
+  //     const finalFlipperData = [];
+  //     for (const entry of baseFlipperData) {
+  //       const opId = entry.operatorId;
+  //       const opIdx = byOperator.get(opId) || { validByFrame: {}, misfeedByFrame: {}, firstValid: null };
+  //       const firstValid = opIdx.firstValid || {};
+  //       const operatorName = firstValid?.operator?.name || "Unknown";
+  //       const itemConcat = [...new Set(
+  //         frameKeys.flatMap(k => opIdx.validByFrame[k]?.map(v => v.item?.name).filter(Boolean) || [])
+  //       )].join(", ");
+
+  //       const intervals = opRunIntervals.get(opId) || [];
+  //       const efficiency = {};
+
+  //       for (const k of frameKeys) {
+  //         const tf = timeFrames[k];
+  //         const valid = opIdx.validByFrame[k] || [];
+
+  //         let rtMs = sumOverlapMs(intervals, tf.start, tf.end);
+  //         if (!rtMs &&
+  //             (k === 'lastSixMinutes' || k === 'lastFifteenMinutes' || k === 'lastHour') &&
+  //             recentState.status?.code === 1 &&
+  //             statesByOperator.has(opId)) {
+  //           rtMs = (+tf.end) - (+tf.start);
+  //         }
+
+  //         const eff = calculateEfficiency(rtMs, valid.length, valid);
+  //         efficiency[k] = {
+  //           value: Math.round(eff * 100),
+  //           label: tf.label,
+  //           color: eff >= 0.9 ? "green" : eff >= 0.7 ? "yellow" : "red",
+  //         };
+  //       }
+
+  //       const fixedBatchCodes = [10000001, 10000001, 10000001, 10000001];
+  //       const batchCode = fixedBatchCodes[finalFlipperData.length] || 10000001;
+
+  //       finalFlipperData.push({
+  //         status: entry.status,
+  //         fault: entry.fault,
+  //         operator: operatorName,
+  //         operatorId: opId,
+  //         machine: entry.machine,
+  //         timers: { on: 0, ready: 0 },
+  //         displayTimers: { on: "", run: "" },
+  //         efficiency,
+  //         oee: machineOee,
+  //         batch: { item: itemConcat, code: batchCode },
+  //       });
+  //     }
+
+  //     return res.json({ flipperData: finalFlipperData });
+  //   } catch (err) {
+  //     logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
+  //     return res.status(500).json({ error: "Internal server error" });
+  //   }
+  // });
 
   return router;
 };
