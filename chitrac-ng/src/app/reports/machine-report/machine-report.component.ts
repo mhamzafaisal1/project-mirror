@@ -75,8 +75,6 @@ export class MachineReportComponent implements OnInit, OnDestroy {
   detectTheme() {
     const isDark = document.body.classList.contains('dark-theme');
     this.isDarkTheme = isDark;
-
-    const element = this.elRef.nativeElement;
   }
 
   fetchAnalyticsData(): void {

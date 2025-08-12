@@ -77,8 +77,6 @@ export class BarAndLineChartComponent implements OnChanges, OnDestroy, AfterView
   private detectTheme(): void {
     this.isDarkTheme = document.body.classList.contains('dark-theme');
     const el = this.elRef.nativeElement;
-    this.renderer.setStyle(el, 'background-color', this.isDarkTheme ? '#121212' : '#ffffff');
-    this.renderer.setStyle(el, 'color', this.isDarkTheme ? '#e0e0e0' : '#000000');
   }
 
   getColor(metric: MetricKey): string {

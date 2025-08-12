@@ -276,8 +276,6 @@ export class DailyAnalyticsDashboardComponent implements OnInit, OnDestroy {
     const isDark = document.body.classList.contains('dark-theme');
     this.isDarkTheme = isDark;
     const el = this.elRef.nativeElement;
-    this.renderer.setStyle(el, 'background-color', isDark ? '#121212' : '#ffffff');
-    this.renderer.setStyle(el, 'color', isDark ? '#e0e0e0' : '#000000');
   }
 
   private formatDateForInput(date: Date): string {
