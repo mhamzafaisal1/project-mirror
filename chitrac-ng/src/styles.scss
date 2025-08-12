@@ -83,6 +83,8 @@ body.dark-theme {
 
   --theme-color-on-blue-gray-light: var(--sg-color-white);
   --theme-color-table-header: var(--sg-color-blue-gray-light-300);
+  --theme-color-text: var(--sg-color-white);
+
 
   /* Direct theme color overrides*/
   --mat-sort-arrow-color: #{mat.get-theme-color($dark-theme, on-primary)};
@@ -152,6 +154,7 @@ body.dark-theme {
 
   --theme-color-on-blue-gray-light: var(--sg-color-black);
   --theme-color-table-header: var(--sg-color-blue-gray-medium-500);
+  --theme-color-text: var(--sg-color-black);
 
   --sg-border-radius: 4px;
 
@@ -221,6 +224,7 @@ body.cdk-global-scrollblock {
     overflow: hidden;
     border-radius: 4px;
     background-color: var(--sg-color-blue-gray-light-200);
+    color: var(--theme-color-text);
   }
 }
 
