@@ -2,8 +2,8 @@
   padding: 20px;
   max-width: 100%; /* was 1200px */
   margin: 0 auto;
-  background-color: var(--theme-color-surface);
-  color: var(--theme-color-on-surface-variant);
+  background-color: var(--sg-color-blue-gray-light-250);
+  color: var(--sg-color-white);
 }
 
 

@@ -83,8 +83,6 @@ export class OperatorCountbyitemChartComponent implements OnInit, OnDestroy, OnC
     const dark = document.body.classList.contains('dark-theme');
     this.isDarkTheme = dark;
     const el = this.elRef.nativeElement;
-    this.renderer.setStyle(el, 'background-color', dark ? '#121212' : '#ffffff');
-    this.renderer.setStyle(el, 'color', dark ? '#e0e0e0' : '#000000');
   }
 
   isValidInput(): boolean {

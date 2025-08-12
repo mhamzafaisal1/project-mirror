@@ -106,40 +106,6 @@
   font-weight: 500;
 }
 
-:host-context(.dark-theme) {
-  background-color: #121212;
-  color: #e0e0e0;
-
-  .error {
-    background-color: #5c1a1a;
-    color: #ffbaba;
-    border: 1px solid #b71c1c;
-  }
-
-  base-table {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-    // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-  }
-}
-
-:host-context(.light-theme) {
-  background-color: #ffffff;
-  color: #000000;
-
-  .error {
-    background-color: #f8d7da;
-    color: #b30000;
-    border: 1px solid #f5c6cb;
-  }
-
-  base-table {
-    background-color: #ffffff;
-    color: #000000;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-}
-
 @media (max-width: 1100px) {
   .controls {
     flex-direction: column;

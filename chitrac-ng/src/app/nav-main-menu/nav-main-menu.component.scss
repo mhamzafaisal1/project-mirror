@@ -4,21 +4,34 @@
 .sidenav {
   width: 15em;
   overflow: hidden;
-  background-color: var(--sg-color-blue-gray-light-200);
+  background-color: var(--sg-color-blue-gray-light-250);
 }
 
 .sidenav-container {
   height: 100%;
-  background-color: var(--sg-color-blue-gray-light-300);
+}
+
+.sidenav-content {
+  // margin: 1em;
+  height: 100vh;
+  overflow: hidden;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--sg-color-blue-gray-light-100);
 }
 
 .sidenav-container .mat-toolbar {
   background-color: var(--sg-color-background);
-  color: var(--sg-color-primary-blue)
+  color: var(--sg-color-bright-blue)
+}
+
+.sidenav-container .mat-toolbar .mat-icon {
+   color: var(--sg-color-white);
 }
 
 .sidenav-container .mat-icon {
-   color: var(--sg-color-white)
+   color: var(--theme-color-on-blue-gray-light)
 }
 
 .menu-button {
@@ -29,14 +42,7 @@
   background-color: var(--sg-color-background);
 }
 
-.sidenav-content {
-  // margin: 1em;
-  height: 100vh;
-  overflow: hidden;
-  overflow-y: hidden;
-  display: flex;
-  flex-direction: column;
-}
+
 
 
 

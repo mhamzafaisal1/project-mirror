@@ -164,10 +164,6 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   detectTheme(): void {
     const isDark = document.body.classList.contains('dark-theme');
     this.isDarkTheme = isDark;
-
-    const element = this.elRef.nativeElement;
-    this.renderer.setStyle(element, 'background-color', isDark ? '#121212' : '#ffffff');
-    this.renderer.setStyle(element, 'color', isDark ? '#e0e0e0' : '#000000');
   }
 
   private setupPolling(): void {
@@ -363,7 +359,7 @@ export class OperatorAnalyticsDashboardComponent implements OnInit, OnDestroy {
   }
 
   getEfficiencyClass(value: any, column: string): string {
-    if ((column === 'Efficiency' || column === 'OEE') && typeof value === 'string' && value.includes('%')) {
+    if ((column === 'Efficiency' || column === 'OEE' || column === 'Availability' || column === 'Throughput') && typeof value === 'string' && value.includes('%')) {
       const num = parseInt(value.replace('%', ''));
       if (isNaN(num)) return '';
       if (num >= 90) return 'green';

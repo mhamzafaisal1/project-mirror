@@ -52,26 +52,3 @@
     display: block;
   }
 }
-
-// ==================== Theme Support ====================
-
-:host-context(.dark-theme) {
-  background-color: #121212;
-  color: #e0e0e0;
-
-  .error {
-    background-color: #2c0b0e;
-    color: #ffbaba;
-  }
-}
-
-:host-context(.light-theme) {
-  background-color: #ffffff;
-  color: #000000;
-
-  .error {
-    background-color: #f8d7da;
-    color: #b71c1c;
-  }
-}
-  

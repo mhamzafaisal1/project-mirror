@@ -16,7 +16,10 @@
 }
 
 .item-block-background {
+  height:16%; 
   background-color: var(--sg-color-blue-gray-light-200);
+  border-top: 0.5em solid var(--sg-color-blue-gray-light-100);
+  margin-bottom:15px;
 }
 
 .green {
@@ -27,11 +30,12 @@
 .yellow {
   background-color: var(--sg-color-yellow);
   color: var(--sg-color-background);
+  font-weight: bolder;
 }
 
 .red {
   background-color: var(--sg-color-red);
-
+  font-weight: bolder;
 }
 
 .white {

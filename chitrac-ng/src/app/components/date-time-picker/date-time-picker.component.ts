@@ -37,7 +37,5 @@ export class DateTimePickerComponent implements OnInit, OnDestroy {
     const dark = document.body.classList.contains('dark-theme');
     this.isDarkTheme = dark;
     const el = this.elRef.nativeElement;
-    this.renderer.setStyle(el, 'background-color', dark ? '#121212' : '#ffffff');
-    this.renderer.setStyle(el, 'color', dark ? '#e0e0e0' : '#000000');
   }
 }

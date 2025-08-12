@@ -72,8 +72,6 @@ export class OperatorCyclePieChartComponent implements OnInit, OnDestroy, OnChan
     const isDark = document.body.classList.contains('dark-theme');
     this.isDarkTheme = isDark;
     const element = this.elRef.nativeElement;
-    this.renderer.setStyle(element, 'background-color', isDark ? '#121212' : '#ffffff');
-    this.renderer.setStyle(element, 'color', isDark ? '#e0e0e0' : '#000000');
   }
 
   private processDashboardData(data: any[]): void {

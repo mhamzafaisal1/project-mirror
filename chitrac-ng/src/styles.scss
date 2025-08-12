@@ -37,6 +37,7 @@ body.dark-theme {
 
   --sg-color-blue-gray-light-100: #5A646E;
   --sg-color-blue-gray-light-200: #28323C;
+  --sg-color-blue-gray-light-250: #333C46;
   --sg-color-blue-gray-light-300: #1E2832;
   --sg-color-blue-gray-light-400: #646E78;
   --sg-color-blue-gray-light-500: #37414B;
@@ -57,7 +58,7 @@ body.dark-theme {
   --sg-color-yellow: #FFCE0A;
 
   --sg-color-white: #FFFFFF;
-  --sg-color-black: #F5F5F5;
+  --sg-color-black: #000000;
   --sg-color-medium-gray-neutral: #525252;
 
 
@@ -79,6 +80,9 @@ body.dark-theme {
   --theme-color-surface-container: #{mat.get-theme-color($dark-theme, surface-container)};
   --theme-color-surface-bright: #{mat.get-theme-color($dark-theme, surface-bright)};
   --theme-color-on-surface-variant: #{mat.get-theme-color($dark-theme, on-surface-variant)};
+
+  --theme-color-on-blue-gray-light: var(--sg-color-white);
+  --theme-color-table-header: var(--sg-color-blue-gray-light-300);
 
   /* Direct theme color overrides*/
   --mat-sort-arrow-color: #{mat.get-theme-color($dark-theme, on-primary)};
@@ -102,9 +106,11 @@ body.dark-theme {
 
   --sg-color-blue-gray-light-100: #F7F8FC;
   --sg-color-blue-gray-light-200: #F0F2FA;
+  --sg-color-blue-gray-light-250: #E3E7F5;
   --sg-color-blue-gray-light-300: #EEF0F9;
   --sg-color-blue-gray-light-400: #E3E7F5;
   --sg-color-blue-gray-light-500: #E9EBF0;
+  
 
   --sg-color-blue-gray-medium-100: #5D6774;
   --sg-color-blue-gray-medium-200: #C7CEEB;
@@ -143,6 +149,11 @@ body.dark-theme {
   --theme-color-surface-container: #{mat.get-theme-color($light-theme, surface-container)};
   --theme-color-surface-bright: #{mat.get-theme-color($light-theme, surface-dim)};
   --theme-color-on-surface-variant: #{mat.get-theme-color($light-theme, on-surface-variant)};
+
+  --theme-color-on-blue-gray-light: var(--sg-color-black);
+  --theme-color-table-header: var(--sg-color-blue-gray-medium-500);
+
+  --sg-border-radius: 4px;
 
   /* Direct theme color overrides*/
   --mat-sort-arrow-color: #{mat.get-theme-color($light-theme, on-primary)};
@@ -200,7 +211,6 @@ body.cdk-global-scrollblock {
     display: flex;
     flex-direction: column;
     padding: 0;
-    border-radius: 8px;
     overflow: hidden;
   }
 
@@ -208,9 +218,14 @@ body.cdk-global-scrollblock {
     height: 100%;
     display: flex;
     flex-direction: column;
-    border-radius: 8px;
     overflow: hidden;
+    border-radius: 4px;
+    background-color: var(--sg-color-blue-gray-light-200);
   }
+}
+
+.cdk-overlay-backdrop-showing {
+  backdrop-filter: blur(4px);
 }
 
 
