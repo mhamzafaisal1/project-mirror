@@ -188,15 +188,12 @@ router.get("/analytics/machines-summary", async (req, res) => {
           let totalTimeCredit = 0;
   
           for (const s of sessions) {
-            const r = s._recalc;
-            if (!r) {
-              continue;
-            }
-            runtimeMs += r.runtimeMs;
-            workTimeSec += r.workTimeSec;
-            totalCount += r.totalCount;
-            misfeedCount += r.misfeedCount;
-            totalTimeCredit += r.totalTimeCredit;
+          
+            runtimeMs += s.runtime;
+            workTimeSec += s.workTime;
+            totalCount += s.totalCount;
+            misfeedCount += s.misfeedCount;
+            totalTimeCredit += s.totalTimeCredit;
           }
   
           const downtimeMs = Math.max(0, (queryEnd - queryStart) - runtimeMs);
@@ -281,14 +278,12 @@ router.get("/analytics/machines-summary", async (req, res) => {
     }
   
     totalTimeCredit = Number(totalTimeCredit.toFixed(2));
-  
-    session._recalc = {
-      runtimeMs,
-      workTimeSec,
-      totalCount,
-      misfeedCount,
-      totalTimeCredit
-    };
+
+    session.runtime = runtimeMs / 1000;
+    session.workTime = workTimeSec;
+    session.totalCount = totalCount;
+    session.misfeedCount = misfeedCount;
+    session.totalTimeCredit = totalTimeCredit;
     return session;
   }
   
