@@ -16,6 +16,9 @@ module.exports = {
     db: process.env.MONGO_LOG_DB
   },
 
+  // Collection names
+  operatorSessionCollectionName: 'operator-session',
+
   jwtSecret: process.env.JWT_SECRET,
   logLevel: process.env.LOG_LEVEL || 'info',
   inDev: process.env.NODE_ENV === 'development'

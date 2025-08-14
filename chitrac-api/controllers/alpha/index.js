@@ -100,6 +100,11 @@ function constructor(server) {
   const levelTwoDashboardRoutes = require("./level-twoRoutes")(server);
   router.use("/analytics", levelTwoDashboardRoutes);
 
+
+  // Import operator sessions routes
+  const operatorSessionsRoutes = require("./operatorSessions")(server);
+  router.use("/", operatorSessionsRoutes);
+
   //Import dashboard-related routes
   const dashboardRoutes = require("./dashboardRoutes")(server);
   router.use("/", dashboardRoutes);
