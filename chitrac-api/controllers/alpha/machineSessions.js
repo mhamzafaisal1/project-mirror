@@ -113,12 +113,13 @@ router.get("/analytics/machines-summary", async (req, res) => {
         await db.collection(config.machineCollectionName)
           .distinct("serial", { active: true })
       );
+  
       // Pull tickers for active machines only
       const tickers = await db.collection(config.stateTickerCollectionName)
         .find({ "machine.serial": { $in: [...activeSerials] } })
         .project({ _id: 0 })
         .toArray();
-
+  
       // Build one promise per machine
       const results = await Promise.all(
         tickers.map(async (t) => {
@@ -143,6 +144,7 @@ router.get("/analytics/machines-summary", async (req, res) => {
             })
             .sort({ "timestamps.start": 1 })
             .toArray();
+  
           // If nothing in range, still return zeroed row for the machine
           if (!sessions.length) {
             const totalMs = queryEnd - queryStart;
@@ -154,6 +156,7 @@ router.get("/analytics/machines-summary", async (req, res) => {
               queryStart, queryEnd
             });
           }
+  
           // Truncate first session if it starts before queryStart
           {
             const first = sessions[0];
@@ -166,6 +169,7 @@ router.get("/analytics/machines-summary", async (req, res) => {
               sessions[0] = ensureRecalcIfMissing(first);
             }
           }
+  
           // Truncate last session if it ends after queryEnd (or is open)
           {
             const lastIdx = sessions.length - 1;
@@ -185,6 +189,7 @@ router.get("/analytics/machines-summary", async (req, res) => {
               sessions[lastIdx] = ensureRecalcIfMissing(last);
             }
           }
+  
           // Recalc any middle sessions missing metrics
           for (let i = 1; i < sessions.length - 1; i++) {
             sessions[i] = ensureRecalcIfMissing(sessions[i]);
@@ -196,7 +201,7 @@ router.get("/analytics/machines-summary", async (req, res) => {
           let totalCount = 0;
           let misfeedCount = 0;
           let totalTimeCredit = 0;
-
+  
           for (const s of sessions) {
             const r = s._recalc;
             if (!r) {
@@ -231,7 +236,7 @@ router.get("/analytics/machines-summary", async (req, res) => {
           return result;
         })
       );
-
+  
       const finalResults = results.filter(Boolean);
       res.json(finalResults);
     } catch (err) {
