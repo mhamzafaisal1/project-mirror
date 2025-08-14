@@ -50,13 +50,9 @@ router.get("/analytics/operators-summary", async (req, res) => {
         "operator.id": { $ne: -1 },
         $or: [
           { "timestamps.start": { $gte: queryStart, $lte: queryEnd } },
-          { "timestamps.end": { $exists: true, $gte: queryStart, $lte: queryEnd } },
-          { "timestamps.start": { $lte: queryStart }, "timestamps.end": { $exists: true, $gte: queryEnd } },
-          { "timestamps.start": { $lte: queryStart }, "timestamps.end": { $exists: false } } // open sessions spanning end
+          { "timestamps.end":   { $gte: queryStart, $lte: queryEnd } }
         ]
       });
-
-      console.log(operatorIds,"operatorIds");
   
       if (!operatorIds.length) return res.json([]);
   
@@ -68,9 +64,7 @@ router.get("/analytics/operators-summary", async (req, res) => {
               "operator.id": opId,
               $or: [
                 { "timestamps.start": { $gte: queryStart, $lte: queryEnd } },
-                { "timestamps.end": { $exists: true, $gte: queryStart, $lte: queryEnd } },
-                { "timestamps.start": { $lte: queryStart }, "timestamps.end": { $exists: true, $gte: queryEnd } },
-                { "timestamps.start": { $lte: queryStart }, "timestamps.end": { $exists: false } }
+                { "timestamps.end":   { $gte: queryStart, $lte: queryEnd } }
               ]
             })
             .sort({ "timestamps.start": 1 })
@@ -100,8 +94,6 @@ router.get("/analytics/operators-summary", async (req, res) => {
               const firstStart = new Date(first.timestamps?.start);
               if (firstStart < queryStart) {
                 sessions[0] = truncateAndRecalcOperator(first, queryStart, first.timestamps?.end ? new Date(first.timestamps.end) : queryEnd);
-              } else {
-                sessions[0] = ensureRecalcOperator(first);
               }
             }
   
@@ -118,14 +110,7 @@ router.get("/analytics/operators-summary", async (req, res) => {
                   new Date(sessions[lastIdx].timestamps.start),
                   effectiveEnd
                 );
-              } else {
-                sessions[lastIdx] = ensureRecalcOperator(last);
               }
-            }
-  
-            // Ensure middle sessions are recomputed
-            for (let i = 1; i < sessions.length - 1; i++) {
-              sessions[i] = ensureRecalcOperator(sessions[i]);
             }
   
             // Aggregate
@@ -158,15 +143,14 @@ router.get("/analytics/operators-summary", async (req, res) => {
               currentStatus,
               currentMachine,
               metrics: {
-                runtime: { total: runtimeMs, formatted: formatDuration(runtimeMs) },
-                downtime: { total: downtimeMs, formatted: formatDuration(downtimeMs) },
-                output: { totalCount, misfeedCount },
-                performance: {
-                  availability: { value: availability, percentage: (availability * 100).toFixed(2) },
-                  throughput: { value: throughput, percentage: (throughput * 100).toFixed(2) },
-                  efficiency: { value: efficiency, percentage: (efficiency * 100).toFixed(2) },
-                  oee: { value: oee, percentage: (oee * 100).toFixed(2) }
-                }
+                runtime: runtimeMs,
+                downtime: downtimeMs,
+                totalCount,
+                misfeedCount,
+                availability: (availability * 100).toFixed(2),
+                throughput: (throughput * 100).toFixed(2),
+                efficiency: (efficiency * 100).toFixed(2),
+                oee: (oee * 100).toFixed(2)
               },
               timeRange: { start: queryStart, end: queryEnd }
             };
@@ -203,10 +187,6 @@ router.get("/analytics/operators-summary", async (req, res) => {
     return n > 0 && n < 60 ? n * 60 : n;
   }
   
-  function deepClone(o) {
-    return JSON.parse(JSON.stringify(o));
-  }
-  
   // Recompute metrics exactly like simulator's operator-session rules
   function recalcOperatorSession(session) {
     if (!session || !session.timestamps || !session.timestamps.start) {
@@ -227,35 +207,27 @@ router.get("/analytics/operators-summary", async (req, res) => {
     const totalCount = counts.length;
     const misfeedCount = misfeeds.length;
   
-    // Build item -> pph map from session.items
-    const items = Array.isArray(session.items) ? session.items : [];
-    const stdById = new Map();
-    for (const it of items) {
-      if (it && it.id != null) {
-        stdById.set(it.id, normalizePPH(it.standard));
-      }
-    }
-  
-    // Count by item.id
-    const byItem = new Map();
+    // Calculate total time credit (simplified - count per-item and use per-item standards)
+    let totalTimeCredit = 0;
+    
+    // 1. Count how many of each item were produced in the truncated window
+    const perItemCounts = new Map(); // key: item.id
     for (const c of counts) {
       const id = c?.item?.id;
       if (id == null) continue;
-      byItem.set(id, (byItem.get(id) || 0) + 1);
+      perItemCounts.set(id, (perItemCounts.get(id) || 0) + 1);
     }
-  
-    const totalByItem = [];
-    const timeCreditByItem = [];
-    let totalTimeCredit = 0;
-  
-    for (const it of items) {
-      const id = it?.id;
-      const countTotal = byItem.get(id) || 0;
-      const pph = stdById.get(id) ?? normalizePPH(it?.standard ?? 0);
-      const tci = pph > 0 ? countTotal / (pph / 3600) : 0; // seconds
-      totalByItem.push(countTotal);
-      timeCreditByItem.push(Number(tci.toFixed(2)));
-      totalTimeCredit += tci;
+    
+    // 2. Calculate time credit for each item based on its actual count and standard
+    for (const [id, cnt] of perItemCounts) {
+      // Find the standard for this specific item from session.items
+      const item = session.items?.find(it => it && it.id === id);
+      if (item && item.standard) {
+        const pph = normalizePPH(item.standard);
+        if (pph > 0) {
+          totalTimeCredit += cnt / (pph / 3600); // seconds
+        }
+      }
     }
   
     session._recalc = {
@@ -263,9 +235,7 @@ router.get("/analytics/operators-summary", async (req, res) => {
       workTimeSec,
       totalCount,
       misfeedCount,
-      totalTimeCredit: Number(totalTimeCredit.toFixed(2)),
-      totalByItem,
-      timeCreditByItem
+      totalTimeCredit: Number(totalTimeCredit.toFixed(2))
     };
     return session;
   }
@@ -277,7 +247,13 @@ router.get("/analytics/operators-summary", async (req, res) => {
       return original;
     }
     
-    const s = deepClone(original);
+    // Only clone what we need to modify
+    const s = {
+      ...original,
+      timestamps: { ...original.timestamps },
+      counts: [...(original.counts || [])],
+      misfeeds: [...(original.misfeeds || [])]
+    };
   
     const start = new Date(s.timestamps.start);
     const end = new Date(s.timestamps.end || new Date());
@@ -294,21 +270,9 @@ router.get("/analytics/operators-summary", async (req, res) => {
       return ts >= clampedStart && ts <= clampedEnd;
     };
   
-    s.counts = (s.counts || []).filter(inWindow);
-    s.misfeeds = (s.misfeeds || []).filter(inWindow);
+    s.counts = s.counts.filter(inWindow);
+    s.misfeeds = s.misfeeds.filter(inWindow);
   
-    return recalcOperatorSession(s);
-  }
-  
-  // Ensure recompute even for unmodified sessions
-  function ensureRecalcOperator(s) {
-    if (!s || s._recalc) return s;
-    // For open sessions, cap at now to avoid runaway
-    if (!s.timestamps?.end) {
-      const c = deepClone(s);
-      c.timestamps = { ...c.timestamps, end: new Date() };
-      return recalcOperatorSession(c);
-    }
     return recalcOperatorSession(s);
   }
   
