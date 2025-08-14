@@ -107,6 +107,10 @@ function constructor(server) {
   const machineSessionsRoutes = require("./machineSessions")(server);
   router.use("/", machineSessionsRoutes);
 
+  // Import operator sessions routes
+  const operatorSessionsRoutes = require("./operatorSessions")(server);
+  router.use("/", operatorSessionsRoutes);
+
   //Import dashboard-related routes
   const dashboardRoutes = require("./dashboardRoutes")(server);
   router.use("/", dashboardRoutes);
