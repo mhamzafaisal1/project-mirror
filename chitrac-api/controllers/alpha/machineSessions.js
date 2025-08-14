@@ -137,9 +137,7 @@ router.get("/analytics/machines-summary", async (req, res) => {
               "machine.serial": serial,
               $or: [
                 { "timestamps.start": { $gte: queryStart, $lte: queryEnd } },
-                { "timestamps.end":   { $exists: true, $gte: queryStart, $lte: queryEnd } },
-                { "timestamps.start": { $lte: queryStart }, "timestamps.end": { $exists: true, $gte: queryEnd } },
-                { "timestamps.start": { $lte: queryStart }, "timestamps.end": { $exists: false } } // open session spanning end
+                { "timestamps.end":   { $gte: queryStart, $lte: queryEnd } }
               ]
             })
             .sort({ "timestamps.start": 1 })
