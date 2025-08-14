@@ -189,8 +189,8 @@ router.get("/analytics/machines-summary", async (req, res) => {
   
           for (const s of sessions) {
           
-            runtimeMs += s.runtime;
-            workTimeSec += s.workTime;
+            runtimeMs += Math.floor(s.runtime);
+            workTimeSec += Math.floor(s.workTime);
             totalCount += s.totalCount;
             misfeedCount += s.misfeedCount;
             totalTimeCredit += s.totalTimeCredit;
