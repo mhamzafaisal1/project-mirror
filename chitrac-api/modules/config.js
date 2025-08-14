@@ -16,6 +16,11 @@ module.exports = {
     db: process.env.MONGO_LOG_DB
   },
 
+  // Collection names
+  machineCollectionName: 'machine',
+  stateTickerCollectionName: 'stateTicker',
+  machineSessionCollectionName: 'machine-session',
+
   jwtSecret: process.env.JWT_SECRET,
   logLevel: process.env.LOG_LEVEL || 'info',
   inDev: process.env.NODE_ENV === 'development'
