@@ -121,14 +121,11 @@ router.get("/analytics/operators-summary", async (req, res) => {
             let totalTimeCredit = 0;
   
             for (const s of sessions) {
-              if (s && s._recalc) {
-                const r = s._recalc;
-                runtimeMs += r.runtimeMs || 0;
-                workTimeSec += r.workTimeSec || 0;
-                totalCount += r.totalCount || 0;
-                misfeedCount += r.misfeedCount || 0;
-                totalTimeCredit += r.totalTimeCredit || 0;
-              }
+              runtimeMs += Math.floor(s.runtime);
+              workTimeSec += Math.floor(s.workTime);
+              totalCount += s.totalCount;
+              misfeedCount += s.misfeedCount;
+              totalTimeCredit += s.totalTimeCredit;
             }
   
             const totalMs = Math.max(0, queryEnd - queryStart);
@@ -230,13 +227,11 @@ router.get("/analytics/operators-summary", async (req, res) => {
       }
     }
   
-    session._recalc = {
-      runtimeMs,
-      workTimeSec,
-      totalCount,
-      misfeedCount,
-      totalTimeCredit: Number(totalTimeCredit.toFixed(2))
-    };
+    session.runtime = runtimeMs / 1000;
+    session.workTime = workTimeSec;
+    session.totalCount = totalCount;
+    session.misfeedCount = misfeedCount;
+    session.totalTimeCredit = totalTimeCredit;
     return session;
   }
   
