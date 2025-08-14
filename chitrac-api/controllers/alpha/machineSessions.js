@@ -1,5 +1,7 @@
 const express = require('express');
 
+const { formatDuration } = require("../../utils/time");
+
 module.exports = function (server) {
   const router = express.Router();
   
@@ -189,7 +191,7 @@ router.get("/analytics/machines-summary", async (req, res) => {
   
           for (const s of sessions) {
           
-            runtimeMs += Math.floor(s.runtime);
+            runtimeMs += Math.floor(s.runtime) * 1000;
             workTimeSec += Math.floor(s.workTime);
             totalCount += s.totalCount;
             misfeedCount += s.misfeedCount;
@@ -343,14 +345,36 @@ router.get("/analytics/machines-summary", async (req, res) => {
         name: status?.name ?? "Unknown"
       },
       metrics: {
-        runtime: runtimeMs,
-        downtime: downtimeMs,
-        totalCount,
-        misfeedCount,
-        availability: (availability * 100).toFixed(2),
-        throughput: (throughput * 100).toFixed(2),
-        efficiency: (efficiency * 100).toFixed(2),
-        oee: (oee * 100).toFixed(2)
+        runtime: {
+          total: runtimeMs,
+          formatted: formatDuration(runtimeMs)
+        },
+        downtime: {
+          total: downtimeMs,
+          formatted: formatDuration(downtimeMs)
+        },
+        output: {
+          totalCount,
+          misfeedCount
+        },
+        performance: {
+          availability: {
+            value: availability,
+            percentage: (availability * 100).toFixed(2)
+          },
+          throughput: {
+            value: throughput,
+            percentage: (throughput * 100).toFixed(2)
+          },
+          efficiency: {
+            value: efficiency,
+            percentage: (efficiency * 100).toFixed(2)
+          },
+          oee: {
+            value: oee,
+            percentage: (oee * 100).toFixed(2)
+          }
+        }
       },
       timeRange: {
         start: queryStart,
