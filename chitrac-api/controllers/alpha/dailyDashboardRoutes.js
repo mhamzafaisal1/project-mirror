@@ -542,52 +542,6 @@ function shapeMachineOee(machineOeeBase) {
     }
   });
 
-  // Test route to debug aggregation
-  router.get('/analytics/daily-dashboard/full/test', async (req, res) => {
-    try {
-      const { start, end } = parseAndValidateQueryParams(req);
-      const { paddedStart, paddedEnd } = createPaddedTimeRange(start, end);
-      
-      logger.info(`Testing aggregation for ${start} to ${end}`);
-      
-      // Simple test aggregation
-      const testAgg = [
-        {$match: { timestamp: {$gte: paddedStart, $lte: paddedEnd} }},
-        {$limit: 5},
-        {$project: {
-          timestamp: 1,
-          'status.code': 1,
-          'machine.serial': 1,
-          'machine.name': 1
-        }}
-      ];
-      
-      const testResults = await db.collection('state')
-        .aggregate(testAgg, { allowDiskUse: true, maxTimeMS: 30000 })
-        .toArray();
-      
-      logger.info(`Test aggregation returned ${testResults.length} results`);
-      
-      res.json({
-        message: 'Test aggregation successful',
-        timeRange: { start, end, paddedStart, paddedEnd },
-        sampleData: testResults,
-        timestamp: new Date().toISOString()
-      });
-      
-    } catch (err) {
-      logger.error(`Error in test route:`, err);
-      res.status(500).json({ 
-        error: "Test aggregation failed",
-        details: process.env.NODE_ENV === 'development' ? err.message : undefined
-      });
-    }
-  });
-  
-
-
-
-
   
 // Bookending for daily-dashboard/full
 // router.get('/analytics/daily-dashboard/full', async (req, res) => {
