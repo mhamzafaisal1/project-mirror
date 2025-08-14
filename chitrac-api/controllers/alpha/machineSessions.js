@@ -161,10 +161,6 @@ router.get("/analytics/machines-summary", async (req, res) => {
             const firstStart = new Date(first.timestamps?.start);
             if (firstStart < queryStart) {
               sessions[0] = truncateAndRecalc(first, queryStart, first.timestamps?.end ? new Date(first.timestamps.end) : queryEnd);
-              sessions[0]._truncated = true;
-            } else {
-              // Ensure metrics exist even if not truncated
-              sessions[0] = ensureRecalcIfMissing(first);
             }
           }
   
@@ -181,16 +177,7 @@ router.get("/analytics/machines-summary", async (req, res) => {
                 new Date(sessions[lastIdx].timestamps.start), // after possible first fix, use its current start
                 effectiveEnd
               );
-              sessions[lastIdx]._truncated = true;
-            } else {
-              // Ensure metrics exist even if not truncated
-              sessions[lastIdx] = ensureRecalcIfMissing(last);
             }
-          }
-  
-          // Recalc any middle sessions missing metrics
-          for (let i = 1; i < sessions.length - 1; i++) {
-            sessions[i] = ensureRecalcIfMissing(sessions[i]);
           }
   
           // Aggregate
@@ -222,15 +209,6 @@ router.get("/analytics/machines-summary", async (req, res) => {
             queryStart, queryEnd
           });
           
-          // Add debug info if requested
-          if (req.query.debugSessions === 'true') {
-            result.debug = {
-              sessionCount: sessions.length,
-              truncatedSessions: sessions.filter(s => s._truncated).length,
-              totalMachines: tickers.length
-            };
-          }
-          
           return result;
         })
       );
@@ -253,22 +231,13 @@ router.get("/analytics/machines-summary", async (req, res) => {
   
   /* -------------------- helpers -------------------- */
   
-  
-  function formatDuration(ms) {
-    const s = Math.floor(ms / 1000);
-    const hh = String(Math.floor(s / 3600)).padStart(2, "0");
-    const mm = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
-    const ss = String(s % 60).padStart(2, "0");
-    return `${hh}:${mm}:${ss}`;
-  }
-  
   // Clamp standard to PPH
   function normalizePPH(std) {
     const n = Number(std) || 0;
     return n > 0 && n < 60 ? n * 60 : n;
   }
   
-  // Recompute a session’s metrics given its counts/misfeeds and timestamps
+  // Recompute a session's metrics given its counts/misfeeds and timestamps
   function recalcSession(session) {
     const start = new Date(session.timestamps.start);
     const end = new Date(session.timestamps.end || new Date());
@@ -288,37 +257,27 @@ router.get("/analytics/machines-summary", async (req, res) => {
     const totalCount = counts.length;
     const misfeedCount = misfeeds.length;
   
-    // Build item -> standard map from session.items
-    const items = Array.isArray(session.items) ? session.items : [];
-    const stdById = new Map();
-    for (const it of items) {
-      if (it && it.id != null) {
-        stdById.set(it.id, normalizePPH(it.standard));
-      }
-    }
-  
-    // Aggregate counts by item.id
-    const byItem = new Map();
-    for (const c of counts) {
-      const id = c?.item?.id;
-      if (id == null) continue;
-      const prev = byItem.get(id) || 0;
-      byItem.set(id, prev + 1);
-    }
-  
-    // Align arrays to session.items order
-    const totalByItem = [];
-    const timeCreditByItem = [];
+    // Calculate total time credit (corrected - count per-item and use per-item standards)
     let totalTimeCredit = 0;
-  
-    for (const it of items) {
-      const id = it?.id;
-      const countTotal = byItem.get(id) || 0;
-      const pph = stdById.get(id) ?? normalizePPH(it?.standard ?? 0);
-      const tci = pph > 0 ? countTotal / (pph / 3600) : 0; // seconds
-      totalByItem.push(countTotal);
-      timeCreditByItem.push(Number(tci.toFixed(2)));
-      totalTimeCredit += tci;
+    
+    // 1. Count how many of each item were produced in the truncated window
+    const perItemCounts = new Map(); // key: item.id
+    for (const c of counts) {
+      const id = c.item?.id;
+      if (id == null) continue;
+      perItemCounts.set(id, (perItemCounts.get(id) || 0) + 1);
+    }
+    
+    // 2. Calculate time credit for each item based on its actual count and standard
+    for (const [id, cnt] of perItemCounts) {
+      // Find the standard for this specific item from session.items
+      const item = session.items?.find(it => it && it.id === id);
+      if (item && item.standard) {
+        const pph = normalizePPH(item.standard);
+        if (pph > 0) {
+          totalTimeCredit += cnt / (pph / 3600); // seconds
+        }
+      }
     }
   
     totalTimeCredit = Number(totalTimeCredit.toFixed(2));
@@ -328,16 +287,20 @@ router.get("/analytics/machines-summary", async (req, res) => {
       workTimeSec,
       totalCount,
       misfeedCount,
-      totalTimeCredit,
-      totalByItem,
-      timeCreditByItem
+      totalTimeCredit
     };
     return session;
   }
   
   // Truncate a session to [start,end] and recalc
   function truncateAndRecalc(original, newStart, newEnd) {
-    const s = structuredClone(original);
+    // Only clone what we need to modify
+    const s = {
+      ...original,
+      timestamps: { ...original.timestamps },
+      counts: [...(original.counts || [])],
+      misfeeds: [...(original.misfeeds || [])]
+    };
   
     // Clamp timestamps
     const start = new Date(s.timestamps.start);
@@ -355,21 +318,9 @@ router.get("/analytics/machines-summary", async (req, res) => {
       return ts >= clampedStart && ts <= clampedEnd;
     };
   
-    s.counts = (s.counts || []).filter(inWindow);
-    s.misfeeds = (s.misfeeds || []).filter(inWindow);
+    s.counts = s.counts.filter(inWindow);
+    s.misfeeds = s.misfeeds.filter(inWindow);
   
-    return recalcSession(s);
-  }
-  
-  // Ensure a session has recalculated fields even if not truncated
-  function ensureRecalcIfMissing(s) {
-    if (!s || s._recalc) return s;
-    // For open sessions without end, cap at now to avoid runaway runtime
-    if (!s.timestamps?.end) {
-      const clone = structuredClone(s);
-      clone.timestamps = { ...clone.timestamps, end: new Date() };
-      return recalcSession(clone);
-    }
     return recalcSession(s);
   }
   
@@ -397,36 +348,14 @@ router.get("/analytics/machines-summary", async (req, res) => {
         name: status?.name ?? "Unknown"
       },
       metrics: {
-        runtime: {
-          total: runtimeMs,
-          formatted: formatDuration(runtimeMs)
-        },
-        downtime: {
-          total: downtimeMs,
-          formatted: formatDuration(downtimeMs)
-        },
-        output: {
-          totalCount,
-          misfeedCount
-        },
-        performance: {
-          availability: {
-            value: availability,
-            percentage: (availability * 100).toFixed(2)
-          },
-          throughput: {
-            value: throughput,
-            percentage: (throughput * 100).toFixed(2)
-          },
-          efficiency: {
-            value: efficiency,
-            percentage: (efficiency * 100).toFixed(2)
-          },
-          oee: {
-            value: oee,
-            percentage: (oee * 100).toFixed(2)
-          }
-        }
+        runtime: runtimeMs,
+        downtime: downtimeMs,
+        totalCount,
+        misfeedCount,
+        availability: (availability * 100).toFixed(2),
+        throughput: (throughput * 100).toFixed(2),
+        efficiency: (efficiency * 100).toFixed(2),
+        oee: (oee * 100).toFixed(2)
       },
       timeRange: {
         start: queryStart,
