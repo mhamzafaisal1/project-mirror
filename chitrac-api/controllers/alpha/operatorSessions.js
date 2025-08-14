@@ -130,8 +130,8 @@ router.get("/analytics/operators-summary", async (req, res) => {
   
             const totalMs = Math.max(0, queryEnd - queryStart);
             const downtimeMs = Math.max(0, totalMs - runtimeMs);
-            const availability = totalMs ? clamp01(runtimeMs / totalMs) : 0;
-            const throughput = (totalCount + misfeedCount) ? clamp01(totalCount / (totalCount + misfeedCount)) : 0;
+            const availability = totalMs ? (runtimeMs / totalMs) : 0;
+            const throughput = (totalCount + misfeedCount) ? (totalCount / (totalCount + misfeedCount)) : 0;
             const efficiency = workTimeSec > 0 ? totalTimeCredit / workTimeSec : 0;
             const oee = availability * throughput * efficiency;
   
