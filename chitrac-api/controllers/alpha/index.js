@@ -111,6 +111,10 @@ function constructor(server) {
   const operatorSessionsRoutes = require("./operatorSessions")(server);
   router.use("/", operatorSessionsRoutes);
 
+  // Import efficiency screen (sessions-powered) routes
+  const efficiencyScreenSessionRoutes = require("./efficiencyScreenSessionRoute")(server);
+  router.use("/", efficiencyScreenSessionRoutes);
+
   //Import dashboard-related routes
   const dashboardRoutes = require("./dashboardRoutes")(server);
   router.use("/", dashboardRoutes);

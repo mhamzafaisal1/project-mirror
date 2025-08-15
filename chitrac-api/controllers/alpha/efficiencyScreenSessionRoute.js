@@ -9,7 +9,7 @@ module.exports = function (server) {
   const logger = server.logger;
   const config = require('../../modules/config');
 
-  router.get('/analytics/machine-live-summary', async (req, res) => {
+  router.get('/analytics/machine-live-session-summary', async (req, res) => {
   try {
     const { serial, date } = req.query;
     if (!serial || !date) {
