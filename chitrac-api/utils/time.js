@@ -120,10 +120,14 @@ function calculateDuration(start, end) {
  * Formats duration into hours and minutes
  */
 function formatDuration(milliseconds) {
-  const dur = Duration.fromMillis(milliseconds);
-  const hours = Math.floor(dur.as("hours"));
-  const minutes = Math.floor(dur.minus({ hours }).as("minutes"));
-  return { hours, minutes };
+  if (isNaN(milliseconds)) {
+    return {hours:0, minutes: 0}
+  } else {
+    const dur = Duration.fromMillis(milliseconds);
+    const hours = Math.floor(dur.as("hours"));
+    const minutes = Math.floor(dur.minus({ hours }).as("minutes"));
+    return { hours, minutes };
+  }
 }
 
 /**
