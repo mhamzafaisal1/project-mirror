@@ -1,6 +1,7 @@
 const express = require("express");
 const config = require("../../modules/config");
 const { parseAndValidateQueryParams, formatDuration } = require("../../utils/time");
+const { getBookendedStatesAndTimeRange } = require("../../utils/bookendingBuilder");
 
 module.exports = function (server) {
   const router = express.Router();
@@ -445,6 +446,152 @@ router.get("/analytics/operator-item-sessions-summary", async (req, res) => {
       res.status(500).json({ error: "Failed to generate operator item summary report" });
     }
   });
+
+
+  // API route for item summary (sessions-based)
+router.get("/analytics/item-summary", async (req, res) => {
+  try {
+    const { start, end } = parseAndValidateQueryParams(req);
+    const queryStart = new Date(start);
+    const queryEnd = new Date(Math.min(new Date(end).getTime(), Date.now()));
+    if (!(queryStart < queryEnd)) {
+      return res.status(416).json({ error: "start must be before end" });
+    }
+
+    const itemSessColl = db.collection(config.itemSessionCollectionName || "item-session");
+    const activeSerials = await db
+      .collection(config.machineCollectionName || "machine")
+      .distinct("serial", { active: true });
+
+    const resultsMap = new Map();
+    const normalizePPH = (std) => {
+      const n = Number(std) || 0;
+      return n > 0 && n < 60 ? n * 60 : n; // PPM→PPH
+    };
+
+    for (const serial of activeSerials) {
+      // Clamp to actual running window per machine
+      const bookended = await getBookendedStatesAndTimeRange(db, serial, queryStart, queryEnd);
+      if (!bookended) continue;
+      const { sessionStart, sessionEnd } = bookended;
+
+      // Pull overlapping item-sessions
+      const sessions = await itemSessColl
+        .find({
+          "machine.serial": Number(serial),
+          "timestamps.start": { $lt: sessionEnd },
+          $or: [
+            { "timestamps.end": { $gt: sessionStart } },
+            { "timestamps.end": { $exists: false } },
+            { "timestamps.end": null },
+          ],
+        })
+        .project({
+          _id: 0,
+          item: 1,          // { id, name, standard }
+          items: 1,         // legacy single-item fallback
+          counts: 1,        // optional
+          totalCount: 1,    // optional rollup
+          workTime: 1,      // seconds
+          runtime: 1,       // seconds
+          activeStations: 1,
+          operators: 1,
+          timestamps: 1,
+        })
+        .toArray();
+
+      if (!sessions.length) continue;
+
+      for (const s of sessions) {
+        const itm = s.item || (Array.isArray(s.items) && s.items.length === 1 ? s.items[0] : null);
+        if (!itm || itm.id == null) continue;
+
+        const sessStart = s.timestamps?.start ? new Date(s.timestamps.start) : null;
+        const sessEnd = new Date(s.timestamps?.end || sessionEnd);
+        if (!sessStart || Number.isNaN(sessStart)) continue;
+
+        // Overlap with bookended window
+        const ovStart = sessStart > sessionStart ? sessStart : sessionStart;
+        const ovEnd = sessEnd < sessionEnd ? sessEnd : sessionEnd;
+        if (!(ovEnd > ovStart)) continue;
+
+        const sessSec = Math.max(0, (sessEnd - sessStart) / 1000);
+        const ovSec = Math.max(0, (ovEnd - ovStart) / 1000);
+        if (sessSec === 0 || ovSec === 0) continue;
+
+        // Worked time: prefer workTime, else runtime * stations; prorate by overlap
+        const stations = typeof s.activeStations === "number"
+          ? s.activeStations
+          : (Array.isArray(s.operators) ? s.operators.filter(o => o && o.id !== -1).length : 0);
+
+        const baseWorkSec = typeof s.workTime === "number"
+          ? s.workTime
+          : typeof s.runtime === "number"
+            ? s.runtime * Math.max(1, stations || 0)
+            : 0;
+
+        const workedSec = baseWorkSec > 0 ? baseWorkSec * (ovSec / sessSec) : 0;
+
+        // Counts in overlap: use explicit counts if present; else prorate totalCount
+        let countInWin = 0;
+        if (Array.isArray(s.counts) && s.counts.length) {
+          if (s.counts.length > 50000) {
+            countInWin = typeof s.totalCount === "number" ? Math.round(s.totalCount * (ovSec / sessSec)) : 0;
+          } else {
+            countInWin = s.counts.reduce((acc, c) => {
+              const t = new Date(c.timestamp);
+              const sameItem = !c.item?.id || c.item.id === itm.id;
+              return acc + (sameItem && t >= ovStart && t <= ovEnd ? 1 : 0);
+            }, 0);
+          }
+        } else if (typeof s.totalCount === "number") {
+          countInWin = Math.round(s.totalCount * (ovSec / sessSec));
+        }
+
+        const key = String(itm.id);
+        if (!resultsMap.has(key)) {
+          resultsMap.set(key, {
+            itemId: itm.id,
+            name: itm.name || "Unknown",
+            standard: itm.standard ?? 0,
+            count: 0,
+            workedSec: 0,
+          });
+        }
+        const acc = resultsMap.get(key);
+        acc.count += countInWin;
+        acc.workedSec += workedSec;
+        // keep first non-empty metadata
+        if (!acc.name && itm.name) acc.name = itm.name;
+        if (!acc.standard && itm.standard != null) acc.standard = itm.standard;
+      }
+    }
+
+    // Finalize same shape as your previous /item-summary
+    const results = Array.from(resultsMap.values()).map((entry) => {
+      const workedMs = Math.round(entry.workedSec * 1000);
+      const hours = workedMs / 3_600_000;
+      const pph = hours > 0 ? entry.count / hours : 0;
+      const stdPPH = normalizePPH(entry.standard);
+      const efficiencyPct = stdPPH > 0 ? (pph / stdPPH) * 100 : 0;
+
+      return {
+        itemName: entry.name,
+        workedTimeFormatted: formatDuration(workedMs),
+        count: entry.count,
+        pph: Math.round(pph * 100) / 100,
+        standard: entry.standard,
+        efficiency: Math.round(efficiencyPct * 100) / 100, // percent
+      };
+    });
+
+    res.json(results);
+  } catch (err) {
+    logger.error(`Error in ${req.method} ${req.originalUrl}:`, err);
+    res.status(500).json({ error: "Failed to generate item summary report" });
+  }
+});
+
   
 
   return router;
