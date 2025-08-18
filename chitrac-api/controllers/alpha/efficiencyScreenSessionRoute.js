@@ -214,11 +214,6 @@ module.exports = function (server) {
 
       totalTimeCreditSec += calculateTotalTimeCredit(inWindowCounts);
     }
-
-    if (sessions[0].operator.id === 170657) {
-      console.log('run: ' + runtimeSec);
-      console.log('credit: ' + totalTimeCreditSec);
-    }
     return { runtimeSec: Math.round(runtimeSec), totalTimeCreditSec: totalTimeCreditSec };
   }
 
