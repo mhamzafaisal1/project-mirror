@@ -12,6 +12,6 @@ export class EfficiencyScreensService {
     const params = new HttpParams()
       .set('serial', serial.toString())
       .set('date', new Date(date).toISOString().split('T')[0]);
-    return this.http.get('/api/alpha/analytics/machine-live-summary', { params });
+    return this.http.get('/api/alpha/analytics/machine-live-session-summary', { params });
   }
 }
