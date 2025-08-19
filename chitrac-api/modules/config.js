@@ -21,6 +21,7 @@ module.exports = {
   stateTickerCollectionName: 'stateTicker',
   machineSessionCollectionName: 'machine-session',
   operatorSessionCollectionName: 'operator-session',
+  faultSessionCollectionName: 'fault-session',
 
   jwtSecret: process.env.JWT_SECRET,
   logLevel: process.env.LOG_LEVEL || 'info',
