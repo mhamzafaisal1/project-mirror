@@ -92,7 +92,7 @@ export class ItemReportComponent implements OnInit, OnDestroy {
     const formattedStart = new Date(this.startTime).toISOString();
     const formattedEnd = new Date(this.endTime).toISOString();
 
-    this.analyticsService.getItemSummary(formattedStart, formattedEnd).subscribe({
+    this.analyticsService.getItemSessionSummary(formattedStart, formattedEnd).subscribe({
       next: (data: ItemSummary[]) => {
         const formattedData = data.map(item => ({
           'Item Name': item.itemName,

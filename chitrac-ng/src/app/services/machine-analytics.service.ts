@@ -83,6 +83,12 @@ export class MachineAnalyticsService {
     });
   }
 
+  getItemSessionSummary(start: string, end: string): Observable<any> {
+    return this.http.get('/api/alpha/analytics/item-sessions-summary', {
+      params: { start, end }
+    });
+  }
+
   
   getMachineItemSummary(start: string, end: string, serial:number): Observable<any> {
     return this.http.get(`${this.apiUrl}/analytics/machine-item-summary`, {
