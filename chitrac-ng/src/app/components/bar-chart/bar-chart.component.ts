@@ -106,7 +106,7 @@ export class BarChartComponent implements OnChanges, OnDestroy, AfterViewInit {
       .append('svg')
         .attr('width', width + margin.left + margin.right)
         .attr('height', height + margin.top + margin.bottom)
-        .style('font-family', `'Inter', sans-serif`)
+        //.style('font-family', `'Inter', sans-serif`)
         .style('font-size', '0.875rem');
 
     // Move title to the top of the SVG

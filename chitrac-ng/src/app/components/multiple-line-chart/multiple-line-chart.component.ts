@@ -52,7 +52,7 @@ export class MultipleLineChartComponent implements AfterViewInit {
   @Input() isDarkTheme: boolean = false;
 
   private chartWidth = 800;
-  private chartHeight = 500;
+  private chartHeight = 490;
   private margin = { top: 40, right: 150, bottom: 60, left: 60 };
 
   ngAfterViewInit() {
@@ -88,7 +88,7 @@ export class MultipleLineChartComponent implements AfterViewInit {
       .style("width", "100%")
       .style("height", "auto")
       .style("display", "block")
-      .style("font-family", "'Inter', sans-serif")
+      //.style("font-family", "'Inter', sans-serif")
       .style("font-size", "0.875rem");
 
     const rawMax = d3.max(transformedData, d =>

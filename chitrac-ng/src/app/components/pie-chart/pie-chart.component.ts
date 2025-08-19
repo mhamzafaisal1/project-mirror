@@ -56,7 +56,7 @@ export class PieChartComponent implements OnChanges, AfterViewInit {
       .attr('height', height)
       .style('display', 'block')
       .style('margin', '0 auto')
-      .style('font-family', "'Inter', sans-serif")
+      //.style('font-family', "'Inter', sans-serif")
       .style('font-size', '0.875rem')
       .append('g')
       .attr('transform', `translate(${width / 2}, ${height / 2})`);

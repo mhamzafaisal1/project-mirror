@@ -35,9 +35,9 @@ export class StackedBarChartV2Component implements AfterViewInit, OnDestroy {
   // @Input() isDarkTheme: boolean = true;
 
   private chartWidth = 800;
-  private chartHeight = 600;
-  private initialChartHeight = 600; // Store initial height
-  private margin = { top: 40, right: 150, bottom: 60, left: 60 };
+  private chartHeight = 575;
+  private initialChartHeight = this.chartHeight + 0; // Store initial height
+  private margin = { top: 40, right: 60, bottom: 60, left: 60 };
   private observer!: MutationObserver;
   private fullscreenListener!: () => void;
 
@@ -157,7 +157,7 @@ export class StackedBarChartV2Component implements AfterViewInit, OnDestroy {
       .append("svg")
       .attr("width", this.chartWidth)
       .attr("height", this.chartHeight)
-      .style("font-family", "'Inter', sans-serif")
+      //.style("font-family", "'Inter', sans-serif")
       .style("font-size", "0.875rem")
       .attr("shape-rendering", "crispEdges"); // Add crisp edges to eliminate anti-aliasing
 
@@ -176,14 +176,14 @@ export class StackedBarChartV2Component implements AfterViewInit, OnDestroy {
       .text(this.data.title);
 
     // Add legend
-    const legend = chart.append("g").attr("transform", "translate(0, 0)");
+    const legend = chart.append("g").attr("transform", "translate(-60, 0)");
 
     keys.forEach((key, i) => {
       const g = legend
         .append("g")
         .attr(
           "transform",
-          `translate(${(i % 5) * 120}, ${Math.floor(i / 5) * 16})`
+          `translate(${(i % 6) * 120}, ${Math.floor(i / 6) * 16})`
         );
       g.append("circle")
         .attr("r", 5)

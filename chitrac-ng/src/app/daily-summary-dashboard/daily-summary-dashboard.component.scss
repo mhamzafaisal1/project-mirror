@@ -27,7 +27,7 @@
     margin: 0;
     align-items: stretch;
   
-    &.dark-mode {
+    /*&.dark-mode {
       background-color: #1f1f1f;
       color: #e0e0e0;
     }
@@ -36,7 +36,7 @@
     &:not(.dark-mode) {
       background-color: #ffffff;
       color: #000000;
-    }
+    }*/
   }
 
   .tables-wrapper {

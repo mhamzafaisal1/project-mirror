@@ -13,7 +13,6 @@
 
       <div class="tables-container" [class.loading]="isLoading">
         <div class="table-section" *ngIf="machineRows.length">
-          <h2>Machines</h2>
           <base-table
           [class.dark]="isDarkTheme"
           [class.light]="!isDarkTheme"
@@ -27,7 +26,6 @@
         </div>
         
         <div class="table-section" *ngIf="operatorRows.length">
-          <h2>Operators</h2>
           <base-table
             [class.dark]="isDarkTheme"
             [class.light]="!isDarkTheme"
@@ -41,7 +39,6 @@
         </div>
     
         <div class="table-section" *ngIf="itemRows.length">
-          <h2>Items</h2>
           <base-table
             [class.dark]="isDarkTheme"
             [class.light]="!isDarkTheme"

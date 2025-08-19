@@ -157,7 +157,7 @@ export class StackedBarChartComponent implements AfterViewInit, OnDestroy {
       .append("svg")
       .attr("width", this.chartWidth)
       .attr("height", this.chartHeight)
-      .style("font-family", "'Inter', sans-serif")
+      //.style("font-family", ", sans-serif")
       .style("font-size", "0.875rem")
       .attr("shape-rendering", "crispEdges"); // Add crisp edges to eliminate anti-aliasing
 
@@ -175,8 +175,15 @@ export class StackedBarChartComponent implements AfterViewInit, OnDestroy {
       .style("fill", textColor)
       .text(this.data.title);
 
+      let legend;
     // Add legend
-    const legend = chart.append("g").attr("transform", "translate(0, 0)");
+    if (keys.length > 3) {
+      legend = chart.append("g").attr("transform", "translate(-60, 0)");
+    } else if (keys.length == 3) {
+      legend = chart.append("g").attr("transform", "translate(90, 0)");
+    } else {
+      legend = chart.append("g").attr("transform", "translate(0, 0)");
+    }
 
     keys.forEach((key, i) => {
       const g = legend

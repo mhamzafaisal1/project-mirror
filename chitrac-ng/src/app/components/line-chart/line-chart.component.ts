@@ -66,7 +66,7 @@ export class LineChartComponent implements OnChanges, AfterViewInit, OnDestroy {
       .attr('height', height)
       .style('display', 'block')
       .style('margin', '0 auto')
-      .style('font-family', "'Inter', sans-serif")
+      //.style('font-family', "'Inter', sans-serif")
       .style('font-size', '0.875rem');
 
     const chartTop = this.margin.top;
