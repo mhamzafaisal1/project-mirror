@@ -74,17 +74,36 @@ module.exports = function (server) {
 
             if (!sessions.length) return null;
 
-            // Most recent session for status + machine
             const mostRecent = sessions[sessions.length - 1];
-            const statusSource = mostRecent.endState || mostRecent.startState || {};
-            const currentStatus = {
-              code: statusSource?.status?.code ?? 0,
-              name: statusSource?.status?.name ?? "Unknown"
-            };
-            const currentMachine = {
-              serial: mostRecent?.machine?.serial ?? null,
-              name: mostRecent?.machine?.name ?? null
-            };
+            let currentMachine = {};
+            let statusSource = {};
+            let currentStatus = {};
+
+
+            if (mostRecent.endState) {
+              //Operator not currently running
+              currentMachine = {
+                serial: null,
+                name: null
+              };
+              statusSource = mostRecent.endState;
+              currentStatus = {
+                code: statusSource?.status?.code ?? 0,
+                name: statusSource?.status?.name ?? "Unknown"
+              };
+            } else {
+              currentMachine = {
+                serial: mostRecent?.machine?.serial ?? null,
+                name: mostRecent?.machine?.name ?? null
+              };
+              statusSource = mostRecent.startState;
+              currentStatus = {
+                code: statusSource?.status?.code ?? 0,
+                name: statusSource?.status?.name ?? "Unknown"
+              };
+            }
+
+            // Most recent session for status + machine
             const operatorName =
               mostRecent?.operator?.name ??
               sessions[0]?.operator?.name ??
