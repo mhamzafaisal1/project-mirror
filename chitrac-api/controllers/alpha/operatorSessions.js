@@ -38,8 +38,8 @@ module.exports = function (server) {
   router.get("/analytics/operators-summary", async (req, res) => {
     try {
       const { start, end } = parseAndValidateQueryParams(req);
-      const queryStart = new Date(DateTime.fromFormat(start, "yyyy-MM-dd'T'HH:mm").toISO()); //new Date(start); NEED LUXON FOR TIMEZONE ISSUES
-      let queryEnd = new Date(DateTime.fromFormat(end, "yyyy-MM-dd'T'HH:mm").toISO()); //new Date(end);
+      const queryStart = new Date(DateTime.fromMillis(start).toISO()); //new Date(start); NEED LUXON FOR TIMEZONE ISSUES
+      let queryEnd = new Date(DateTime.fromMillis(end).toISO()); //new Date(end);
       const now = new Date(DateTime.now().toISO());
       if (queryEnd > now) queryEnd = now;
       if (!(queryStart < queryEnd)) {
