@@ -30,7 +30,7 @@ svg text {
   fill: #e0e0e0;
 }
 
-:host-context(.dark-theme) {
+/*:host-context(.dark-theme) {
   background-color: #121212;
   color: #e0e0e0;
   // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); // optional dark mode depth
@@ -39,7 +39,7 @@ svg text {
 :host-context(.light-theme) {
   background-color: #ffffff;
   color: #000000;
-}
+}*/
 
 /* bar drop shadow */
 .hour-group rect {

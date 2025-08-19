@@ -24,7 +24,7 @@
 
 // ========== Theme: Dark ==========
 
-:host-context(.dark-theme) {
+/*:host-context(.dark-theme) {
   background-color: #121212;
   color: #e0e0e0;
 
@@ -48,7 +48,7 @@ svg text {
 
 :host-context(.dark-theme) svg text {
   fill: #e0e0e0;
-}
+}*/
 
 /* very subtle depth on bars (optional, for visual parity) */
 // .chart-container rect {
