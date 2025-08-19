@@ -57,7 +57,7 @@ module.exports = function (server) {
       let runtimeSec = 0;
       for (const s of msessions) {
         const { factor } = overlap(s.timestamps?.start, s.timestamps?.end, dayStart, dayEnd);
-        runtimeSec += safe(s.runtime) * factor; // runtime is stored in seconds (from simulator stats)
+        runtimeSec += safe(s.runtime) * factor; // runtime is stored in seconds 
       }
 
       let faultSec = 0;
@@ -85,7 +85,6 @@ module.exports = function (server) {
         serial,
         name: msessions[0]?.machine?.name || `Serial ${serial}`,
         runningMs,
-        // UI expects pausedMs; map computed downtime to pausedMs for compatibility
         pausedMs: downtimeMs,
         faultedMs
       };
@@ -134,7 +133,6 @@ module.exports = function (server) {
       return {
         serial,
         name: sessions[0]?.machine?.name || `Serial ${serial}`,
-        // Match original daily dashboard shape: only oee percentage
         oee: +(oee * 100).toFixed(2)
       };
     }));
@@ -148,7 +146,7 @@ module.exports = function (server) {
   async function buildTopOperatorEfficiencyFromSessions(db, dayStart, dayEnd) {
     const osColl = db.collection(config.operatorSessionCollectionName);
 
-    // quick agg to get operators who have a session overlapping today
+    //  agg to get operators who have a session overlapping today
     const operators = await osColl.aggregate([
       { $match: {
           "timestamps.start": { $lt: dayEnd },
