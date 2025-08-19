@@ -98,8 +98,8 @@ module.exports = function (server) {
               };
               statusSource = mostRecent.startState;
               currentStatus = {
-                code: statusSource?.status?.code ?? 0,
-                name: statusSource?.status?.name ?? "Unknown"
+                code: 1,
+                name: "Running"
               };
             }
 
