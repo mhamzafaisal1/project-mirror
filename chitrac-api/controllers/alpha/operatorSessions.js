@@ -43,7 +43,7 @@ module.exports = function (server) {
       const now = new Date(DateTime.now().toISO());
       if (queryEnd > now) queryEnd = now;
       if (!(queryStart < queryEnd)) {
-        return res.status(416).json({ error: "start must be before end" });
+        return res.status(416).json({ error: "start must be before end", queryStart, queryEnd });
       }
 
       const collName = config.operatorSessionCollectionName;
