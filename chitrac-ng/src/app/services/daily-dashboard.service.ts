@@ -45,7 +45,7 @@ export class DailyDashboardService {
   /** ✅ New consolidated route for entire dashboard */
   getFullDailyDashboard(start: string, end: string): Observable<any> {
     const params = new HttpParams().set('start', start).set('end', end);
-    return this.http.get(`${this.apiUrl}/analytics/daily-dashboard/full`, { params });
+    return this.http.get('/api/alpha/analytics/daily-sessions-dashboard', { params });
   }
 
   /** ✅ New summary dashboard route for machines, operators, and items */
