@@ -32,6 +32,6 @@ export class OperatorSummaryService {
       params = params.set('operatorId', operatorId.toString());
     }
 
-    return this.http.get<OperatorSummaryResponse[]>('/api/alpha/analytics/operator-item-summary', { params });
+    return this.http.get<OperatorSummaryResponse[]>('/api/alpha/analytics/operator-item-sessions-summary', { params });
   }
 }

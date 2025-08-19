@@ -119,6 +119,14 @@ function constructor(server) {
   const efficiencyScreenSessionRoutes = require("./efficiencyScreenSessionRoute")(server);
   router.use("/", efficiencyScreenSessionRoutes);
 
+  // Import reports (sessions-powered) routes
+  const reportsSessionRoutes = require("./reportsSessionRoutes")(server);
+  router.use("/", reportsSessionRoutes);
+
+  // Import item sessions (sessions-powered) routes
+  const itemSessionsRoutes = require("./itemSessions")(server);
+  router.use("/", itemSessionsRoutes);
+
   //Import dashboard-related routes
   const dashboardRoutes = require("./dashboardRoutes")(server);
   router.use("/", dashboardRoutes);

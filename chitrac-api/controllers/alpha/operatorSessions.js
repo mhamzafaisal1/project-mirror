@@ -2,6 +2,8 @@ const express = require('express');
 
 const { formatDuration } = require("../../utils/time");
 
+const { DateTime } = require("luxon");
+
 module.exports = function (server) {
   const router = express.Router();
 
@@ -36,9 +38,9 @@ module.exports = function (server) {
   router.get("/analytics/operators-summary", async (req, res) => {
     try {
       const { start, end } = parseAndValidateQueryParams(req);
-      const queryStart = new Date(start);
-      let queryEnd = new Date(end);
-      const now = new Date();
+      const queryStart = new Date(DateTime.fromISO(req.query.start).toISO()); //new Date(start); NEED LUXON FOR TIMEZONE ISSUES
+      let queryEnd = new Date(DateTime.fromISO(req.query.end).toISO()); //new Date(end);
+      const now = new Date(DateTime.now().toISO());
       if (queryEnd > now) queryEnd = now;
       if (!(queryStart < queryEnd)) {
         return res.status(416).json({ error: "start must be before end" });
@@ -74,17 +76,36 @@ module.exports = function (server) {
 
             if (!sessions.length) return null;
 
-            // Most recent session for status + machine
             const mostRecent = sessions[sessions.length - 1];
-            const statusSource = mostRecent.endState || mostRecent.startState || {};
-            const currentStatus = {
-              code: statusSource?.status?.code ?? 0,
-              name: statusSource?.status?.name ?? "Unknown"
-            };
-            const currentMachine = {
-              serial: mostRecent?.machine?.serial ?? null,
-              name: mostRecent?.machine?.name ?? null
-            };
+            let currentMachine = {};
+            let statusSource = {};
+            let currentStatus = {};
+
+
+            if (mostRecent.endState) {
+              //Operator not currently running
+              currentMachine = {
+                serial: null,
+                name: null
+              };
+              statusSource = mostRecent.endState;
+              currentStatus = {
+                code: statusSource?.status?.code ?? 0,
+                name: statusSource?.status?.name ?? "Unknown"
+              };
+            } else {
+              currentMachine = {
+                serial: mostRecent?.machine?.serial ?? null,
+                name: mostRecent?.machine?.name ?? null
+              };
+              statusSource = mostRecent.startState;
+              currentStatus = {
+                code: 1,
+                name: "Running"
+              };
+            }
+
+            // Most recent session for status + machine
             const operatorName =
               mostRecent?.operator?.name ??
               sessions[0]?.operator?.name ??

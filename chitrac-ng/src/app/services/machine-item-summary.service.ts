@@ -46,6 +46,6 @@ export class MachineItemSummaryService {
       params = params.set('serial', machineSerial);
     }
 
-    return this.http.get<MachineItemSummaryResponse[]>('/api/alpha/analytics/machine-item-summary', { params });
+    return this.http.get<MachineItemSummaryResponse[]>('/api/alpha/analytics/machine-item-sessions-summary', { params });
   }
 }
