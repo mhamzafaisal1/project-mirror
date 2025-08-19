@@ -449,7 +449,7 @@ router.get("/analytics/operator-item-sessions-summary", async (req, res) => {
 
 
   // API route for item summary (sessions-based)
-router.get("/analytics/item-summary", async (req, res) => {
+router.get("/analytics/item-sessions-summary", async (req, res) => {
   try {
     const { start, end } = parseAndValidateQueryParams(req);
     const queryStart = new Date(start);
