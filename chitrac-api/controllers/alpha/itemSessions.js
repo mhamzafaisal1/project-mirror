@@ -9,7 +9,7 @@ module.exports = function (server) {
   const logger = server.logger;
 
   // /analytics/item-dashboard-summary — sessions-based, using item-sessions and bookending helper
-  router.get("/analytics/item-dashboard-summary", async (req, res) => {
+  router.get("/analytics/items-summary", async (req, res) => {
     try {
       const { start, end } = parseAndValidateQueryParams(req);
 
