@@ -214,8 +214,7 @@ module.exports = function (server) {
 
       totalTimeCreditSec += calculateTotalTimeCredit(inWindowCounts);
     }
-
-    return { runtimeSec: Math.round(runtimeSec), totalTimeCreditSec: round2(totalTimeCreditSec) };
+    return { runtimeSec: Math.round(runtimeSec), totalTimeCreditSec: totalTimeCreditSec };
   }
 
 // Resolve batch item name string (concatenate with " + " if multiple)
@@ -258,7 +257,7 @@ module.exports = function (server) {
     const byItem = {};
     for (const r of countRecords) {
       const it = r.item || {};
-      const key = `${it.id}-${it.name || ''}`;
+      const key = `${it.id}`;
       if (!byItem[key]) byItem[key] = { count: 0, standard: Number(it.standard) || 0 };
       byItem[key].count += 1;
     }
@@ -268,6 +267,7 @@ module.exports = function (server) {
       const perHour = standard > 0 && standard < 60 ? standard * 60 : standard; // treat <60 as PPM
       if (perHour > 0) {
         total += count / (perHour / 3600); // seconds of time credit
+        
       }
     }
     return round2(total);

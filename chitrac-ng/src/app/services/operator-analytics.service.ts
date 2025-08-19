@@ -23,10 +23,10 @@ export class OperatorAnalyticsService {
 
   getOperatorSummary(startTime: string, endTime: string): Observable<any> {
     const params = new HttpParams()
-      .set('startTime', startTime)
-      .set('endTime', endTime);
+      .set('start', startTime)
+      .set('end', endTime);
 
-    return this.http.get('/api/alpha/analytics/operator-summary', { params });
+    return this.http.get('/api/alpha/analytics/operators-summary', { params });
   }
 
   getOperatorDetails(start: string, end: string, operatorId: number): Observable<any> {
