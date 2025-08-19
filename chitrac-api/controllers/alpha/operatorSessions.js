@@ -38,12 +38,12 @@ module.exports = function (server) {
   router.get("/analytics/operators-summary", async (req, res) => {
     try {
       const { start, end } = parseAndValidateQueryParams(req);
-      const queryStart = new Date(DateTime.fromISO(req.start).toISO()); //new Date(start); NEED LUXON FOR TIMEZONE ISSUES
-      let queryEnd = new Date(DateTime.fromISO(req.end).toISO()); //new Date(end);
+      const queryStart = new Date(DateTime.fromISO(req.query.start).toISO()); //new Date(start); NEED LUXON FOR TIMEZONE ISSUES
+      let queryEnd = new Date(DateTime.fromISO(req.query.end).toISO()); //new Date(end);
       const now = new Date(DateTime.now().toISO());
       if (queryEnd > now) queryEnd = now;
       if (!(queryStart < queryEnd)) {
-        return res.status(416).json({ error: "start must be before end", queryStart ,queryEnd });
+        return res.status(416).json({ error: "start must be before end" });
       }
 
       const collName = config.operatorSessionCollectionName;
