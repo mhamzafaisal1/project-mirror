@@ -38,6 +38,7 @@ module.exports = function (server) {
     buildItemHourlyStack,
     buildFaultData,
     buildOperatorEfficiency,
+    buildCurrentOperators,
   } = require("../../utils/machineDashboardBuilder");
 
   const {
@@ -488,12 +489,14 @@ module.exports = function (server) {
             itemHourlyStack,
             faultData,
             operatorEfficiency,
+            currentOperators,
           ] = await Promise.all([
             buildMachinePerformance(states, counts.valid, counts.misfeed, sessionStart, sessionEnd),
             buildMachineItemSummary(states, counts.valid, sessionStart, sessionEnd),
             buildItemHourlyStack(counts.valid, sessionStart, sessionEnd),
             buildFaultData(states, sessionStart, sessionEnd),
             buildOperatorEfficiency(states, counts.valid, sessionStart, sessionEnd, machineSerial),
+            buildCurrentOperators(db, machineSerial),
           ]);
       
           return {
@@ -510,6 +513,7 @@ module.exports = function (server) {
             itemHourlyStack,
             faultData,
             operatorEfficiency,
+            currentOperators,
           };
         })
       );
